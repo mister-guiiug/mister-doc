@@ -27,5 +27,5 @@ export function useTheme() {
     [apply]
   );
 
-  return { theme, toggle };
+  return { theme, toggle, setTheme: apply };
 }

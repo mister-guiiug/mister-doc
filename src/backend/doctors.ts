@@ -28,6 +28,15 @@ export async function updateMyProfile(
   return data as Doctor;
 }
 
+/**
+ * Supprime la demande d'accès du compte connecté (compte « en attente »
+ * uniquement) : retire la fiche médecin et l'utilisateur d'authentification.
+ */
+export async function deleteMyAccount(): Promise<void> {
+  const { error } = await getSupabase().rpc('delete_my_account');
+  if (error) throw new Error(error.message);
+}
+
 /** Devenir le premier admin via le code de bootstrap. */
 export async function claimAdmin(code: string): Promise<Doctor> {
   const { data, error } = await getSupabase().rpc('claim_admin', {

@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Clock, LogOut, KeyRound, Loader2 } from 'lucide-react';
+import { Clock, LogOut, KeyRound, Loader2, Trash2 } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth.ts';
-import { claimAdmin } from '../../backend/doctors.ts';
+import { claimAdmin, deleteMyAccount } from '../../backend/doctors.ts';
 
 export function PendingScreen() {
   const { doctor, signOut, refreshDoctor } = useAuth();
@@ -9,6 +9,25 @@ export function PendingScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showCode, setShowCode] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDelete() {
+    if (
+      !confirm(
+        'Supprimer définitivement votre demande d’accès ? Vous pourrez vous réinscrire avec la même adresse.'
+      )
+    )
+      return;
+    setError(null);
+    setDeleting(true);
+    try {
+      await deleteMyAccount();
+      await signOut();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur inconnue');
+      setDeleting(false);
+    }
+  }
 
   async function handleClaim(e: React.FormEvent) {
     e.preventDefault();
@@ -74,12 +93,26 @@ export function PendingScreen() {
           )}
         </div>
 
-        <button
-          onClick={() => void signOut()}
-          className="mx-auto mt-6 flex items-center gap-1 text-sm text-slate-400 hover:text-slate-600"
-        >
-          <LogOut className="size-4" /> Se déconnecter
-        </button>
+        <div className="mt-6 flex flex-col items-center gap-3">
+          <button
+            onClick={() => void signOut()}
+            className="flex items-center gap-1 text-sm text-slate-400 hover:text-slate-600"
+          >
+            <LogOut className="size-4" /> Se déconnecter
+          </button>
+          <button
+            onClick={() => void handleDelete()}
+            disabled={deleting}
+            className="flex items-center gap-1 text-sm font-medium text-red-500 hover:text-red-600 disabled:opacity-60"
+          >
+            {deleting ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Trash2 className="size-4" />
+            )}
+            Supprimer ma demande
+          </button>
+        </div>
       </div>
     </div>
   );

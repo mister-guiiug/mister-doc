@@ -8,6 +8,8 @@ import {
   LockOpen,
   Eye,
   AlertTriangle,
+  List,
+  LayoutGrid,
 } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth.ts';
 import { useToast } from '../../components/Toast.tsx';
@@ -59,6 +61,7 @@ import {
 } from '../../backend/locks.ts';
 import { Counters } from './Counters.tsx';
 import { MonthGrid } from './MonthGrid.tsx';
+import { MonthCalendarGrid } from './MonthCalendarGrid.tsx';
 import { AssignDialog, type SlotTarget } from './AssignDialog.tsx';
 import { LeaveDialog } from './LeaveDialog.tsx';
 import { NoteDialog } from './NoteDialog.tsx';
@@ -83,6 +86,16 @@ export function PlanningView() {
   const [leaveDate, setLeaveDate] = useState<string | null>(null);
   const [noteDate, setNoteDate] = useState<string | null>(null);
   const [highlightId, setHighlightId] = useState<string | null>(null);
+  const [view, setView] = useState<'list' | 'grid'>(() => {
+    try {
+      return localStorage.getItem('mister-doc:view') === 'list' ? 'list' : 'grid';
+    } catch {
+      return 'grid';
+    }
+  });
+  const [isDesktop, setIsDesktop] = useState(
+    () => window.matchMedia('(min-width: 1024px)').matches
+  );
   const dayRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const touchX = useRef<number | null>(null);
 
@@ -121,6 +134,13 @@ export function PlanningView() {
   useEffect(() => subscribeNotes(() => void loadData()), [loadData]);
   useEffect(() => subscribeWishes(() => void loadData()), [loadData]);
   useEffect(() => subscribeLocks(() => void listLocks().then(setLocks)), []);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const on = () => setIsDesktop(mq.matches);
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, []);
 
   const weeks = useMemo(() => weeksOfMonth(year, month), [year, month]);
   const doctorsById = useMemo(() => new Map(doctors.map(d => [d.id, d])), [doctors]);
@@ -168,6 +188,15 @@ export function PlanningView() {
     const dt = new Date(year, month + delta, 1);
     setYear(dt.getFullYear());
     setMonth(dt.getMonth());
+  }
+
+  function changeView(v: 'list' | 'grid') {
+    setView(v);
+    try {
+      localStorage.setItem('mister-doc:view', v);
+    } catch {
+      /* ignore */
+    }
   }
 
   async function handleAssign(doctorId: string) {
@@ -415,14 +444,44 @@ export function PlanningView() {
           </button>
         )}
 
-        <button
-          onClick={() => void loadData()}
-          className="ml-auto rounded-xl border border-slate-200 bg-white p-2 text-slate-500 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800"
-          aria-label="Rafraîchir"
-          title="Rafraîchir"
-        >
-          <RefreshCw className={`size-5 ${refreshing ? 'animate-spin' : ''}`} />
-        </button>
+        <div className="ml-auto flex items-center gap-2">
+          {/* Bascule liste / grille (desktop uniquement — la grille 7 colonnes
+              n'a pas de sens sur petit écran). */}
+          <div className="hidden items-center rounded-xl border border-slate-200 bg-white p-1 lg:flex dark:border-slate-800 dark:bg-slate-900">
+            <button
+              onClick={() => changeView('list')}
+              aria-pressed={view === 'list'}
+              title="Vue liste (par semaine)"
+              className={`flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-medium transition ${
+                view === 'list'
+                  ? 'bg-teal-600 text-white'
+                  : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              <List className="size-4" /> Liste
+            </button>
+            <button
+              onClick={() => changeView('grid')}
+              aria-pressed={view === 'grid'}
+              title="Vue grille (7 colonnes)"
+              className={`flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-medium transition ${
+                view === 'grid'
+                  ? 'bg-teal-600 text-white'
+                  : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              <LayoutGrid className="size-4" /> Grille
+            </button>
+          </div>
+          <button
+            onClick={() => void loadData()}
+            className="rounded-xl border border-slate-200 bg-white p-2 text-slate-500 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800"
+            aria-label="Rafraîchir"
+            title="Rafraîchir"
+          >
+            <RefreshCw className={`size-5 ${refreshing ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -444,26 +503,45 @@ export function PlanningView() {
         </button>
       )}
 
-      {doctor && (
-        <MonthGrid
-          weeks={weeks}
-          shiftIndex={shiftIndex}
-          leavesByDate={leavesByDate}
-          notesByDate={notesByDate}
-          issuesByDate={issuesByDate}
-          wishesByDate={wishesByDate}
-          doctorsById={doctorsById}
-          selfDoctorId={doctor.id}
-          highlightId={highlightId}
-          locked={locked}
-          onSlotClick={(iso, shiftType: ShiftType) => setSlot({ iso, shiftType })}
-          onAddLeave={iso => setLeaveDate(iso)}
-          onRemoveLeave={leave => void handleRemoveLeave(leave)}
-          onEditNote={iso => setNoteDate(iso)}
-          onCycleWish={iso => void handleCycleWish(iso)}
-          dayRefs={dayRefs}
-        />
-      )}
+      {doctor &&
+        (isDesktop && view === 'grid' ? (
+          <MonthCalendarGrid
+            weeks={weeks}
+            shiftIndex={shiftIndex}
+            leavesByDate={leavesByDate}
+            notesByDate={notesByDate}
+            wishesByDate={wishesByDate}
+            doctorsById={doctorsById}
+            selfDoctorId={doctor.id}
+            highlightId={highlightId}
+            locked={locked}
+            onSlotClick={(iso, shiftType: ShiftType) => setSlot({ iso, shiftType })}
+            onAddLeave={iso => setLeaveDate(iso)}
+            onRemoveLeave={leave => void handleRemoveLeave(leave)}
+            onEditNote={iso => setNoteDate(iso)}
+            onCycleWish={iso => void handleCycleWish(iso)}
+            dayRefs={dayRefs}
+          />
+        ) : (
+          <MonthGrid
+            weeks={weeks}
+            shiftIndex={shiftIndex}
+            leavesByDate={leavesByDate}
+            notesByDate={notesByDate}
+            issuesByDate={issuesByDate}
+            wishesByDate={wishesByDate}
+            doctorsById={doctorsById}
+            selfDoctorId={doctor.id}
+            highlightId={highlightId}
+            locked={locked}
+            onSlotClick={(iso, shiftType: ShiftType) => setSlot({ iso, shiftType })}
+            onAddLeave={iso => setLeaveDate(iso)}
+            onRemoveLeave={leave => void handleRemoveLeave(leave)}
+            onEditNote={iso => setNoteDate(iso)}
+            onCycleWish={iso => void handleCycleWish(iso)}
+            dayRefs={dayRefs}
+          />
+        ))}
 
       {slot && doctor && (
         <AssignDialog

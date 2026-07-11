@@ -8,6 +8,13 @@ const { version } = JSON.parse(readFileSync('./package.json', 'utf-8')) as {
   version: string;
 };
 
+// Identifiant de build UNIQUE : sha court du commit en CI, sinon horodatage.
+// Sert à afficher une version distincte à chaque déploiement et à confirmer
+// qu'un « forcer la mise à jour » a bien chargé le dernier bundle.
+const buildId =
+  (process.env.GITHUB_SHA ?? '').slice(0, 7) ||
+  new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '');
+
 // Déployé sur GitHub Pages : https://mister-guiiug.github.io/mister-doc/
 export default defineConfig(({ command }) => {
   // Honore VITE_BASE_PATH (deploy → /mister-doc/, dev/preview local → /) ;
@@ -19,6 +26,7 @@ export default defineConfig(({ command }) => {
     base: basePath,
     define: {
       __APP_VERSION__: JSON.stringify(version),
+      __BUILD_ID__: JSON.stringify(buildId),
     },
     build: {
       sourcemap: true,
