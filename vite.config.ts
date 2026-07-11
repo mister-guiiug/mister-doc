@@ -38,7 +38,6 @@ export default defineConfig(({ command }) => {
               return 'react-vendor';
             }
             if (norm.includes('/react-router')) return 'router';
-            if (norm.includes('/zod/')) return 'zod';
             return 'vendor';
           },
         },
