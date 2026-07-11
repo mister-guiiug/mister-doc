@@ -51,3 +51,21 @@ export interface AppSettings {
   /** Compter le Lundi de Pentecôte comme férié (couverture réduite). */
   pentecote_ferie?: boolean;
 }
+
+export interface Notification {
+  id: string;
+  doctor_id: string;
+  type: string;
+  title: string;
+  body: string | null;
+  work_date: string | null;
+  read: boolean;
+  created_at: string;
+}
+
+export interface BackupMeta {
+  id: string;
+  kind: 'auto' | 'manual';
+  size: number | null;
+  created_at: string;
+}

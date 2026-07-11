@@ -23,6 +23,7 @@ import { getSettings, setSettings as saveSettings } from '../../backend/settings
 import { setIncludePentecote } from '../../lib/dates.ts';
 import { FullScreenSpinner } from '../../components/Spinner.tsx';
 import { ProfileDialog } from '../../components/ProfileDialog.tsx';
+import { BackupCard } from './BackupCard.tsx';
 import { DOCTOR_COLORS, DEFAULT_DOCTOR_COLOR } from '../../lib/colors.ts';
 
 const COLORS = DOCTOR_COLORS;
@@ -123,6 +124,8 @@ export function AdminPanel() {
           </span>
         </label>
       </Card>
+
+      <BackupCard />
 
       {/* Comptes en attente */}
       <Card

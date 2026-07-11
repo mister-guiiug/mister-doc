@@ -13,6 +13,7 @@ import { updateMyProfile } from '../backend/doctors.ts';
 import { ProfileDialog } from './ProfileDialog.tsx';
 import { CalendarDialog } from './CalendarDialog.tsx';
 import { ThemeToggle } from './ThemeToggle.tsx';
+import { NotificationsBell } from './NotificationsBell.tsx';
 
 export function Header() {
   const { doctor, signOut, refreshDoctor } = useAuth();
@@ -59,6 +60,7 @@ export function Header() {
         </nav>
 
         <div className="ml-auto flex items-center gap-1 sm:gap-2">
+          {doctor && <NotificationsBell />}
           <ThemeToggle />
           {doctor && (
             <button
