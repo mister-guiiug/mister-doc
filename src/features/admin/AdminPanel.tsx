@@ -7,6 +7,7 @@ import {
   Trash2,
   Clock,
   Loader2,
+  Pencil,
 } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth.ts';
 import type { Doctor } from '../../backend/types.ts';
@@ -14,20 +15,14 @@ import {
   adminAddRoster,
   adminDeleteDoctor,
   adminSetDoctor,
+  adminUpdateDoctor,
   listDoctors,
 } from '../../backend/doctors.ts';
 import { FullScreenSpinner } from '../../components/Spinner.tsx';
+import { ProfileDialog } from '../../components/ProfileDialog.tsx';
+import { DOCTOR_COLORS, DEFAULT_DOCTOR_COLOR } from '../../lib/colors.ts';
 
-const COLORS = [
-  '#2563eb',
-  '#0f766e',
-  '#db2777',
-  '#d97706',
-  '#7c3aed',
-  '#dc2626',
-  '#059669',
-  '#0891b2',
-];
+const COLORS = DOCTOR_COLORS;
 
 export function AdminPanel() {
   const { doctor: self, refreshDoctor } = useAuth();
@@ -36,7 +31,8 @@ export function AdminPanel() {
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
-  const [newColor, setNewColor] = useState(COLORS[1]);
+  const [newColor, setNewColor] = useState<string>(DEFAULT_DOCTOR_COLOR);
+  const [editDoc, setEditDoc] = useState<Doctor | null>(null);
 
   const reload = useCallback(async () => {
     try {
@@ -206,6 +202,14 @@ export function AdminPanel() {
                   )}
                 </div>
 
+                <button
+                  onClick={() => setEditDoc(d)}
+                  title="Renommer"
+                  className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
+                >
+                  <Pencil className="size-4" />
+                </button>
+
                 {hasAccount && !isSelf && (
                   <button
                     disabled={busyId === d.id}
@@ -244,6 +248,20 @@ export function AdminPanel() {
           })}
         </ul>
       </Card>
+
+      {editDoc && (
+        <ProfileDialog
+          title={`Renommer — ${editDoc.name}`}
+          initialName={editDoc.name}
+          initialColor={editDoc.color}
+          onSave={async (name, color) => {
+            await adminUpdateDoctor(editDoc.id, name, color);
+            await reload();
+            await refreshDoctor();
+          }}
+          onClose={() => setEditDoc(null)}
+        />
+      )}
     </div>
   );
 }

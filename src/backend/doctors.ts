@@ -61,6 +61,21 @@ export async function adminSetDoctor(
   return data as Doctor;
 }
 
+/** Admin : renommer / recolorer n'importe quel médecin (compte ou roster). */
+export async function adminUpdateDoctor(
+  id: string,
+  name: string,
+  color: string
+): Promise<Doctor> {
+  const { data, error } = await getSupabase().rpc('admin_update_doctor', {
+    p_id: id,
+    p_name: name,
+    p_color: color,
+  });
+  if (error) throw new Error(error.message);
+  return data as Doctor;
+}
+
 export async function adminAddRoster(
   name: string,
   color = '#2563eb'

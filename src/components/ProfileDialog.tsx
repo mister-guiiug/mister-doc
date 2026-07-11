@@ -1,0 +1,124 @@
+import { useState } from 'react';
+import { X, Loader2, Check } from 'lucide-react';
+import { DOCTOR_COLORS } from '../lib/colors.ts';
+
+/**
+ * Dialogue d'édition du nom (et de la couleur) d'un médecin. Réutilisé pour
+ * l'auto-édition de profil et pour le renommage par un admin.
+ */
+export function ProfileDialog({
+  title,
+  initialName,
+  initialColor,
+  onSave,
+  onClose,
+}: {
+  title: string;
+  initialName: string;
+  initialColor: string;
+  onSave: (name: string, color: string) => Promise<void>;
+  onClose: () => void;
+}) {
+  const [name, setName] = useState(initialName);
+  const [color, setColor] = useState(initialColor);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmed = name.trim();
+    if (!trimmed) {
+      setError('Le nom ne peut pas être vide.');
+      return;
+    }
+    setError(null);
+    setBusy(true);
+    try {
+      await onSave(trimmed, color);
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-40 grid place-items-end bg-black/40 sm:place-items-center"
+      onClick={onClose}
+    >
+      <form
+        onSubmit={handleSubmit}
+        className="w-full max-w-sm rounded-t-2xl bg-white p-5 shadow-xl dark:bg-slate-900 sm:rounded-2xl"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="font-semibold">{title}</h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+          >
+            <X className="size-5" />
+          </button>
+        </div>
+
+        <label className="mb-3 flex flex-col gap-1 text-sm">
+          <span className="font-medium text-slate-600 dark:text-slate-300">
+            Nom affiché
+          </span>
+          <input
+            value={name}
+            onChange={e => setName(e.target.value)}
+            placeholder="Nom du médecin"
+            autoFocus
+            className="rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:border-slate-600 dark:bg-slate-800"
+          />
+        </label>
+
+        <div className="mb-4">
+          <span className="mb-1.5 block text-sm font-medium text-slate-600 dark:text-slate-300">
+            Couleur
+          </span>
+          <div className="flex flex-wrap gap-2">
+            {DOCTOR_COLORS.map(c => (
+              <button
+                type="button"
+                key={c}
+                onClick={() => setColor(c)}
+                className={`grid size-7 place-items-center rounded-full transition ${
+                  color === c ? 'ring-2 ring-slate-400 ring-offset-2' : ''
+                }`}
+                style={{ backgroundColor: c }}
+                aria-label={`Couleur ${c}`}
+              >
+                {color === c && <Check className="size-4 text-white" />}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
+
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 rounded-lg border border-slate-300 py-2 text-sm font-medium dark:border-slate-600"
+          >
+            Annuler
+          </button>
+          <button
+            type="submit"
+            disabled={busy}
+            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-teal-600 py-2 text-sm font-semibold text-white disabled:opacity-60"
+          >
+            {busy && <Loader2 className="size-4 animate-spin" />}
+            Enregistrer
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}

@@ -1,9 +1,13 @@
+import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { CalendarDays, LogOut, Shield } from 'lucide-react';
+import { CalendarDays, LogOut, Shield, Pencil } from 'lucide-react';
 import { useAuth } from '../auth/useAuth.ts';
+import { updateMyProfile } from '../backend/doctors.ts';
+import { ProfileDialog } from './ProfileDialog.tsx';
 
 export function Header() {
-  const { doctor, signOut } = useAuth();
+  const { doctor, signOut, refreshDoctor } = useAuth();
+  const [editing, setEditing] = useState(false);
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     `rounded-lg px-3 py-1.5 text-sm font-medium transition ${
@@ -37,13 +41,18 @@ export function Header() {
 
         <div className="ml-auto flex items-center gap-3">
           {doctor && (
-            <span className="hidden items-center gap-2 text-sm text-slate-600 dark:text-slate-300 sm:flex">
+            <button
+              onClick={() => setEditing(true)}
+              title="Modifier mon nom / ma couleur"
+              className="group flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-600 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+            >
               <span
-                className="inline-block size-3 rounded-full"
+                className="inline-block size-3 shrink-0 rounded-full"
                 style={{ backgroundColor: doctor.color }}
               />
-              {doctor.name}
-            </span>
+              <span className="hidden sm:inline">{doctor.name}</span>
+              <Pencil className="size-3.5 text-slate-400 opacity-0 transition group-hover:opacity-100" />
+            </button>
           )}
           <button
             onClick={() => void signOut()}
@@ -55,6 +64,19 @@ export function Header() {
           </button>
         </div>
       </div>
+
+      {editing && doctor && (
+        <ProfileDialog
+          title="Mon profil"
+          initialName={doctor.name}
+          initialColor={doctor.color}
+          onSave={async (name, color) => {
+            await updateMyProfile(name, color);
+            await refreshDoctor();
+          }}
+          onClose={() => setEditing(false)}
+        />
+      )}
     </header>
   );
 }
