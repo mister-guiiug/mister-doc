@@ -1,81 +1,79 @@
-import { CalendarClock, CalendarHeart, Clock, Sigma } from 'lucide-react';
+import { CalendarHeart } from 'lucide-react';
 import { computeCounters, type CountableShift } from '../../lib/shifts.ts';
-import type { Shift } from '../../backend/types.ts';
+import { computeLeaveStats, type CountableLeave } from '../../lib/leaves.ts';
+import type { Leave, Shift } from '../../backend/types.ts';
 
 /**
- * Compteurs du médecin connecté sur le mois affiché : nombre de vendredis,
- * samedis, dimanches de garde, total d'heures de week-end (ven+sam+dim) et
- * total d'heures.
+ * Compteurs compacts du médecin connecté sur le mois affiché : vendredis /
+ * samedis / dimanches de garde, heures week-end (ven+sam+dim), heures totales,
+ * jours de congé annuel et heures de formation.
  */
 export function Counters({
   shifts,
+  leaves,
   doctorId,
   monthLabel,
 }: {
   shifts: Shift[];
+  leaves: Leave[];
   doctorId: string;
   monthLabel: string;
 }) {
-  const mine: CountableShift[] = shifts
+  const mineShifts: CountableShift[] = shifts
     .filter(s => s.doctor_id === doctorId)
     .map(s => ({ work_date: s.work_date, shift_type: s.shift_type }));
-  const c = computeCounters(mine);
+  const mineLeaves: CountableLeave[] = leaves
+    .filter(l => l.doctor_id === doctorId)
+    .map(l => ({ kind: l.kind, hours: l.hours }));
+  const c = computeCounters(mineShifts);
+  const l = computeLeaveStats(mineLeaves);
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-      <div className="mb-3 flex items-center gap-2">
-        <CalendarHeart className="size-5 text-teal-600" />
-        <h2 className="font-semibold">Mes compteurs — {monthLabel}</h2>
+    <section className="rounded-2xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div className="mb-2 flex items-center gap-1.5 text-sm font-semibold">
+        <CalendarHeart className="size-4 text-teal-600" />
+        Mes compteurs
+        <span className="font-normal capitalize text-slate-400">
+          · {monthLabel}
+        </span>
       </div>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-        <Stat label="Vendredis" value={c.fridays} icon={<CalendarClock />} />
-        <Stat label="Samedis" value={c.saturdays} icon={<CalendarClock />} />
-        <Stat label="Dimanches" value={c.sundays} icon={<CalendarClock />} />
-        <Stat
-          label="Heures week-end"
-          hint="ven + sam + dim"
-          value={`${c.weekendHours} h`}
-          icon={<Clock />}
-          accent
-        />
-        <Stat
-          label="Heures totales"
-          value={`${c.totalHours} h`}
-          icon={<Sigma />}
-          accent
-        />
+      <div className="flex flex-wrap gap-1.5">
+        <Pill label="Ven" value={c.fridays} />
+        <Pill label="Sam" value={c.saturdays} />
+        <Pill label="Dim" value={c.sundays} />
+        <Pill label="WE" value={`${c.weekendHours} h`} accent />
+        <Pill label="Total" value={`${c.totalHours} h`} accent />
+        <Pill label="Congés" value={`${l.annualDays} j`} tone="violet" />
+        <Pill label="Formation" value={`${l.trainingHours} h`} tone="amber" />
       </div>
     </section>
   );
 }
 
-function Stat({
+function Pill({
   label,
   value,
-  hint,
-  icon,
   accent,
+  tone,
 }: {
   label: string;
   value: number | string;
-  hint?: string;
-  icon: React.ReactNode;
   accent?: boolean;
+  tone?: 'violet' | 'amber';
 }) {
+  const cls = tone
+    ? tone === 'violet'
+      ? 'border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-900 dark:bg-violet-950/40 dark:text-violet-300'
+      : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300'
+    : accent
+      ? 'border-teal-200 bg-teal-50 text-teal-800 dark:border-teal-900 dark:bg-teal-950/40 dark:text-teal-200'
+      : 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-200';
   return (
-    <div
-      className={`flex flex-col gap-0.5 rounded-xl border p-3 ${
-        accent
-          ? 'border-teal-200 bg-teal-50 dark:border-teal-900 dark:bg-teal-950/40'
-          : 'border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-800/40'
-      }`}
+    <span
+      className={`inline-flex items-baseline gap-1 rounded-lg border px-2 py-1 text-xs ${cls}`}
     >
-      <span className="flex items-center gap-1 text-xs font-medium text-slate-500 dark:text-slate-400">
-        <span className="[&>svg]:size-3.5">{icon}</span>
-        {label}
-      </span>
-      <span className="text-2xl font-bold tabular-nums">{value}</span>
-      {hint && <span className="text-[10px] text-slate-400">{hint}</span>}
-    </div>
+      <span className="text-[10px] uppercase opacity-70">{label}</span>
+      <span className="text-sm font-bold tabular-nums">{value}</span>
+    </span>
   );
 }

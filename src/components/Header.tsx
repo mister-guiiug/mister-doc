@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { CalendarDays, LogOut, Shield, Pencil } from 'lucide-react';
+import { CalendarDays, LogOut, Shield, Pencil, BarChart3 } from 'lucide-react';
 import { useAuth } from '../auth/useAuth.ts';
 import { updateMyProfile } from '../backend/doctors.ts';
 import { ProfileDialog } from './ProfileDialog.tsx';
@@ -17,8 +17,8 @@ export function Header() {
     }`;
 
   return (
-    <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/85 backdrop-blur dark:border-slate-800 dark:bg-slate-900/85">
-      <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3">
+    <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/85 pt-[env(safe-area-inset-top)] backdrop-blur dark:border-slate-800 dark:bg-slate-900/85">
+      <div className="mx-auto flex max-w-5xl items-center gap-2 px-3 py-3 sm:gap-3 sm:px-4">
         <div className="flex items-center gap-2 font-bold">
           <span className="grid size-8 place-items-center rounded-lg bg-teal-600 text-white">
             <CalendarDays className="size-5" />
@@ -31,11 +31,20 @@ export function Header() {
             Planning
           </NavLink>
           {doctor?.is_admin && (
-            <NavLink to="/admin" className={linkClass}>
-              <span className="flex items-center gap-1">
-                <Shield className="size-4" /> Admin
-              </span>
-            </NavLink>
+            <>
+              <NavLink to="/compteurs" className={linkClass} title="Compteurs">
+                <span className="flex items-center gap-1">
+                  <BarChart3 className="size-4" />
+                  <span className="hidden sm:inline">Compteurs</span>
+                </span>
+              </NavLink>
+              <NavLink to="/admin" className={linkClass} title="Admin">
+                <span className="flex items-center gap-1">
+                  <Shield className="size-4" />
+                  <span className="hidden sm:inline">Admin</span>
+                </span>
+              </NavLink>
+            </>
           )}
         </nav>
 
