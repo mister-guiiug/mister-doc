@@ -1,14 +1,10 @@
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Star } from 'lucide-react';
+import type { MonthDay } from '../../lib/dates.ts';
+import { WEEKDAY_LABELS } from '../../lib/dates.ts';
 import {
-  WEEKDAY_LABELS,
-  type MonthDay,
-  fromISODate,
-} from '../../lib/dates.ts';
-import {
-  SHIFT_TYPES,
   SHIFT_LABEL,
   SHIFT_HOURS,
-  PRIMARY_SHIFT,
+  activeShiftTypes,
   type ShiftType,
 } from '../../lib/shifts.ts';
 import type { Doctor, Shift } from '../../backend/types.ts';
@@ -70,13 +66,13 @@ function DayRow({
   selfDoctorId: string;
   onSlotClick: (iso: string, shiftType: ShiftType) => void;
 }) {
-  const d = fromISODate(day.iso);
-  const primaryMissing = !shiftIndex.has(`${day.iso}|${PRIMARY_SHIFT}`);
+  const types = activeShiftTypes(day.date);
+  const missing = types.filter(t => !shiftIndex.has(`${day.iso}|${t}`)).length;
 
   return (
     <div
       className={`grid grid-cols-1 gap-2 rounded-xl border p-2.5 sm:grid-cols-[9rem_1fr] sm:items-center ${
-        day.weekend
+        day.reduced
           ? 'border-teal-200 bg-teal-50/60 dark:border-teal-900/60 dark:bg-teal-950/20'
           : 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900'
       }`}
@@ -84,27 +80,33 @@ function DayRow({
       <div className="flex items-center gap-2">
         <span
           className={`grid size-9 shrink-0 place-items-center rounded-lg text-sm font-bold ${
-            day.weekend
+            day.reduced
               ? 'bg-teal-600 text-white'
               : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200'
           }`}
         >
-          {d.getDate()}
+          {day.date.getDate()}
         </span>
-        <div className="flex flex-col leading-tight">
+        <div className="flex min-w-0 flex-col leading-tight">
           <span className="text-sm font-medium">
             {WEEKDAY_LABELS[day.weekday]}
           </span>
-          {primaryMissing && (
-            <span className="flex items-center gap-1 text-[11px] font-medium text-amber-600">
-              <AlertTriangle className="size-3" /> à couvrir
+          {day.holiday && (
+            <span className="flex items-center gap-1 truncate text-[11px] font-medium text-amber-600">
+              <Star className="size-3 shrink-0" />
+              <span className="truncate">{day.holidayName}</span>
+            </span>
+          )}
+          {missing > 0 && (
+            <span className="flex items-center gap-1 text-[11px] font-medium text-red-500">
+              <AlertTriangle className="size-3" /> {missing} à couvrir
             </span>
           )}
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
-        {SHIFT_TYPES.map(type => {
+        {types.map(type => {
           const shift = shiftIndex.get(`${day.iso}|${type}`);
           const doctor = shift ? doctorsById.get(shift.doctor_id) : undefined;
           const mine = shift?.doctor_id === selfDoctorId;

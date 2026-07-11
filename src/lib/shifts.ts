@@ -1,4 +1,12 @@
-import { fromISODate, isFriday, isSaturday, isSunday, isWeekend } from './dates.ts';
+import {
+  fromISODate,
+  isFriday,
+  isSaturday,
+  isSunday,
+  isVsd,
+  isSatSun,
+  isHoliday,
+} from './dates.ts';
 
 /**
  * Créneaux de garde et leur base horaire (donnée par le métier) :
@@ -21,11 +29,22 @@ export const SHIFT_LABEL: Record<ShiftType, string> = {
   S3: 'S3',
 };
 
-/** Créneau « principal » qui doit être couvert chaque jour (1 médecin/jour). */
+/** Créneau « principal » présent tous les jours. */
 export const PRIMARY_SHIFT: ShiftType = 'S1J';
+
+/** Créneaux actifs le week-end et les jours fériés (couverture réduite). */
+export const WEEKEND_SHIFT_TYPES: readonly ShiftType[] = ['S1J', 'S1N'];
 
 export function isShiftType(v: string): v is ShiftType {
   return (SHIFT_TYPES as readonly string[]).includes(v);
+}
+
+/**
+ * Créneaux à couvrir pour une date donnée : les 4 en semaine, mais seulement
+ * `S1J` et `S1N` le samedi, le dimanche et les jours fériés.
+ */
+export function activeShiftTypes(date: Date): readonly ShiftType[] {
+  return isSatSun(date) || isHoliday(date) ? WEEKEND_SHIFT_TYPES : SHIFT_TYPES;
 }
 
 /** Une affectation minimale nécessaire au calcul des compteurs. */
@@ -61,7 +80,7 @@ export function computeCounters(shifts: CountableShift[]): DoctorCounters {
     const d = fromISODate(s.work_date);
     const h = SHIFT_HOURS[s.shift_type] ?? 0;
     totalHours += h;
-    if (isWeekend(d)) weekendHours += h;
+    if (isVsd(d)) weekendHours += h;
     if (isFriday(d)) fri.add(s.work_date);
     if (isSaturday(d)) sat.add(s.work_date);
     if (isSunday(d)) sun.add(s.work_date);

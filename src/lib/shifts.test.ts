@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeCounters, SHIFT_HOURS } from './shifts.ts';
+import { activeShiftTypes, computeCounters, SHIFT_HOURS } from './shifts.ts';
 import { isoWeek } from './dates.ts';
 
 describe('SHIFT_HOURS', () => {
@@ -13,6 +13,28 @@ describe('isoWeek', () => {
     expect(isoWeek(new Date(2026, 0, 1))).toBe(1); // jeudi 1 janv → S1
     expect(isoWeek(new Date(2026, 0, 5))).toBe(2); // lundi 5 janv → S2
     expect(isoWeek(new Date(2026, 11, 31))).toBe(53); // 2026 a 53 semaines ISO
+  });
+});
+
+describe('activeShiftTypes', () => {
+  it('propose les 4 créneaux un jour de semaine ordinaire', () => {
+    // 2026-07-07 = mardi
+    expect(activeShiftTypes(new Date(2026, 6, 7))).toEqual([
+      'S1J',
+      'S1N',
+      'S2J',
+      'S3',
+    ]);
+  });
+
+  it('réduit à S1J/S1N le samedi et le dimanche', () => {
+    expect(activeShiftTypes(new Date(2026, 6, 4))).toEqual(['S1J', 'S1N']); // sam
+    expect(activeShiftTypes(new Date(2026, 6, 5))).toEqual(['S1J', 'S1N']); // dim
+  });
+
+  it('réduit à S1J/S1N un jour férié en semaine', () => {
+    expect(activeShiftTypes(new Date(2026, 4, 1))).toEqual(['S1J', 'S1N']); // 1er mai (ven)
+    expect(activeShiftTypes(new Date(2026, 3, 6))).toEqual(['S1J', 'S1N']); // Lundi de Pâques
   });
 });
 
