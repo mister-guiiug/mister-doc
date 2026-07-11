@@ -1,13 +1,22 @@
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { CalendarDays, LogOut, Shield, Pencil, BarChart3 } from 'lucide-react';
+import {
+  CalendarDays,
+  LogOut,
+  Shield,
+  Pencil,
+  BarChart3,
+  CalendarPlus,
+} from 'lucide-react';
 import { useAuth } from '../auth/useAuth.ts';
 import { updateMyProfile } from '../backend/doctors.ts';
 import { ProfileDialog } from './ProfileDialog.tsx';
+import { CalendarDialog } from './CalendarDialog.tsx';
 
 export function Header() {
   const { doctor, signOut, refreshDoctor } = useAuth();
   const [editing, setEditing] = useState(false);
+  const [calendar, setCalendar] = useState(false);
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     `rounded-lg px-3 py-1.5 text-sm font-medium transition ${
@@ -48,7 +57,16 @@ export function Header() {
           )}
         </nav>
 
-        <div className="ml-auto flex items-center gap-3">
+        <div className="ml-auto flex items-center gap-2 sm:gap-3">
+          {doctor && (
+            <button
+              onClick={() => setCalendar(true)}
+              title="S'abonner au calendrier"
+              className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-teal-600 dark:hover:bg-slate-800"
+            >
+              <CalendarPlus className="size-5" />
+            </button>
+          )}
           {doctor && (
             <button
               onClick={() => setEditing(true)}
@@ -84,6 +102,13 @@ export function Header() {
             await refreshDoctor();
           }}
           onClose={() => setEditing(false)}
+        />
+      )}
+
+      {calendar && doctor && (
+        <CalendarDialog
+          selfDoctorId={doctor.id}
+          onClose={() => setCalendar(false)}
         />
       )}
     </header>

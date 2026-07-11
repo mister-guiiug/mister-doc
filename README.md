@@ -76,6 +76,27 @@ puis renseignez le code de bootstrap :
 update public.app_config set bootstrap_code = 'VOTRE-CODE-SECRET' where id = 1;
 ```
 
+## Calendrier (flux .ics)
+
+Un flux **iCalendar** récapitule tout le planning (gardes + congés + formations),
+servi par l'Edge Function Supabase [`supabase/functions/calendar`](supabase/functions/calendar/index.ts) :
+
+```
+https://<ref>.supabase.co/functions/v1/calendar?token=SECRET          # toute l'équipe
+https://<ref>.supabase.co/functions/v1/calendar?token=SECRET&doctor=ID # un médecin
+```
+
+L'accès est protégé par un token secret (colonne `app_config.calendar_token`) ;
+la fonction lit les données via la clé `service_role` et est déployée avec
+`verify_jwt = false` (les agendas ne peuvent pas envoyer de JWT). Dans l'app, le
+bouton **Calendrier** de l'en-tête affiche l'URL d'abonnement (équipe ou
+personnelle) avec liens webcal / Google Agenda / téléchargement. Les médecins
+approuvés récupèrent le token via la RPC `calendar_token()`.
+
+Déploiement de la fonction : `supabase functions deploy calendar --no-verify-jwt`
+(ou via l'API Management). Définir ensuite le token :
+`update public.app_config set calendar_token = 'SECRET' where id = 1;`
+
 ## Déploiement (GitHub Pages)
 
 Le workflow [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)
