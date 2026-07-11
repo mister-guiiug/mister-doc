@@ -55,9 +55,12 @@ API). Le fichier `.env` est ignoré par git.
 ```bash
 npm install
 cp .env.example .env      # puis renseignez URL + clé anon (Supabase → Settings → API)
-npm run icons             # génère les icônes PWA (public/icons)
 npm run dev               # http://localhost:5173
 ```
+
+Les icônes PWA sont versionnées dans `public/icons/`. Pour les régénérer
+(optionnel), installez `sharp` puis lancez le script :
+`npm i -D sharp && npm run icons`.
 
 Scripts utiles : `npm run build`, `npm run preview`, `npm run test`,
 `npm run lint`, `npm run type-check`.
