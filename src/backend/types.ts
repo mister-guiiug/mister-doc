@@ -69,3 +69,27 @@ export interface BackupMeta {
   size: number | null;
   created_at: string;
 }
+
+export type WishKind = 'prefer' | 'avoid';
+export interface Wish {
+  id: string;
+  doctor_id: string;
+  work_date: string;
+  kind: WishKind;
+  note: string | null;
+  created_at: string;
+}
+
+export type SwapStatus = 'pending' | 'accepted' | 'declined' | 'cancelled';
+export interface SwapRequest {
+  id: string;
+  work_date: string;
+  shift_type: ShiftType;
+  from_doctor: string;
+  to_doctor: string | null;
+  status: SwapStatus;
+  message: string | null;
+  created_at: string;
+  resolved_at: string | null;
+  resolved_by: string | null;
+}

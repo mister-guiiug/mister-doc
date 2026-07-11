@@ -21,6 +21,8 @@ import type {
   Leave,
   LockedMonth,
   Shift,
+  Wish,
+  WishKind,
 } from '../../backend/types.ts';
 import { listDoctors } from '../../backend/doctors.ts';
 import {
@@ -41,6 +43,13 @@ import {
   setNote,
   subscribeNotes,
 } from '../../backend/notes.ts';
+import {
+  clearWish,
+  listMonthWishes,
+  setWish,
+  subscribeWishes,
+} from '../../backend/wishes.ts';
+import { proposeSwap } from '../../backend/swaps.ts';
 import {
   isMonthLocked,
   listLocks,
@@ -65,6 +74,7 @@ export function PlanningView() {
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [leaves, setLeaves] = useState<Leave[]>([]);
   const [notes, setNotes] = useState<DayNote[]>([]);
+  const [wishes, setWishes] = useState<Wish[]>([]);
   const [locks, setLocks] = useState<LockedMonth[]>([]);
   const [firstLoad, setFirstLoad] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -79,14 +89,16 @@ export function PlanningView() {
   const loadData = useCallback(async () => {
     setRefreshing(true);
     try {
-      const [s, l, n] = await Promise.all([
+      const [s, l, n, w] = await Promise.all([
         listMonthShifts(year, month),
         listMonthLeaves(year, month),
         listMonthNotes(year, month),
+        listMonthWishes(year, month),
       ]);
       setShifts(s);
       setLeaves(l);
       setNotes(n);
+      setWishes(w);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur de chargement');
@@ -107,6 +119,7 @@ export function PlanningView() {
   useEffect(() => subscribeShifts(() => void loadData()), [loadData]);
   useEffect(() => subscribeLeaves(() => void loadData()), [loadData]);
   useEffect(() => subscribeNotes(() => void loadData()), [loadData]);
+  useEffect(() => subscribeWishes(() => void loadData()), [loadData]);
   useEffect(() => subscribeLocks(() => void listLocks().then(setLocks)), []);
 
   const weeks = useMemo(() => weeksOfMonth(year, month), [year, month]);
@@ -128,6 +141,11 @@ export function PlanningView() {
     () => new Map(notes.map(n => [n.work_date, n])),
     [notes]
   );
+  const wishesByDate = useMemo(() => {
+    const m = new Map<string, Wish[]>();
+    for (const w of wishes) (m.get(w.work_date) ?? m.set(w.work_date, []).get(w.work_date)!).push(w);
+    return m;
+  }, [wishes]);
   const issuesByDate = useMemo(
     () => computeIssues(shifts, leaves, nameById),
     [shifts, leaves, nameById]
@@ -239,6 +257,53 @@ export function PlanningView() {
     }
   }
 
+  async function handleCycleWish(iso: string) {
+    if (!doctor) return;
+    const cur = wishes.find(
+      w => w.work_date === iso && w.doctor_id === doctor.id
+    )?.kind;
+    const next: WishKind | null =
+      cur === undefined ? 'prefer' : cur === 'prefer' ? 'avoid' : null;
+    // Optimiste
+    setWishes(list => {
+      const others = list.filter(
+        w => !(w.work_date === iso && w.doctor_id === doctor.id)
+      );
+      if (next === null) return others;
+      const existing = list.find(
+        w => w.work_date === iso && w.doctor_id === doctor.id
+      );
+      return [
+        ...others,
+        {
+          id: existing?.id ?? `tmp-${iso}`,
+          doctor_id: doctor.id,
+          work_date: iso,
+          kind: next,
+          note: null,
+          created_at: existing?.created_at ?? '',
+        },
+      ];
+    });
+    try {
+      if (next === null) await clearWish(doctor.id, iso);
+      else await setWish(doctor.id, iso, next, null);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erreur');
+      await loadData();
+    }
+  }
+
+  async function handlePropose(toDoctor: string | null, message: string) {
+    if (!slot) return;
+    try {
+      await proposeSwap(slot.iso, slot.shiftType, toDoctor, message);
+      toast.success('Proposition d’échange envoyée.');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erreur');
+    }
+  }
+
   async function toggleLock() {
     try {
       if (locked) await unlockMonth(year, month);
@@ -258,6 +323,12 @@ export function PlanningView() {
   const currentShift = slot
     ? shiftIndex.get(`${slot.iso}|${slot.shiftType}`)
     : undefined;
+  const slotDayWishes = useMemo(() => {
+    const m = new Map<string, WishKind>();
+    if (slot)
+      for (const w of wishesByDate.get(slot.iso) ?? []) m.set(w.doctor_id, w.kind);
+    return m;
+  }, [slot, wishesByDate]);
 
   if (firstLoad) return <FullScreenSpinner label="Chargement du planning…" />;
 
@@ -380,6 +451,7 @@ export function PlanningView() {
           leavesByDate={leavesByDate}
           notesByDate={notesByDate}
           issuesByDate={issuesByDate}
+          wishesByDate={wishesByDate}
           doctorsById={doctorsById}
           selfDoctorId={doctor.id}
           highlightId={highlightId}
@@ -388,6 +460,7 @@ export function PlanningView() {
           onAddLeave={iso => setLeaveDate(iso)}
           onRemoveLeave={leave => void handleRemoveLeave(leave)}
           onEditNote={iso => setNoteDate(iso)}
+          onCycleWish={iso => void handleCycleWish(iso)}
           dayRefs={dayRefs}
         />
       )}
@@ -400,8 +473,10 @@ export function PlanningView() {
           selfDoctorId={doctor.id}
           monthShifts={shifts}
           leaves={leaves}
+          dayWishes={slotDayWishes}
           onAssign={handleAssign}
           onClear={handleClearSlot}
+          onPropose={handlePropose}
           onClose={() => setSlot(null)}
         />
       )}

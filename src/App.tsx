@@ -17,6 +17,9 @@ const AllCounters = lazy(() =>
     default: m.AllCounters,
   }))
 );
+const SwapBoard = lazy(() =>
+  import('./features/swaps/SwapBoard.tsx').then(m => ({ default: m.SwapBoard }))
+);
 
 function AdminRoute({ children }: { children: ReactNode }) {
   const { doctor } = useAuth();
@@ -36,6 +39,7 @@ export default function App() {
                 <Suspense fallback={<FullScreenSpinner label="Chargement…" />}>
                   <Routes>
                     <Route path="/" element={<PlanningView />} />
+                    <Route path="/echanges" element={<SwapBoard />} />
                     <Route
                       path="/compteurs"
                       element={

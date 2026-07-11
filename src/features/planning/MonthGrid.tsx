@@ -1,4 +1,14 @@
-import { AlertTriangle, Star, Plus, X, StickyNote, Lock } from 'lucide-react';
+import {
+  AlertTriangle,
+  Star,
+  Plus,
+  X,
+  StickyNote,
+  Lock,
+  ThumbsUp,
+  ThumbsDown,
+  Heart,
+} from 'lucide-react';
 import type { MonthDay } from '../../lib/dates.ts';
 import { WEEKDAY_LABELS } from '../../lib/dates.ts';
 import {
@@ -9,7 +19,7 @@ import {
 } from '../../lib/shifts.ts';
 import { LEAVE_SHORT } from '../../lib/leaves.ts';
 import type { Issue } from '../../lib/validation.ts';
-import type { Doctor, DayNote, Leave, Shift } from '../../backend/types.ts';
+import type { Doctor, DayNote, Leave, Shift, Wish } from '../../backend/types.ts';
 
 export function MonthGrid({
   weeks,
@@ -17,6 +27,7 @@ export function MonthGrid({
   leavesByDate,
   notesByDate,
   issuesByDate,
+  wishesByDate,
   doctorsById,
   selfDoctorId,
   highlightId,
@@ -25,6 +36,7 @@ export function MonthGrid({
   onAddLeave,
   onRemoveLeave,
   onEditNote,
+  onCycleWish,
   dayRefs,
 }: {
   weeks: { week: number; days: MonthDay[] }[];
@@ -32,6 +44,7 @@ export function MonthGrid({
   leavesByDate: Map<string, Leave[]>;
   notesByDate: Map<string, DayNote>;
   issuesByDate: Map<string, Issue[]>;
+  wishesByDate: Map<string, Wish[]>;
   doctorsById: Map<string, Doctor>;
   selfDoctorId: string;
   highlightId: string | null;
@@ -40,6 +53,7 @@ export function MonthGrid({
   onAddLeave: (iso: string) => void;
   onRemoveLeave: (leave: Leave) => void;
   onEditNote: (iso: string) => void;
+  onCycleWish: (iso: string) => void;
   dayRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
 }) {
   return (
@@ -64,6 +78,7 @@ export function MonthGrid({
                 leaves={leavesByDate.get(day.iso) ?? []}
                 note={notesByDate.get(day.iso)}
                 issues={issuesByDate.get(day.iso) ?? []}
+                wishes={wishesByDate.get(day.iso) ?? []}
                 doctorsById={doctorsById}
                 selfDoctorId={selfDoctorId}
                 highlightId={highlightId}
@@ -72,6 +87,7 @@ export function MonthGrid({
                 onAddLeave={onAddLeave}
                 onRemoveLeave={onRemoveLeave}
                 onEditNote={onEditNote}
+                onCycleWish={onCycleWish}
                 setRef={el => (dayRefs.current[day.iso] = el)}
               />
             ))}
@@ -88,6 +104,7 @@ function DayRow({
   leaves,
   note,
   issues,
+  wishes,
   doctorsById,
   selfDoctorId,
   highlightId,
@@ -96,6 +113,7 @@ function DayRow({
   onAddLeave,
   onRemoveLeave,
   onEditNote,
+  onCycleWish,
   setRef,
 }: {
   day: MonthDay;
@@ -103,6 +121,7 @@ function DayRow({
   leaves: Leave[];
   note?: DayNote;
   issues: Issue[];
+  wishes: Wish[];
   doctorsById: Map<string, Doctor>;
   selfDoctorId: string;
   highlightId: string | null;
@@ -111,11 +130,17 @@ function DayRow({
   onAddLeave: (iso: string) => void;
   onRemoveLeave: (leave: Leave) => void;
   onEditNote: (iso: string) => void;
+  onCycleWish: (iso: string) => void;
   setRef: (el: HTMLDivElement | null) => void;
 }) {
   const types = activeShiftTypes(day.date);
   const missing = types.filter(t => !shiftIndex.has(`${day.iso}|${t}`)).length;
   const dim = (id?: string) => highlightId != null && id !== highlightId;
+  const myWish = wishes.find(w => w.doctor_id === selfDoctorId)?.kind;
+  const prefers = wishes.filter(w => w.kind === 'prefer');
+  const avoids = wishes.filter(w => w.kind === 'avoid');
+  const wishNames = (arr: Wish[]) =>
+    arr.map(w => doctorsById.get(w.doctor_id)?.name ?? '?').join(', ');
 
   return (
     <div
@@ -278,6 +303,49 @@ function DayRow({
           >
             <Plus className="size-3" /> Congé / Formation
           </button>
+        )}
+
+        <button
+          onClick={() => onCycleWish(day.iso)}
+          title="Mon vœu : dispo / indispo (clic pour changer)"
+          className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium transition ${
+            myWish === 'prefer'
+              ? 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
+              : myWish === 'avoid'
+                ? 'border-rose-300 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-300'
+                : 'border-dashed border-slate-300 text-slate-500 dark:border-slate-600'
+          }`}
+        >
+          {myWish === 'prefer' ? (
+            <>
+              <ThumbsUp className="size-3" /> Dispo
+            </>
+          ) : myWish === 'avoid' ? (
+            <>
+              <ThumbsDown className="size-3" /> Indispo
+            </>
+          ) : (
+            <>
+              <Heart className="size-3" /> Vœu
+            </>
+          )}
+        </button>
+
+        {(prefers.length > 0 || avoids.length > 0) && (
+          <span className="flex items-center gap-1.5 text-[11px] text-slate-400">
+            {prefers.length > 0 && (
+              <span title={`Dispo : ${wishNames(prefers)}`} className="flex items-center gap-0.5">
+                <ThumbsUp className="size-3 text-emerald-500" />
+                {prefers.length}
+              </span>
+            )}
+            {avoids.length > 0 && (
+              <span title={`Indispo : ${wishNames(avoids)}`} className="flex items-center gap-0.5">
+                <ThumbsDown className="size-3 text-rose-500" />
+                {avoids.length}
+              </span>
+            )}
+          </span>
         )}
 
         {locked && (

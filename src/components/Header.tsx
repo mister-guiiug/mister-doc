@@ -7,6 +7,7 @@ import {
   Pencil,
   BarChart3,
   CalendarPlus,
+  Repeat,
 } from 'lucide-react';
 import { useAuth } from '../auth/useAuth.ts';
 import { updateMyProfile } from '../backend/doctors.ts';
@@ -41,6 +42,14 @@ export function Header() {
           <NavLink to="/" end className={linkClass}>
             Planning
           </NavLink>
+          {doctor && (
+            <NavLink to="/echanges" className={linkClass} title="Échanges">
+              <span className="flex items-center gap-1">
+                <Repeat className="size-4" />
+                <span className="hidden sm:inline">Échanges</span>
+              </span>
+            </NavLink>
+          )}
           {doctor?.is_admin && (
             <>
               <NavLink to="/compteurs" className={linkClass} title="Compteurs">

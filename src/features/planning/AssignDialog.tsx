@@ -1,5 +1,16 @@
 import { useMemo, useState } from 'react';
-import { Trash2, UserPlus, X, Loader2, Check, AlertTriangle, Moon } from 'lucide-react';
+import {
+  Trash2,
+  UserPlus,
+  X,
+  Loader2,
+  Check,
+  AlertTriangle,
+  Moon,
+  Repeat,
+  ThumbsUp,
+  ThumbsDown,
+} from 'lucide-react';
 import { WEEKDAY_LABELS, fromISODate, mondayIndex } from '../../lib/dates.ts';
 import { SHIFT_LABEL, SHIFT_HOURS, type ShiftType } from '../../lib/shifts.ts';
 import {
@@ -7,7 +18,7 @@ import {
   doctorsWorking,
   violatesRest,
 } from '../../lib/validation.ts';
-import type { Doctor, Leave, Shift } from '../../backend/types.ts';
+import type { Doctor, Leave, Shift, WishKind } from '../../backend/types.ts';
 import { Modal } from '../../components/Modal.tsx';
 
 export interface SlotTarget {
@@ -22,8 +33,10 @@ export function AssignDialog({
   selfDoctorId,
   monthShifts,
   leaves,
+  dayWishes,
   onAssign,
   onClear,
+  onPropose,
   onClose,
 }: {
   target: SlotTarget;
@@ -32,12 +45,18 @@ export function AssignDialog({
   selfDoctorId: string;
   monthShifts: Shift[];
   leaves: Leave[];
+  dayWishes: Map<string, WishKind>;
   onAssign: (doctorId: string) => Promise<void>;
   onClear: () => Promise<void>;
+  onPropose: (toDoctor: string | null, message: string) => Promise<void>;
   onClose: () => void;
 }) {
   const [query, setQuery] = useState('');
   const [busy, setBusy] = useState(false);
+  const [swapOpen, setSwapOpen] = useState(false);
+  const [swapTarget, setSwapTarget] = useState('');
+  const [swapMsg, setSwapMsg] = useState('');
+  const isMine = currentShift?.doctor_id === selfDoctorId;
 
   const d = fromISODate(target.iso);
   const dayLabel = `${WEEKDAY_LABELS[mondayIndex(d)]} ${d.getDate()}`;
@@ -111,6 +130,56 @@ export function AssignDialog({
             <Trash2 className="size-4" /> Libérer le créneau
           </button>
         )}
+
+        {isMine && !swapOpen && (
+          <button
+            onClick={() => setSwapOpen(true)}
+            className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 py-2 text-sm font-medium transition hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-800"
+          >
+            <Repeat className="size-4" /> Proposer un échange
+          </button>
+        )}
+        {isMine && swapOpen && (
+          <div className="mt-2 flex flex-col gap-2 rounded-lg border border-slate-200 p-2 dark:border-slate-700">
+            <select
+              value={swapTarget}
+              onChange={e => setSwapTarget(e.target.value)}
+              className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm dark:border-slate-600 dark:bg-slate-800"
+            >
+              <option value="">Ouvert à tous</option>
+              {doctors
+                .filter(d => d.id !== selfDoctorId)
+                .map(d => (
+                  <option key={d.id} value={d.id}>
+                    {d.name}
+                  </option>
+                ))}
+            </select>
+            <input
+              value={swapMsg}
+              onChange={e => setSwapMsg(e.target.value)}
+              placeholder="Message (facultatif)"
+              className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm dark:border-slate-600 dark:bg-slate-800"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => setSwapOpen(false)}
+                className="flex-1 rounded-lg border border-slate-300 py-1.5 text-sm dark:border-slate-600"
+              >
+                Annuler
+              </button>
+              <button
+                disabled={busy}
+                onClick={() =>
+                  void run(() => onPropose(swapTarget || null, swapMsg))
+                }
+                className="flex-1 rounded-lg bg-teal-600 py-1.5 text-sm font-semibold text-white disabled:opacity-50"
+              >
+                Proposer
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="p-3">
@@ -176,6 +245,18 @@ export function AssignDialog({
                   >
                     de garde
                   </span>
+                )}
+                {dayWishes.get(doc.id) === 'prefer' && (
+                  <ThumbsUp
+                    className="size-3.5 text-emerald-500"
+                    aria-label="préfère ce jour"
+                  />
+                )}
+                {dayWishes.get(doc.id) === 'avoid' && (
+                  <ThumbsDown
+                    className="size-3.5 text-rose-500"
+                    aria-label="évite ce jour"
+                  />
                 )}
                 <span className="tabular-nums text-[11px] text-slate-400">
                   {hours}h
