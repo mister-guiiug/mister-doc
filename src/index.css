@@ -26,3 +26,22 @@ body {
 [data-theme='dark'] body {
   background: #020617;
 }
+
+/* Impression : masque la navigation et les contrôles, garde le planning. */
+@media print {
+  header,
+  .fixed,
+  .print-hide {
+    display: none !important;
+  }
+  html,
+  body {
+    background: #fff !important;
+  }
+  main {
+    padding-bottom: 0 !important;
+  }
+  * {
+    box-shadow: none !important;
+  }
+}

@@ -7,6 +7,7 @@ import {
   type LeaveKind,
 } from '../../lib/leaves.ts';
 import type { Doctor } from '../../backend/types.ts';
+import { Modal } from '../../components/Modal.tsx';
 
 export function LeaveDialog({
   date,
@@ -62,15 +63,8 @@ export function LeaveDialog({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-30 grid place-items-end bg-black/40 sm:place-items-center"
-      onClick={onClose}
-    >
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-md rounded-t-2xl bg-white p-4 shadow-xl dark:bg-slate-900 sm:rounded-2xl"
-        onClick={e => e.stopPropagation()}
-      >
+    <Modal onClose={onClose} className="max-w-md rounded-t-2xl p-4 sm:rounded-2xl">
+      <form onSubmit={handleSubmit}>
         <div className="mb-4 flex items-center justify-between">
           <h3 className="flex items-center gap-2 font-semibold">
             <CalendarOff className="size-5 text-violet-600" />
@@ -188,6 +182,6 @@ export function LeaveDialog({
           </button>
         </div>
       </form>
-    </div>
+    </Modal>
   );
 }

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, Loader2, Check } from 'lucide-react';
 import { DOCTOR_COLORS } from '../lib/colors.ts';
+import { Modal } from './Modal.tsx';
 
 /**
  * Dialogue d'édition du nom (et de la couleur) d'un médecin. Réutilisé pour
@@ -44,15 +45,8 @@ export function ProfileDialog({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-40 grid place-items-end bg-black/40 sm:place-items-center"
-      onClick={onClose}
-    >
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-sm rounded-t-2xl bg-white p-5 shadow-xl dark:bg-slate-900 sm:rounded-2xl"
-        onClick={e => e.stopPropagation()}
-      >
+    <Modal onClose={onClose} className="max-w-sm rounded-t-2xl p-5 sm:rounded-2xl">
+      <form onSubmit={handleSubmit}>
         <div className="mb-4 flex items-center justify-between">
           <h3 className="font-semibold">{title}</h3>
           <button
@@ -119,6 +113,6 @@ export function ProfileDialog({
           </button>
         </div>
       </form>
-    </div>
+    </Modal>
   );
 }

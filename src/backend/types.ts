@@ -32,3 +32,22 @@ export interface Leave {
   created_at: string;
   updated_at: string;
 }
+
+export interface DayNote {
+  work_date: string; // YYYY-MM-DD
+  note: string;
+  created_by: string | null;
+  updated_at: string;
+}
+
+export interface LockedMonth {
+  year: number;
+  month: number; // 0 = janvier (convention JS)
+  locked_by: string | null;
+  locked_at: string;
+}
+
+export interface AppSettings {
+  /** Compter le Lundi de Pentecôte comme férié (couverture réduite). */
+  pentecote_ferie?: boolean;
+}

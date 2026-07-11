@@ -1,18 +1,31 @@
 import { getSupabase } from '../lib/supabase.ts';
 import { env } from '../lib/env.ts';
 
-/** Token du flux calendrier (réservé aux médecins approuvés, via RPC). */
-export async function getCalendarToken(): Promise<string | null> {
-  const { data, error } = await getSupabase().rpc('calendar_token');
+/** Token calendrier personnel (créé à la volée), réservé aux approuvés. */
+export async function getMyCalendarToken(): Promise<string> {
+  const { data, error } = await getSupabase().rpc('my_calendar_token');
   if (error) throw new Error(error.message);
-  return (data as string | null) ?? null;
+  return data as string;
 }
 
-/** URL du flux iCalendar (.ics). `doctorId` optionnel = flux personnel. */
-export function calendarFeedUrl(token: string, doctorId?: string): string {
+/** Régénère le token personnel (révoque l'ancien). */
+export async function rotateCalendarToken(): Promise<string> {
+  const { data, error } = await getSupabase().rpc('rotate_calendar_token');
+  if (error) throw new Error(error.message);
+  return data as string;
+}
+
+export interface FeedOptions {
+  scope?: 'team' | 'me';
+  timed?: boolean;
+}
+
+/** URL du flux iCalendar (.ics). */
+export function calendarFeedUrl(token: string, opts: FeedOptions = {}): string {
   const base =
     env.VITE_SUPABASE_URL.replace(/\/$/, '') + '/functions/v1/calendar';
   const params = new URLSearchParams({ token });
-  if (doctorId) params.set('doctor', doctorId);
+  if (opts.scope === 'me') params.set('scope', 'me');
+  if (opts.timed) params.set('timed', '1');
   return `${base}?${params.toString()}`;
 }

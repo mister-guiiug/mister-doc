@@ -8,9 +8,10 @@ import {
   Clock,
   Loader2,
   Pencil,
+  Settings,
 } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth.ts';
-import type { Doctor } from '../../backend/types.ts';
+import type { AppSettings, Doctor } from '../../backend/types.ts';
 import {
   adminAddRoster,
   adminDeleteDoctor,
@@ -18,6 +19,8 @@ import {
   adminUpdateDoctor,
   listDoctors,
 } from '../../backend/doctors.ts';
+import { getSettings, setSettings as saveSettings } from '../../backend/settings.ts';
+import { setIncludePentecote } from '../../lib/dates.ts';
 import { FullScreenSpinner } from '../../components/Spinner.tsx';
 import { ProfileDialog } from '../../components/ProfileDialog.tsx';
 import { DOCTOR_COLORS, DEFAULT_DOCTOR_COLOR } from '../../lib/colors.ts';
@@ -33,6 +36,22 @@ export function AdminPanel() {
   const [newName, setNewName] = useState('');
   const [newColor, setNewColor] = useState<string>(DEFAULT_DOCTOR_COLOR);
   const [editDoc, setEditDoc] = useState<Doctor | null>(null);
+  const [settings, setSettings] = useState<AppSettings>({});
+
+  useEffect(() => {
+    getSettings().then(setSettings).catch(() => {});
+  }, []);
+
+  async function togglePentecote(checked: boolean) {
+    const next = { ...settings, pentecote_ferie: checked };
+    setSettings(next);
+    setIncludePentecote(checked);
+    try {
+      await saveSettings(next);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur');
+    }
+  }
 
   const reload = useCallback(async () => {
     try {
@@ -83,6 +102,27 @@ export function AdminPanel() {
           {error}
         </p>
       )}
+
+      {/* Réglages */}
+      <Card title="Réglages" icon={<Settings className="size-5 text-slate-500" />}>
+        <label className="flex items-start gap-3 text-sm">
+          <input
+            type="checkbox"
+            checked={settings.pentecote_ferie !== false}
+            onChange={e => void togglePentecote(e.target.checked)}
+            className="mt-0.5 size-4 accent-teal-600"
+          />
+          <span>
+            <span className="font-medium">
+              Compter le Lundi de Pentecôte comme férié
+            </span>
+            <span className="block text-xs text-slate-400">
+              Si décoché, ce jour a une couverture normale (4 créneaux). Effet au
+              prochain affichage du planning.
+            </span>
+          </span>
+        </label>
+      </Card>
 
       {/* Comptes en attente */}
       <Card

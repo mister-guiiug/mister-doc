@@ -26,6 +26,20 @@ export async function listMonthShifts(
   return (data ?? []) as Shift[];
 }
 
+/** Gardes sur une plage de dates (bornes ISO incluses). */
+export async function listShiftsBetween(
+  fromISO: string,
+  toISO: string
+): Promise<Shift[]> {
+  const { data, error } = await getSupabase()
+    .from('shifts')
+    .select('*')
+    .gte('work_date', fromISO)
+    .lte('work_date', toISO);
+  if (error) throw new Error(error.message);
+  return (data ?? []) as Shift[];
+}
+
 /** Affecte (ou réaffecte) un médecin à un créneau donné (1 médecin/créneau/jour). */
 export async function assignShift(
   workDate: string,

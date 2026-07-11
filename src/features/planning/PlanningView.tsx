@@ -1,10 +1,27 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, CalendarDays, RefreshCw } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  CalendarDays,
+  RefreshCw,
+  Lock,
+  LockOpen,
+  Eye,
+  AlertTriangle,
+} from 'lucide-react';
 import { useAuth } from '../../auth/useAuth.ts';
+import { useToast } from '../../components/Toast.tsx';
 import { monthLabel, weeksOfMonth } from '../../lib/dates.ts';
-import type { ShiftType } from '../../lib/shifts.ts';
+import { activeShiftTypes, type ShiftType } from '../../lib/shifts.ts';
+import { computeIssues } from '../../lib/validation.ts';
 import type { LeaveKind } from '../../lib/leaves.ts';
-import type { Doctor, Leave, Shift } from '../../backend/types.ts';
+import type {
+  Doctor,
+  DayNote,
+  Leave,
+  LockedMonth,
+  Shift,
+} from '../../backend/types.ts';
 import { listDoctors } from '../../backend/doctors.ts';
 import {
   assignShift,
@@ -18,35 +35,58 @@ import {
   setLeaveRange,
   subscribeLeaves,
 } from '../../backend/leaves.ts';
+import {
+  clearNote,
+  listMonthNotes,
+  setNote,
+  subscribeNotes,
+} from '../../backend/notes.ts';
+import {
+  isMonthLocked,
+  listLocks,
+  lockMonth,
+  subscribeLocks,
+  unlockMonth,
+} from '../../backend/locks.ts';
 import { Counters } from './Counters.tsx';
 import { MonthGrid } from './MonthGrid.tsx';
 import { AssignDialog, type SlotTarget } from './AssignDialog.tsx';
 import { LeaveDialog } from './LeaveDialog.tsx';
+import { NoteDialog } from './NoteDialog.tsx';
 import { FullScreenSpinner } from '../../components/Spinner.tsx';
 
 export function PlanningView() {
   const { doctor } = useAuth();
+  const toast = useToast();
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [leaves, setLeaves] = useState<Leave[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [notes, setNotes] = useState<DayNote[]>([]);
+  const [locks, setLocks] = useState<LockedMonth[]>([]);
+  const [firstLoad, setFirstLoad] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [slot, setSlot] = useState<SlotTarget | null>(null);
   const [leaveDate, setLeaveDate] = useState<string | null>(null);
+  const [noteDate, setNoteDate] = useState<string | null>(null);
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const dayRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const touchX = useRef<number | null>(null);
 
   const loadData = useCallback(async () => {
     setRefreshing(true);
     try {
-      const [s, l] = await Promise.all([
+      const [s, l, n] = await Promise.all([
         listMonthShifts(year, month),
         listMonthLeaves(year, month),
+        listMonthNotes(year, month),
       ]);
       setShifts(s);
       setLeaves(l);
+      setNotes(n);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur de chargement');
@@ -56,25 +96,23 @@ export function PlanningView() {
   }, [year, month]);
 
   useEffect(() => {
-    listDoctors()
-      .then(setDoctors)
-      .catch(err =>
-        setError(err instanceof Error ? err.message : 'Erreur roster')
-      );
+    listDoctors().then(setDoctors).catch(() => {});
+    listLocks().then(setLocks).catch(() => {});
   }, []);
 
   useEffect(() => {
-    setLoading(true);
-    loadData().finally(() => setLoading(false));
+    loadData().finally(() => setFirstLoad(false));
   }, [loadData]);
 
-  // Realtime : recharge à chaque changement de garde ou d'absence.
   useEffect(() => subscribeShifts(() => void loadData()), [loadData]);
   useEffect(() => subscribeLeaves(() => void loadData()), [loadData]);
+  useEffect(() => subscribeNotes(() => void loadData()), [loadData]);
+  useEffect(() => subscribeLocks(() => void listLocks().then(setLocks)), []);
 
   const weeks = useMemo(() => weeksOfMonth(year, month), [year, month]);
-  const doctorsById = useMemo(
-    () => new Map(doctors.map(d => [d.id, d])),
+  const doctorsById = useMemo(() => new Map(doctors.map(d => [d.id, d])), [doctors]);
+  const nameById = useMemo(
+    () => new Map(doctors.map(d => [d.id, d.name])),
     [doctors]
   );
   const shiftIndex = useMemo(
@@ -83,30 +121,74 @@ export function PlanningView() {
   );
   const leavesByDate = useMemo(() => {
     const m = new Map<string, Leave[]>();
-    for (const l of leaves) {
-      const arr = m.get(l.work_date);
-      if (arr) arr.push(l);
-      else m.set(l.work_date, [l]);
-    }
+    for (const l of leaves) (m.get(l.work_date) ?? m.set(l.work_date, []).get(l.work_date)!).push(l);
     return m;
   }, [leaves]);
+  const notesByDate = useMemo(
+    () => new Map(notes.map(n => [n.work_date, n])),
+    [notes]
+  );
+  const issuesByDate = useMemo(
+    () => computeIssues(shifts, leaves, nameById),
+    [shifts, leaves, nameById]
+  );
+  const locked = useMemo(
+    () => isMonthLocked(locks, year, month),
+    [locks, year, month]
+  );
+  const uncovered = useMemo(
+    () =>
+      weeks
+        .flatMap(w => w.days)
+        .filter(d =>
+          activeShiftTypes(d.date).some(t => !shiftIndex.has(`${d.iso}|${t}`))
+        ),
+    [weeks, shiftIndex]
+  );
 
   function shiftMonth(delta: number) {
-    const d = new Date(year, month + delta, 1);
-    setYear(d.getFullYear());
-    setMonth(d.getMonth());
+    const dt = new Date(year, month + delta, 1);
+    setYear(dt.getFullYear());
+    setMonth(dt.getMonth());
   }
 
   async function handleAssign(doctorId: string) {
     if (!slot || !doctor) return;
-    await assignShift(slot.iso, slot.shiftType, doctorId, doctor.id);
-    await loadData();
+    const prev = shifts;
+    setShifts(cur => [
+      ...cur.filter(s => !(s.work_date === slot.iso && s.shift_type === slot.shiftType)),
+      {
+        id: `tmp-${slot.iso}-${slot.shiftType}`,
+        work_date: slot.iso,
+        shift_type: slot.shiftType,
+        doctor_id: doctorId,
+        created_by: doctor.id,
+        created_at: '',
+        updated_at: '',
+      } as Shift,
+    ]);
+    try {
+      await assignShift(slot.iso, slot.shiftType, doctorId, doctor.id);
+      toast.success('Garde attribuée.');
+    } catch (e) {
+      setShifts(prev);
+      toast.error(e instanceof Error ? e.message : 'Erreur');
+    }
   }
 
   async function handleClearSlot() {
     if (!slot) return;
-    await clearShift(slot.iso, slot.shiftType);
-    await loadData();
+    const prev = shifts;
+    setShifts(cur =>
+      cur.filter(s => !(s.work_date === slot.iso && s.shift_type === slot.shiftType))
+    );
+    try {
+      await clearShift(slot.iso, slot.shiftType);
+      toast.success('Créneau libéré.');
+    } catch (e) {
+      setShifts(prev);
+      toast.error(e instanceof Error ? e.message : 'Erreur');
+    }
   }
 
   async function handleAddLeave(
@@ -116,23 +198,80 @@ export function PlanningView() {
     kind: LeaveKind,
     hours: number | null
   ) {
-    await setLeaveRange(doctorId, from, to, kind, hours, doctor?.id ?? null);
-    await loadData();
+    try {
+      await setLeaveRange(doctorId, from, to, kind, hours, doctor?.id ?? null);
+      await loadData();
+      toast.success('Absence enregistrée.');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erreur');
+    }
   }
 
   async function handleRemoveLeave(leave: Leave) {
-    await clearLeave(leave.id);
-    await loadData();
+    const prev = leaves;
+    setLeaves(cur => cur.filter(l => l.id !== leave.id));
+    try {
+      await clearLeave(leave.id);
+    } catch (e) {
+      setLeaves(prev);
+      toast.error(e instanceof Error ? e.message : 'Erreur');
+    }
+  }
+
+  async function handleSaveNote(text: string) {
+    if (!noteDate) return;
+    try {
+      await setNote(noteDate, text, doctor?.id ?? null);
+      await loadData();
+      toast.success('Note enregistrée.');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erreur');
+    }
+  }
+
+  async function handleDeleteNote() {
+    if (!noteDate) return;
+    try {
+      await clearNote(noteDate);
+      await loadData();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erreur');
+    }
+  }
+
+  async function toggleLock() {
+    try {
+      if (locked) await unlockMonth(year, month);
+      else await lockMonth(year, month, doctor?.id ?? null);
+      setLocks(await listLocks());
+      toast.success(locked ? 'Mois déverrouillé.' : 'Mois verrouillé.');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erreur');
+    }
+  }
+
+  function jumpToFirstUncovered() {
+    const iso = uncovered[0]?.iso;
+    if (iso) dayRefs.current[iso]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   const currentShift = slot
     ? shiftIndex.get(`${slot.iso}|${slot.shiftType}`)
     : undefined;
 
-  if (loading) return <FullScreenSpinner label="Chargement du planning…" />;
+  if (firstLoad) return <FullScreenSpinner label="Chargement du planning…" />;
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-4 px-3 py-4 sm:px-4">
+    <div
+      className="mx-auto flex max-w-5xl flex-col gap-4 px-3 py-4 sm:px-4"
+      onTouchStart={e => (touchX.current = e.touches[0].clientX)}
+      onTouchEnd={e => {
+        if (touchX.current == null) return;
+        const dx = e.changedTouches[0].clientX - touchX.current;
+        if (Math.abs(dx) > 70) shiftMonth(dx < 0 ? 1 : -1);
+        touchX.current = null;
+      }}
+    >
       {doctor && (
         <Counters
           shifts={shifts}
@@ -142,7 +281,7 @@ export function PlanningView() {
         />
       )}
 
-      <div className="flex items-center gap-2">
+      <div className="print-hide flex flex-wrap items-center gap-2">
         <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 dark:border-slate-800 dark:bg-slate-900">
           <button
             onClick={() => shiftMonth(-1)}
@@ -154,6 +293,7 @@ export function PlanningView() {
           <span className="flex min-w-32 items-center justify-center gap-2 px-1 text-sm font-semibold capitalize sm:min-w-40 sm:text-base">
             <CalendarDays className="size-4 shrink-0 text-teal-600" />
             {monthLabel(year, month)}
+            {locked && <Lock className="size-4 text-slate-400" />}
           </span>
           <button
             onClick={() => shiftMonth(1)}
@@ -172,6 +312,38 @@ export function PlanningView() {
         >
           Auj.
         </button>
+
+        <label className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-2 py-1.5 text-sm dark:border-slate-800 dark:bg-slate-900">
+          <Eye className="size-4 text-slate-400" />
+          <select
+            value={highlightId ?? ''}
+            onChange={e => setHighlightId(e.target.value || null)}
+            className="max-w-28 bg-transparent text-sm outline-none"
+            aria-label="Surligner un médecin"
+          >
+            <option value="">Tous</option>
+            {doctors.map(d => (
+              <option key={d.id} value={d.id}>
+                {d.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        {doctor?.is_admin && (
+          <button
+            onClick={() => void toggleLock()}
+            className={`flex items-center gap-1 rounded-xl border px-3 py-2 text-sm font-medium ${
+              locked
+                ? 'border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300'
+                : 'border-slate-200 bg-white hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800'
+            }`}
+          >
+            {locked ? <LockOpen className="size-4" /> : <Lock className="size-4" />}
+            <span className="hidden sm:inline">{locked ? 'Déverrouiller' : 'Verrouiller'}</span>
+          </button>
+        )}
+
         <button
           onClick={() => void loadData()}
           className="ml-auto rounded-xl border border-slate-200 bg-white p-2 text-slate-500 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800"
@@ -188,18 +360,35 @@ export function PlanningView() {
         </p>
       )}
 
+      {uncovered.length > 0 && (
+        <button
+          onClick={jumpToFirstUncovered}
+          className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-left text-sm text-red-700 hover:bg-red-100 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300"
+        >
+          <AlertTriangle className="size-4 shrink-0" />
+          <span className="flex-1">
+            {uncovered.length} jour{uncovered.length > 1 ? 's' : ''} avec un créneau à couvrir
+          </span>
+          <span className="font-semibold underline">Voir</span>
+        </button>
+      )}
+
       {doctor && (
         <MonthGrid
           weeks={weeks}
           shiftIndex={shiftIndex}
           leavesByDate={leavesByDate}
+          notesByDate={notesByDate}
+          issuesByDate={issuesByDate}
           doctorsById={doctorsById}
           selfDoctorId={doctor.id}
-          onSlotClick={(iso, shiftType: ShiftType) =>
-            setSlot({ iso, shiftType })
-          }
+          highlightId={highlightId}
+          locked={locked}
+          onSlotClick={(iso, shiftType: ShiftType) => setSlot({ iso, shiftType })}
           onAddLeave={iso => setLeaveDate(iso)}
           onRemoveLeave={leave => void handleRemoveLeave(leave)}
+          onEditNote={iso => setNoteDate(iso)}
+          dayRefs={dayRefs}
         />
       )}
 
@@ -209,6 +398,8 @@ export function PlanningView() {
           currentShift={currentShift}
           doctors={doctors}
           selfDoctorId={doctor.id}
+          monthShifts={shifts}
+          leaves={leaves}
           onAssign={handleAssign}
           onClear={handleClearSlot}
           onClose={() => setSlot(null)}
@@ -222,6 +413,16 @@ export function PlanningView() {
           selfDoctorId={doctor.id}
           onSubmit={handleAddLeave}
           onClose={() => setLeaveDate(null)}
+        />
+      )}
+
+      {noteDate && (
+        <NoteDialog
+          date={noteDate}
+          initialNote={notesByDate.get(noteDate)?.note ?? ''}
+          onSave={handleSaveNote}
+          onDelete={handleDeleteNote}
+          onClose={() => setNoteDate(null)}
         />
       )}
     </div>

@@ -1,12 +1,13 @@
 // Edge Function « calendar » — flux iCalendar (.ics) du planning mister-doc.
 //
-// Accès protégé par un token secret dans l'URL (?token=...), validé contre
-// app_config.calendar_token. Déployée avec verify_jwt = false (les agendas ne
-// peuvent pas envoyer de JWT Supabase). Lecture via l'API REST + clé
-// service_role (aucun import externe → démarrage fiable).
+// Accès par token secret dans l'URL :
+//   - token PAR MÉDECIN (doctors.calendar_token, révocable) → &scope=me possible ;
+//   - ou ancien token partagé (app_config.calendar_token) → équipe seule.
+// verify_jwt = false ; lecture via REST + service_role (aucun import externe).
 //
-//   GET /functions/v1/calendar?token=SECRET            → toute l'équipe
-//   GET /functions/v1/calendar?token=SECRET&doctor=ID  → un seul médecin
+//   ?token=SECRET               → toute l'équipe
+//   ?token=DOCTOR_TOKEN&scope=me → uniquement ce médecin
+//   ?token=...&timed=1          → événements horodatés (sinon journée entière)
 
 const SHIFT_LABEL: Record<string, string> = {
   S1J: 'S1 Jour',
@@ -15,6 +16,13 @@ const SHIFT_LABEL: Record<string, string> = {
   S3: 'S3',
 };
 const SHIFT_HOURS: Record<string, number> = { S1J: 10, S1N: 15, S2J: 8, S3: 8 };
+// [début, fin, décalage de jour de la fin]
+const SHIFT_TIMES: Record<string, [string, string, number]> = {
+  S1J: ['080000', '180000', 0],
+  S1N: ['180000', '090000', 1],
+  S2J: ['080000', '160000', 0],
+  S3: ['080000', '160000', 0],
+};
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -33,18 +41,14 @@ async function rest<T>(path: string): Promise<T> {
   return (await res.json()) as T;
 }
 
-function esc(s: string): string {
-  return s
+const esc = (s: string) =>
+  s
     .replace(/\\/g, '\\\\')
     .replace(/;/g, '\\;')
     .replace(/,/g, '\\,')
     .replace(/\r?\n/g, '\\n');
-}
 
-function dateOnly(iso: string): string {
-  return iso.replace(/-/g, '');
-}
-
+const dateOnly = (iso: string) => iso.replace(/-/g, '');
 function nextDay(iso: string): string {
   const [y, m, d] = iso.split('-').map(Number);
   return new Date(Date.UTC(y, m - 1, d + 1))
@@ -52,17 +56,10 @@ function nextDay(iso: string): string {
     .slice(0, 10)
     .replace(/-/g, '');
 }
+const stamp = () =>
+  new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
 
-function stamp(): string {
-  return new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
-}
-
-function vevent(
-  uid: string,
-  start: string,
-  summary: string,
-  category: string
-): string {
+function allDay(uid: string, start: string, summary: string, cat: string) {
   return [
     'BEGIN:VEVENT',
     `UID:${uid}@mister-doc`,
@@ -70,8 +67,31 @@ function vevent(
     `DTSTART;VALUE=DATE:${dateOnly(start)}`,
     `DTEND;VALUE=DATE:${nextDay(start)}`,
     `SUMMARY:${esc(summary)}`,
-    `CATEGORIES:${esc(category)}`,
+    `CATEGORIES:${esc(cat)}`,
     'TRANSP:TRANSPARENT',
+    'END:VEVENT',
+  ].join('\r\n');
+}
+
+function timed(
+  uid: string,
+  start: string,
+  type: string,
+  summary: string,
+  cat: string
+) {
+  const t = SHIFT_TIMES[type];
+  if (!t) return allDay(uid, start, summary, cat);
+  const startDT = `${dateOnly(start)}T${t[0]}`;
+  const endDate = t[2] === 1 ? nextDay(start) : dateOnly(start);
+  return [
+    'BEGIN:VEVENT',
+    `UID:${uid}@mister-doc`,
+    `DTSTAMP:${stamp()}`,
+    `DTSTART:${startDT}`,
+    `DTEND:${endDate}T${t[1]}`,
+    `SUMMARY:${esc(summary)}`,
+    `CATEGORIES:${esc(cat)}`,
     'END:VEVENT',
   ].join('\r\n');
 }
@@ -93,30 +113,48 @@ interface Leave {
   hours: number | null;
   doctor_id: string;
 }
+interface Note {
+  work_date: string;
+  note: string;
+}
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
-
   try {
     const url = new URL(req.url);
-    const token = url.searchParams.get('token');
-    const doctorFilter = url.searchParams.get('doctor');
+    const token = url.searchParams.get('token') ?? '';
+    const wantTimed = url.searchParams.get('timed') === '1';
+    const wantMine = url.searchParams.get('scope') === 'me';
 
-    const cfg = await rest<{ calendar_token: string | null }[]>(
-      'app_config?id=eq.1&select=calendar_token'
+    if (!token) return new Response('Token requis.', { status: 401, headers: CORS });
+
+    // 1) token par médecin ?
+    const owner = await rest<{ id: string }[]>(
+      `doctors?calendar_token=eq.${encodeURIComponent(token)}&select=id`
     );
-    const expected = cfg[0]?.calendar_token;
-    if (!token || !expected || token !== expected) {
-      return new Response('Token invalide.', { status: 401, headers: CORS });
+    let scopedDoctorId: string | null = null;
+    if (owner.length > 0) {
+      if (wantMine) scopedDoctorId = owner[0].id;
+    } else {
+      // 2) ancien token partagé (équipe) ?
+      const cfg = await rest<{ calendar_token: string | null }[]>(
+        'app_config?id=eq.1&select=calendar_token'
+      );
+      if (!cfg[0]?.calendar_token || token !== cfg[0].calendar_token) {
+        return new Response('Token invalide.', { status: 401, headers: CORS });
+      }
     }
 
-    const filter = doctorFilter
-      ? `&doctor_id=eq.${encodeURIComponent(doctorFilter)}`
+    const filter = scopedDoctorId
+      ? `&doctor_id=eq.${encodeURIComponent(scopedDoctorId)}`
       : '';
-    const [doctors, shifts, leaves] = await Promise.all([
+    const [doctors, shifts, leaves, notes] = await Promise.all([
       rest<Doctor[]>('doctors?select=id,name'),
       rest<Shift[]>(`shifts?select=id,work_date,shift_type,doctor_id${filter}`),
       rest<Leave[]>(`leaves?select=id,work_date,kind,hours,doctor_id${filter}`),
+      scopedDoctorId
+        ? Promise.resolve([] as Note[])
+        : rest<Note[]>('day_notes?select=work_date,note'),
     ]);
     const nameById = new Map(doctors.map(d => [d.id, d.name]));
 
@@ -125,8 +163,11 @@ Deno.serve(async (req: Request) => {
       const who = nameById.get(s.doctor_id) ?? '?';
       const label = SHIFT_LABEL[s.shift_type] ?? s.shift_type;
       const h = SHIFT_HOURS[s.shift_type] ?? 0;
+      const summary = `${label} · ${who} (${h}h)`;
       events.push(
-        vevent(`shift-${s.id}`, s.work_date, `${label} · ${who} (${h}h)`, label)
+        wantTimed
+          ? timed(`shift-${s.id}`, s.work_date, s.shift_type, summary, label)
+          : allDay(`shift-${s.id}`, s.work_date, summary, label)
       );
     }
     for (const l of leaves) {
@@ -136,7 +177,7 @@ Deno.serve(async (req: Request) => {
           ? `Formation · ${who}${l.hours != null ? ` (${l.hours}h)` : ''}`
           : `Congé annuel · ${who}`;
       events.push(
-        vevent(
+        allDay(
           `leave-${l.id}`,
           l.work_date,
           summary,
@@ -144,9 +185,12 @@ Deno.serve(async (req: Request) => {
         )
       );
     }
+    for (const n of notes) {
+      events.push(allDay(`note-${n.work_date}`, n.work_date, `📝 ${n.note}`, 'Note'));
+    }
 
-    const calName = doctorFilter
-      ? `mister-doc — ${nameById.get(doctorFilter) ?? 'médecin'}`
+    const calName = scopedDoctorId
+      ? `mister-doc — ${nameById.get(scopedDoctorId) ?? 'médecin'}`
       : 'mister-doc — Planning anesthésie';
 
     const ics = [

@@ -2,8 +2,21 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { getSupabase } from '../lib/supabase.ts';
 import { ensureSelfDoctor } from '../backend/doctors.ts';
+import { getSettings } from '../backend/settings.ts';
+import { setIncludePentecote } from '../lib/dates.ts';
 import type { Doctor } from '../backend/types.ts';
 import { AuthContext } from './useAuth.ts';
+
+/** Charge les réglages et configure les jours fériés (best-effort). */
+async function applySettings(approved: boolean) {
+  if (!approved) return;
+  try {
+    const s = await getSettings();
+    setIncludePentecote(s.pentecote_ferie !== false);
+  } catch {
+    /* défauts conservés */
+  }
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -37,7 +50,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const name =
             (s.user.user_metadata?.full_name as string | undefined) ??
             undefined;
-          setDoctor(await ensureSelfDoctor(name));
+          const d = await ensureSelfDoctor(name);
+          setDoctor(d);
+          await applySettings(d.approved);
         } catch {
           setDoctor(null);
         }

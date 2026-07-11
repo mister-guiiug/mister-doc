@@ -1,4 +1,4 @@
-import { AlertTriangle, Star, Plus, X } from 'lucide-react';
+import { AlertTriangle, Star, Plus, X, StickyNote, Lock } from 'lucide-react';
 import type { MonthDay } from '../../lib/dates.ts';
 import { WEEKDAY_LABELS } from '../../lib/dates.ts';
 import {
@@ -8,26 +8,39 @@ import {
   type ShiftType,
 } from '../../lib/shifts.ts';
 import { LEAVE_SHORT } from '../../lib/leaves.ts';
-import type { Doctor, Leave, Shift } from '../../backend/types.ts';
+import type { Issue } from '../../lib/validation.ts';
+import type { Doctor, DayNote, Leave, Shift } from '../../backend/types.ts';
 
 export function MonthGrid({
   weeks,
   shiftIndex,
   leavesByDate,
+  notesByDate,
+  issuesByDate,
   doctorsById,
   selfDoctorId,
+  highlightId,
+  locked,
   onSlotClick,
   onAddLeave,
   onRemoveLeave,
+  onEditNote,
+  dayRefs,
 }: {
   weeks: { week: number; days: MonthDay[] }[];
   shiftIndex: Map<string, Shift>;
   leavesByDate: Map<string, Leave[]>;
+  notesByDate: Map<string, DayNote>;
+  issuesByDate: Map<string, Issue[]>;
   doctorsById: Map<string, Doctor>;
   selfDoctorId: string;
+  highlightId: string | null;
+  locked: boolean;
   onSlotClick: (iso: string, shiftType: ShiftType) => void;
   onAddLeave: (iso: string) => void;
   onRemoveLeave: (leave: Leave) => void;
+  onEditNote: (iso: string) => void;
+  dayRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
 }) {
   return (
     <div className="flex flex-col gap-5">
@@ -49,11 +62,17 @@ export function MonthGrid({
                 day={day}
                 shiftIndex={shiftIndex}
                 leaves={leavesByDate.get(day.iso) ?? []}
+                note={notesByDate.get(day.iso)}
+                issues={issuesByDate.get(day.iso) ?? []}
                 doctorsById={doctorsById}
                 selfDoctorId={selfDoctorId}
+                highlightId={highlightId}
+                locked={locked}
                 onSlotClick={onSlotClick}
                 onAddLeave={onAddLeave}
                 onRemoveLeave={onRemoveLeave}
+                onEditNote={onEditNote}
+                setRef={el => (dayRefs.current[day.iso] = el)}
               />
             ))}
           </div>
@@ -67,27 +86,41 @@ function DayRow({
   day,
   shiftIndex,
   leaves,
+  note,
+  issues,
   doctorsById,
   selfDoctorId,
+  highlightId,
+  locked,
   onSlotClick,
   onAddLeave,
   onRemoveLeave,
+  onEditNote,
+  setRef,
 }: {
   day: MonthDay;
   shiftIndex: Map<string, Shift>;
   leaves: Leave[];
+  note?: DayNote;
+  issues: Issue[];
   doctorsById: Map<string, Doctor>;
   selfDoctorId: string;
+  highlightId: string | null;
+  locked: boolean;
   onSlotClick: (iso: string, shiftType: ShiftType) => void;
   onAddLeave: (iso: string) => void;
   onRemoveLeave: (leave: Leave) => void;
+  onEditNote: (iso: string) => void;
+  setRef: (el: HTMLDivElement | null) => void;
 }) {
   const types = activeShiftTypes(day.date);
   const missing = types.filter(t => !shiftIndex.has(`${day.iso}|${t}`)).length;
+  const dim = (id?: string) => highlightId != null && id !== highlightId;
 
   return (
     <div
-      className={`rounded-xl border p-2.5 ${
+      ref={setRef}
+      className={`scroll-mt-20 rounded-xl border p-2.5 ${
         day.reduced
           ? 'border-teal-200 bg-teal-50/60 dark:border-teal-900/60 dark:bg-teal-950/20'
           : 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900'
@@ -130,14 +163,17 @@ function DayRow({
             return (
               <button
                 key={type}
+                disabled={locked}
                 onClick={() => onSlotClick(day.iso, type)}
-                className={`flex min-h-11 flex-col items-start gap-0.5 rounded-lg border px-2 py-1.5 text-left transition hover:border-teal-400 ${
+                className={`flex min-h-11 flex-col items-start gap-0.5 rounded-lg border px-2 py-1.5 text-left transition disabled:cursor-default ${
+                  dim(shift?.doctor_id) ? 'opacity-30' : ''
+                } ${
                   doctor
                     ? mine
                       ? 'border-teal-500 bg-teal-100/70 ring-1 ring-teal-500 dark:bg-teal-900/40'
                       : 'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800'
                     : 'border-dashed border-slate-300 bg-transparent dark:border-slate-700'
-                }`}
+                } ${locked ? '' : 'hover:border-teal-400'}`}
                 title={`${SHIFT_LABEL[type]} · ${SHIFT_HOURS[type]} h`}
               >
                 <span className="flex w-full items-center justify-between text-[10px] font-semibold uppercase text-slate-400">
@@ -155,7 +191,7 @@ function DayRow({
                     <span className="truncate">{doctor.name}</span>
                   </span>
                 ) : (
-                  <span className="text-xs text-slate-300 dark:text-slate-600">
+                  <span className="text-xs text-slate-500 dark:text-slate-500">
                     libre
                   </span>
                 )}
@@ -165,7 +201,23 @@ function DayRow({
         </div>
       </div>
 
-      {/* Absences (congés / formations) */}
+      {/* Alertes du jour */}
+      {issues.length > 0 && (
+        <div className="mt-2 flex flex-col gap-0.5 sm:pl-[9.5rem]">
+          {issues.map((iss, i) => (
+            <span
+              key={i}
+              className={`flex items-center gap-1 text-[11px] font-medium ${
+                iss.level === 'error' ? 'text-red-600' : 'text-amber-600'
+              }`}
+            >
+              <AlertTriangle className="size-3 shrink-0" /> {iss.message}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Absences + note */}
       <div className="mt-2 flex flex-wrap items-center gap-1.5 sm:pl-[9.5rem]">
         {leaves.map(lv => {
           const doc = doctorsById.get(lv.doctor_id);
@@ -173,9 +225,12 @@ function DayRow({
           return (
             <button
               key={lv.id}
+              disabled={locked}
               onClick={() => onRemoveLeave(lv)}
-              title="Retirer cette absence"
-              className={`group flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium ${
+              title={locked ? undefined : 'Retirer cette absence'}
+              className={`group flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium disabled:cursor-default ${
+                dim(lv.doctor_id) ? 'opacity-30' : ''
+              } ${
                 isTraining
                   ? 'border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200'
                   : 'border-violet-300 bg-violet-50 text-violet-800 dark:border-violet-800 dark:bg-violet-950/40 dark:text-violet-200'
@@ -190,16 +245,46 @@ function DayRow({
                 · {LEAVE_SHORT[lv.kind]}
                 {isTraining && lv.hours != null ? ` ${lv.hours}h` : ''}
               </span>
-              <X className="size-3 opacity-0 transition group-hover:opacity-100" />
+              {!locked && (
+                <X className="size-3 opacity-0 transition group-hover:opacity-100" />
+              )}
             </button>
           );
         })}
-        <button
-          onClick={() => onAddLeave(day.iso)}
-          className="flex items-center gap-1 rounded-full border border-dashed border-slate-300 px-2 py-0.5 text-[11px] font-medium text-slate-500 transition hover:border-violet-400 hover:text-violet-600 dark:border-slate-600"
-        >
-          <Plus className="size-3" /> Congé / Formation
-        </button>
+
+        {note ? (
+          <button
+            onClick={() => !locked && onEditNote(day.iso)}
+            disabled={locked}
+            className="flex items-center gap-1 rounded-full border border-slate-300 bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-600 disabled:cursor-default dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300"
+          >
+            <StickyNote className="size-3" /> {note.note}
+          </button>
+        ) : (
+          !locked && (
+            <button
+              onClick={() => onEditNote(day.iso)}
+              className="flex items-center gap-1 rounded-full border border-dashed border-slate-300 px-2 py-0.5 text-[11px] font-medium text-slate-500 transition hover:border-slate-400 dark:border-slate-600"
+            >
+              <StickyNote className="size-3" /> Note
+            </button>
+          )
+        )}
+
+        {!locked && (
+          <button
+            onClick={() => onAddLeave(day.iso)}
+            className="flex items-center gap-1 rounded-full border border-dashed border-slate-300 px-2 py-0.5 text-[11px] font-medium text-slate-500 transition hover:border-violet-400 hover:text-violet-600 dark:border-slate-600"
+          >
+            <Plus className="size-3" /> Congé / Formation
+          </button>
+        )}
+
+        {locked && (
+          <span className="flex items-center gap-1 text-[11px] font-medium text-slate-400">
+            <Lock className="size-3" /> verrouillé
+          </span>
+        )}
       </div>
     </div>
   );

@@ -99,6 +99,16 @@ function easterSunday(year: number): Date {
 
 const holidayCache = new Map<number, Map<string, string>>();
 
+// Le Lundi de Pentecôte est souvent travaillé (journée de solidarité) : son
+// inclusion comme férié (couverture réduite) est configurable par l'admin.
+let includePentecote = true;
+export function setIncludePentecote(v: boolean): void {
+  if (v !== includePentecote) {
+    includePentecote = v;
+    holidayCache.clear();
+  }
+}
+
 /** Jours fériés France métropole pour une année, indexés par clé ISO. */
 export function frenchHolidays(year: number): Map<string, string> {
   const cached = holidayCache.get(year);
@@ -111,7 +121,7 @@ export function frenchHolidays(year: number): Map<string, string> {
   add(new Date(year, 4, 1), 'Fête du Travail');
   add(new Date(year, 4, 8), 'Victoire 1945');
   add(addDays(easter, 39), 'Ascension');
-  add(addDays(easter, 50), 'Lundi de Pentecôte');
+  if (includePentecote) add(addDays(easter, 50), 'Lundi de Pentecôte');
   add(new Date(year, 6, 14), 'Fête nationale');
   add(new Date(year, 7, 15), 'Assomption');
   add(new Date(year, 10, 1), 'Toussaint');

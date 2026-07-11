@@ -23,6 +23,20 @@ export async function listMonthLeaves(
   return (data ?? []) as Leave[];
 }
 
+/** Absences sur une plage de dates (bornes ISO incluses). */
+export async function listLeavesBetween(
+  fromISO: string,
+  toISO: string
+): Promise<Leave[]> {
+  const { data, error } = await getSupabase()
+    .from('leaves')
+    .select('*')
+    .gte('work_date', fromISO)
+    .lte('work_date', toISO);
+  if (error) throw new Error(error.message);
+  return (data ?? []) as Leave[];
+}
+
 /** Pose (ou met à jour) une absence pour un médecin un jour donné. */
 export async function setLeave(
   doctorId: string,
