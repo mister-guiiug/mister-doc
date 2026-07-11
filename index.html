@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <!--
+      Content-Security-Policy en défense en profondeur.
+      connect-src élargi à Supabase (REST + Realtime wss). 'self' couvre le
+      websocket HMR de Vite en dev (même origine). 'unsafe-inline' :
+      script anti-FOUC inline + styles JIT Tailwind 4 / réinjection vite-plugin-pwa.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+    />
+
+    <!-- Anti-FOUC : applique le thème avant le premier rendu. -->
+    <script>
+      (function () {
+        try {
+          var v = localStorage.getItem('mister-doc:theme');
+          var eff =
+            v === 'light' || v === 'dark'
+              ? v
+              : window.matchMedia('(prefers-color-scheme: dark)').matches
+                ? 'dark'
+                : 'light';
+          document.documentElement.dataset.theme = eff;
+          document.documentElement.style.colorScheme = eff;
+        } catch (e) {
+          document.documentElement.dataset.theme = 'light';
+        }
+      })();
+    </script>
+
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#0f766e" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <meta name="apple-mobile-web-app-title" content="mister-doc" />
+    <meta
+      name="description"
+      content="Synchronisation du planning de gardes d'anesthésie entre médecins : vue mensuelle des créneaux S1J/S1N/S2J/S3, numéro de semaine, compteurs week-end et heures."
+    />
+    <title>mister-doc — Planning anesthésie</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

@@ -1,0 +1,28 @@
+@import 'tailwindcss';
+
+/* Le thème (clair/sombre) est piloté par l'attribut data-theme posé par le
+   script anti-FOUC dans index.html. On mappe la variante `dark:` de Tailwind
+   sur ce sélecteur plutôt que sur la media query système. */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+:root {
+  color-scheme: light dark;
+}
+
+html,
+body,
+#root {
+  min-height: 100dvh;
+}
+
+body {
+  margin: 0;
+  font-family:
+    'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background: #f8fafc;
+}
+
+[data-theme='dark'] body {
+  background: #020617;
+}
