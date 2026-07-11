@@ -23,7 +23,11 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      # npm install (et non npm ci) : le lockfile est généré sous Windows et
+      # peut omettre des dépendances optionnelles spécifiques à Linux (binaires
+      # natifs @emnapi de Tailwind-oxide/lightningcss/rolldown). npm install les
+      # résout à l'installation sur le runner Linux.
+      - run: npm install --no-audit --no-fund
       - run: npm run build
         env:
           VITE_BASE_PATH: /mister-doc/
