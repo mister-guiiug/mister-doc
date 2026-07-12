@@ -2,6 +2,8 @@ import { NavLink } from 'react-router-dom';
 import {
   CalendarDays,
   Shield,
+  ShieldCheck,
+  ShieldOff,
   BarChart3,
   Repeat,
 } from 'lucide-react';
@@ -9,7 +11,7 @@ import { useAuth } from '../auth/useAuth.ts';
 import { NotificationsBell } from './NotificationsBell.tsx';
 
 export function Header() {
-  const { doctor } = useAuth();
+  const { doctor, isAdmin, previewMember, togglePreviewMember } = useAuth();
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     `rounded-lg px-3 py-1.5 text-sm font-medium transition ${
@@ -41,7 +43,7 @@ export function Header() {
               </span>
             </NavLink>
           )}
-          {doctor?.is_admin && (
+          {isAdmin && (
             <>
               <NavLink to="/compteurs" className={linkClass} title="Compteurs">
                 <span className="flex items-center gap-1">
@@ -60,6 +62,31 @@ export function Header() {
         </nav>
 
         <div className="ml-auto flex items-center gap-1 sm:gap-2">
+          {doctor?.is_admin && (
+            <button
+              onClick={togglePreviewMember}
+              aria-pressed={!previewMember}
+              title={
+                previewMember
+                  ? 'Aperçu médecin actif — revenir en vue admin'
+                  : 'Voir le planning comme un médecin (sans les fonctions admin)'
+              }
+              className={`flex items-center gap-1 rounded-lg p-1.5 text-sm font-medium transition ${
+                previewMember
+                  ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400'
+                  : 'text-teal-600 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              {previewMember ? (
+                <>
+                  <ShieldOff className="size-5" />
+                  <span className="hidden sm:inline">Aperçu médecin</span>
+                </>
+              ) : (
+                <ShieldCheck className="size-5" />
+              )}
+            </button>
+          )}
           {doctor && <NotificationsBell />}
           {doctor && (
             <NavLink

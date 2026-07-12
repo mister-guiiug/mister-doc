@@ -11,26 +11,55 @@ métier, à partir d'un modèle simple de créneaux mensuels.
 
 ## Fonctionnalités
 
-- **Vue mensuelle** groupée par **numéro de semaine ISO**.
-- **4 créneaux par jour** avec base horaire métier :
-  | Créneau | Libellé  | Heures |
-  | ------- | -------- | ------ |
-  | `S1J`   | S1 Jour  | 10 h   |
-  | `S1N`   | S1 Nuit  | 15 h   |
-  | `S2J`   | S2 Jour  | 8 h    |
-  | `S3`    | S3       | 8 h    |
+### Planning
+- **Vue mensuelle** groupée par **numéro de semaine ISO**, avec **liste** (mobile)
+  ou **grille 7 colonnes** (desktop, bascule mémorisée).
+- **Créneaux cliniques** à occupant unique, base horaire métier :
+  | Créneau | Libellé | Heures |
+  | ------- | ------- | ------ |
+  | `S1J`   | S1 Jour | 10 h   |
+  | `S1N`   | S1 Nuit | 15 h   |
+  | `S2J`   | S2 Jour | 8 h    |
 
-  1 médecin par créneau et par jour ; les jours sans garde principale (`S1J`)
-  sont signalés « à couvrir ».
-- **Multi-médecins** : tout le monde voit le planning de tout le monde.
-- **Édition partagée** : tout médecin approuvé peut affecter n'importe quel
-  médecin (soi-même en un clic) et libérer un créneau. Mises à jour **en temps
-  réel** (Supabase Realtime).
-- **Compteurs du médecin connecté** (sur le mois affiché) : nombre de vendredis,
-  samedis, dimanches de garde, **heures de week-end** (ven + sam + dim) et
-  **heures totales**.
-- **Authentification Supabase** (e-mail / mot de passe) + **PWA installable**,
-  utilisable hors-ligne (shell applicatif mis en cache).
+  1 médecin par créneau et par jour ; les créneaux non pourvus sont signalés
+  « à couvrir ». **Exception week-end / jours fériés** (fériés FR calculés) :
+  seuls `S1J` et `S1N` sont requis.
+- **Heures Non Cliniques (HNC, ex-« S3 »)** : plusieurs médecins par jour, chacun
+  saisit son **propre nombre d'heures**, **n'importe quel jour**, hors couverture
+  « à couvrir ». Comptées dans le temps total **et** dans un compteur HNC dédié.
+- **Congés annuels et formations** (heures/jour pour les formations), **notes de
+  jour**, **vœux / indisponibilités** (dispo / indispo par jour).
+- **Édition partagée** temps réel (Supabase Realtime) : tout médecin approuvé
+  affecte n'importe qui, avec **alertes** (repos de sécurité après une nuit,
+  conflit garde/absence, cumul). **Confirmation avant chaque suppression.**
+- **Échange de gardes** entre médecins (proposition ciblée ou ouverte,
+  acceptation qui réaffecte la garde) — page **Échanges**.
+- **Compteurs du médecin connecté** (mois affiché) : vendredis / samedis /
+  dimanches, heures de week-end, **HNC**, heures totales, congés, formation.
+- **Verrouillage de mois** (admin) pour figer un planning validé.
+
+### Comptes, rôles, admin
+- **Authentification Supabase** + barrière d'approbation (voir Sécurité).
+- **Profil dédié** (`/profil`) : nom, couleur, thème clair/sombre, abonnement
+  calendrier, version + « forcer la mise à jour », déconnexion.
+- Un compte **en attente** peut supprimer lui-même sa demande ; un **admin** peut
+  l'**approuver** ou la **rejeter**.
+- **Vue admin `/compteurs`** : compteurs de toute l'équipe par mois / quadrimestre
+  (4 mois) / année, export **CSV**.
+- **Aperçu « médecin »** : un admin peut, via le **bouclier** de l'en-tête,
+  masquer temporairement ses fonctions admin pour voir l'app comme un non-admin.
+
+### Notifications & sauvegardes
+- **Notifications in-app** (cloche, temps réel) : garde attribuée/retirée, absence,
+  demande de compte (aux admins), approbation. **Clic = raccourci** vers le bon
+  menu (planning au bon mois, ou Admin) ; **glissement latéral = marquer lu**.
+- **Sauvegarde/restauration** (admin) + **sauvegarde auto hebdomadaire** (pg_cron).
+
+### Technique
+- **PWA installable** (invite d'installation), shell applicatif en cache, mise à
+  jour automatique du service worker + bouton de mise à jour forcée.
+- Accessibilité (modales Échap + piège de focus), thème clair/sombre,
+  optimisations mobile (safe-area, barre d'onglets basse).
 
 ## Sécurité (important)
 
@@ -39,7 +68,9 @@ Le dépôt est **public** et la clé `anon` Supabase est présente dans le bundl
 **policies RLS** côté serveur et sur une **barrière d'approbation** :
 
 - un nouvel inscrit est **« en attente »** (`approved = false`) et **ne voit
-  rien** du planning tant qu'un administrateur ne l'a pas approuvé ;
+  rien** du planning tant qu'un administrateur ne l'a pas approuvé ; il peut
+  supprimer lui-même sa demande, et un admin peut l'**approuver** ou la
+  **rejeter** (suppression de la fiche + du compte auth) ;
 - le **premier administrateur** se débloque via un **code de bootstrap** secret
   (stocké dans `app_config`, jamais exposé au client) : écran « Compte en
   attente » → « J'ai un code d'administrateur ». Le code ne fonctionne que tant
@@ -67,10 +98,23 @@ Scripts utiles : `npm run build`, `npm run preview`, `npm run test`,
 
 ## Base de données Supabase
 
-Le schéma versionné se trouve dans [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql)
-(tables `doctors`, `shifts`, `app_config` + RLS + RPC). Pour l'appliquer sur un
-nouveau projet, collez-le dans le **SQL Editor** du tableau de bord Supabase,
-puis renseignez le code de bootstrap :
+Le schéma versionné est découpé en migrations dans
+[`supabase/migrations/`](supabase/migrations/), à appliquer **dans l'ordre**
+(`0001` → `0010`) via le **SQL Editor** du tableau de bord Supabase :
+
+| Migration | Contenu |
+| --------- | ------- |
+| `0001_init` | tables `doctors` / `shifts` / `app_config`, RLS, barrière d'approbation, RPC de base |
+| `0002_admin_update_doctor` | édition profil (soi / admin) |
+| `0003_leaves` | congés annuels & formations |
+| `0004_calendar_feed` · `0005_improvements` | flux .ics (token), tokens par médecin, notes de jour, verrou de mois, réglages |
+| `0006_notifications_backups` | notifications (triggers) + sauvegarde/restauration + pg_cron |
+| `0007_swaps_wishes` | échanges de gardes + vœux |
+| `0008_self_service` | suppression de sa demande en attente |
+| `0009_hnc` | **Heures Non Cliniques** (table `hnc_hours`, migration des ex-`S3`) |
+| `0010_admin_reject` | rejet admin d'une demande en attente |
+
+Après `0001`, renseignez le code de bootstrap :
 
 ```sql
 update public.app_config set bootstrap_code = 'VOTRE-CODE-SECRET' where id = 1;
@@ -112,12 +156,16 @@ puis activez **Settings → Pages → Source : GitHub Actions**.
 
 ```
 src/
-  lib/        env (zod) · client Supabase · dates (semaine ISO) · créneaux + compteurs
-  backend/    types · accès doctors (RPC) · accès planning (shifts + realtime)
+  lib/        env (validation JS) · client Supabase · dates (semaine ISO) ·
+              créneaux + compteurs · congés · HNC · validation/alertes · thème · couleurs
+  backend/    types · doctors · planning (shifts) · leaves · hnc · notes · wishes ·
+              swaps · hnc · notifications · backup · locks · settings · calendar
   auth/       contexte + porte d'authentification + page de connexion
-  features/   planning/ (grille, compteurs, dialogue) · admin/ · pending/
-  components/  en-tête · spinner
+  features/   planning/ (liste + grille, compteurs, dialogues affect./congé/note/HNC) ·
+              swaps/ · admin/ (panel, compteurs équipe, sauvegarde) · profile/ · pending/
+  components/ en-tête · barre d'onglets basse · cloche notifications · modale ·
+              toast · thème · calendrier · profil · invite d'installation · spinner
 ```
 
-Logique métier des compteurs et du numéro de semaine couverte par des tests
-(`src/lib/shifts.test.ts`).
+Tests (`src/lib/*.test.ts`) : compteurs, semaine ISO, créneaux actifs, congés,
+alertes de validation.

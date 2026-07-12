@@ -83,7 +83,7 @@ function frDate(iso: string): string {
 }
 
 export function PlanningView() {
-  const { doctor } = useAuth();
+  const { doctor, isAdmin } = useAuth();
   const toast = useToast();
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
@@ -514,7 +514,7 @@ export function PlanningView() {
           </select>
         </label>
 
-        {doctor?.is_admin && (
+        {isAdmin && (
           <button
             onClick={() => void toggleLock()}
             className={`flex items-center gap-1 rounded-xl border px-3 py-2 text-sm font-medium ${

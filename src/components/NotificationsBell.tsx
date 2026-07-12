@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Bell,
@@ -94,6 +94,12 @@ export function NotificationsBell() {
     navigate(targetFor(n));
   }
 
+  /** Marque une notif comme lue (glissement latéral sur la ligne). */
+  function handleMarkRead(id: string) {
+    setItems(cur => cur.map(x => (x.id === id ? { ...x, read: true } : x)));
+    markRead(id).catch(() => load());
+  }
+
   return (
     <>
       <button
@@ -145,43 +151,137 @@ export function NotificationsBell() {
                 </li>
               )}
               {items.map(n => (
-                <li
+                <NotificationRow
                   key={n.id}
-                  className={`group flex items-stretch border-b border-slate-50 dark:border-slate-800/60 ${
-                    n.read ? '' : 'bg-teal-50/40 dark:bg-teal-950/20'
-                  }`}
-                >
-                  <button
-                    onClick={() => handleOpen(n)}
-                    className="flex min-w-0 flex-1 items-start gap-2 px-3 py-2.5 text-left transition hover:bg-slate-50 dark:hover:bg-slate-800/40"
-                  >
-                    <span className="mt-0.5 shrink-0">{iconFor(n.type)}</span>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium">{n.title}</p>
-                      {n.body && (
-                        <p className="truncate text-xs text-slate-500 dark:text-slate-400">
-                          {n.body}
-                        </p>
-                      )}
-                      <p className="text-[10px] text-slate-400">
-                        {relative(n.created_at)}
-                      </p>
-                    </div>
-                    <ChevronRight className="mt-0.5 size-4 shrink-0 self-center text-slate-300 opacity-0 transition group-hover:opacity-100" />
-                  </button>
-                  <button
-                    onClick={() => void handleDelete(n.id)}
-                    aria-label="Supprimer"
-                    className="shrink-0 px-2 text-slate-300 opacity-0 transition hover:text-slate-500 group-hover:opacity-100"
-                  >
-                    <X className="size-3.5" />
-                  </button>
-                </li>
+                  n={n}
+                  onOpen={handleOpen}
+                  onMarkRead={handleMarkRead}
+                  onDelete={id => void handleDelete(id)}
+                />
               ))}
             </ul>
           </div>
         </div>
       )}
     </>
+  );
+}
+
+const SWIPE_THRESHOLD = 64;
+
+/**
+ * Ligne de notification. Un GLISSEMENT latéral (tactile) sur une notification
+ * non lue la marque comme lue ; un simple tap ouvre le raccourci.
+ */
+function NotificationRow({
+  n,
+  onOpen,
+  onMarkRead,
+  onDelete,
+}: {
+  n: Notification;
+  onOpen: (n: Notification) => void;
+  onMarkRead: (id: string) => void;
+  onDelete: (id: string) => void;
+}) {
+  const [dx, setDx] = useState(0);
+  const dxRef = useRef(0);
+  const start = useRef({ x: 0, y: 0 });
+  const axis = useRef<'none' | 'x' | 'y'>('none');
+  const moved = useRef(false);
+  const dragging = useRef(false);
+  const swipeable = !n.read;
+
+  function onTouchStart(e: React.TouchEvent) {
+    if (!swipeable) return;
+    start.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    axis.current = 'none';
+    moved.current = false;
+    dragging.current = true;
+  }
+  function onTouchMove(e: React.TouchEvent) {
+    if (!swipeable || !dragging.current) return;
+    const dX = e.touches[0].clientX - start.current.x;
+    const dY = e.touches[0].clientY - start.current.y;
+    if (axis.current === 'none' && (Math.abs(dX) > 6 || Math.abs(dY) > 6)) {
+      axis.current = Math.abs(dX) > Math.abs(dY) ? 'x' : 'y';
+    }
+    if (axis.current === 'x') {
+      moved.current = true;
+      const clamped = Math.max(-100, Math.min(100, dX));
+      dxRef.current = clamped;
+      setDx(clamped);
+    }
+  }
+  function onTouchEnd() {
+    if (!swipeable) return;
+    dragging.current = false;
+    if (axis.current === 'x' && Math.abs(dxRef.current) >= SWIPE_THRESHOLD) {
+      onMarkRead(n.id);
+    }
+    dxRef.current = 0;
+    setDx(0);
+  }
+
+  function handleClick() {
+    if (moved.current) {
+      moved.current = false;
+      return;
+    }
+    onOpen(n);
+  }
+
+  return (
+    <li className="relative overflow-hidden border-b border-slate-50 dark:border-slate-800/60">
+      {swipeable && (
+        <div
+          className="pointer-events-none absolute inset-0 flex items-center justify-between bg-teal-100 px-4 text-sm font-semibold text-teal-700 dark:bg-teal-900/50 dark:text-teal-300"
+          style={{ opacity: Math.min(1, Math.abs(dx) / SWIPE_THRESHOLD) }}
+        >
+          <span className="flex items-center gap-1">
+            <Check className="size-4" /> Lu
+          </span>
+          <span className="flex items-center gap-1">
+            <Check className="size-4" /> Lu
+          </span>
+        </div>
+      )}
+      <div
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        className={`group relative flex items-stretch ${
+          n.read ? 'bg-white dark:bg-slate-900' : 'bg-teal-50 dark:bg-teal-950'
+        }`}
+        style={{
+          transform: `translateX(${dx}px)`,
+          transition: dragging.current ? 'none' : 'transform .2s ease',
+        }}
+      >
+        <button
+          onClick={handleClick}
+          className="flex min-w-0 flex-1 items-start gap-2 px-3 py-2.5 text-left transition hover:bg-black/[0.03] dark:hover:bg-white/5"
+        >
+          <span className="mt-0.5 shrink-0">{iconFor(n.type)}</span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium">{n.title}</p>
+            {n.body && (
+              <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+                {n.body}
+              </p>
+            )}
+            <p className="text-[10px] text-slate-400">{relative(n.created_at)}</p>
+          </div>
+          <ChevronRight className="size-4 shrink-0 self-center text-slate-300 opacity-0 transition group-hover:opacity-100" />
+        </button>
+        <button
+          onClick={() => onDelete(n.id)}
+          aria-label="Supprimer"
+          className="shrink-0 px-2 text-slate-300 opacity-0 transition hover:text-slate-500 group-hover:opacity-100"
+        >
+          <X className="size-3.5" />
+        </button>
+      </div>
+    </li>
   );
 }

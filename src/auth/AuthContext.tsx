@@ -22,6 +22,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [doctor, setDoctor] = useState<Doctor | null>(null);
   const [loading, setLoading] = useState(true);
+  const [previewMember, setPreviewMember] = useState(false);
 
   const refreshDoctor = useCallback(async () => {
     const sb = getSupabase();
@@ -87,8 +88,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signOut() {
+    setPreviewMember(false);
     await getSupabase().auth.signOut();
   }
+
+  const isAdmin = !!doctor?.is_admin && !previewMember;
 
   return (
     <AuthContext.Provider
@@ -96,6 +100,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         session,
         doctor,
         loading,
+        isAdmin,
+        previewMember,
+        togglePreviewMember: () => setPreviewMember(v => !v),
         signIn,
         signUp,
         signOut,

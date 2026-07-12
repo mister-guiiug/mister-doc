@@ -28,8 +28,8 @@ const ProfilePage = lazy(() =>
 );
 
 function AdminRoute({ children }: { children: ReactNode }) {
-  const { doctor } = useAuth();
-  if (!doctor?.is_admin) return <Navigate to="/" replace />;
+  const { isAdmin } = useAuth();
+  if (!isAdmin) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
 

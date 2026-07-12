@@ -21,13 +21,13 @@ interface Item {
  * cohérente au pouce.
  */
 export function BottomNav() {
-  const { doctor } = useAuth();
+  const { doctor, isAdmin } = useAuth();
   if (!doctor) return null;
 
   const items: Item[] = [
     { to: '/', label: 'Planning', icon: <CalendarDays className="size-5" />, end: true },
     { to: '/echanges', label: 'Échanges', icon: <Repeat className="size-5" /> },
-    ...(doctor.is_admin
+    ...(isAdmin
       ? [
           { to: '/compteurs', label: 'Compteurs', icon: <BarChart3 className="size-5" /> },
           { to: '/admin', label: 'Admin', icon: <Shield className="size-5" /> },

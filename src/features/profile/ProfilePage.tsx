@@ -52,7 +52,7 @@ function Section({
 }
 
 export function ProfilePage() {
-  const { doctor, signOut, refreshDoctor } = useAuth();
+  const { doctor, isAdmin, signOut, refreshDoctor } = useAuth();
   const { theme, setTheme } = useTheme();
   const toast = useToast();
   const [name, setName] = useState(doctor?.name ?? '');
@@ -105,7 +105,7 @@ export function ProfilePage() {
             </p>
           )}
         </div>
-        {doctor.is_admin && (
+        {isAdmin && (
           <span className="flex items-center gap-1 rounded-full bg-teal-50 px-2 py-1 text-xs font-semibold text-teal-700 dark:bg-teal-950/40 dark:text-teal-300">
             <ShieldCheck className="size-3.5" /> Admin
           </span>
