@@ -275,7 +275,10 @@ export function AdminPanel() {
                 {!hasAccount && (
                   <button
                     disabled={busyId === d.id}
-                    onClick={() => void act(d.id, () => adminDeleteDoctor(d.id))}
+                    onClick={() => {
+                      if (confirm(`Supprimer « ${d.name} » du roster ?`))
+                        void act(d.id, () => adminDeleteDoctor(d.id));
+                    }}
                     title="Supprimer du roster"
                     className="rounded-lg p-1.5 text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
                   >

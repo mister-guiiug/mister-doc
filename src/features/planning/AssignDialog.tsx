@@ -124,7 +124,14 @@ export function AssignDialog({
         {currentShift && (
           <button
             disabled={busy}
-            onClick={() => void run(onClear)}
+            onClick={() => {
+              if (
+                confirm(
+                  `Libérer le créneau ${SHIFT_LABEL[target.shiftType]} du ${dayLabel} ? Le médecin en sera retiré.`
+                )
+              )
+                void run(onClear);
+            }}
             className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-red-200 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50 dark:border-red-900/60 dark:hover:bg-red-950/30"
           >
             <Trash2 className="size-4" /> Libérer le créneau

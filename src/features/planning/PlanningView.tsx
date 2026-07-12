@@ -75,6 +75,12 @@ import { NoteDialog } from './NoteDialog.tsx';
 import { HncDialog } from './HncDialog.tsx';
 import { FullScreenSpinner } from '../../components/Spinner.tsx';
 
+/** Formate une clé ISO `YYYY-MM-DD` en `DD/MM/YYYY` (messages de confirmation). */
+function frDate(iso: string): string {
+  const [y, m, d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+
 export function PlanningView() {
   const { doctor } = useAuth();
   const toast = useToast();
@@ -273,6 +279,13 @@ export function PlanningView() {
   }
 
   async function handleRemoveLeave(leave: Leave) {
+    const doc = doctorsById.get(leave.doctor_id);
+    if (
+      !confirm(
+        `Supprimer l'absence de ${doc?.name ?? 'ce médecin'} le ${frDate(leave.work_date)} ?`
+      )
+    )
+      return;
     const prev = leaves;
     setLeaves(cur => cur.filter(l => l.id !== leave.id));
     try {
@@ -362,6 +375,16 @@ export function PlanningView() {
   }
 
   async function handleClearHnc(id: string) {
+    const entry = hnc.find(h => h.id === id);
+    const doc = entry ? doctorsById.get(entry.doctor_id) : undefined;
+    if (
+      !confirm(
+        `Supprimer les heures non cliniques${doc ? ` de ${doc.name}` : ''}${
+          entry ? ` le ${frDate(entry.work_date)}` : ''
+        } ?`
+      )
+    )
+      return;
     const prev = hnc;
     setHnc(cur => cur.filter(h => h.id !== id));
     try {
