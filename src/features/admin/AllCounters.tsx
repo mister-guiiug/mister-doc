@@ -3,10 +3,12 @@ import { ChevronLeft, ChevronRight, Users, Download } from 'lucide-react';
 import { MONTH_LABELS, toISODate } from '../../lib/dates.ts';
 import { computeCounters } from '../../lib/shifts.ts';
 import { computeLeaveStats } from '../../lib/leaves.ts';
-import type { Doctor, Leave, Shift } from '../../backend/types.ts';
+import { sumHncHours } from '../../lib/hnc.ts';
+import type { Doctor, HncEntry, Leave, Shift } from '../../backend/types.ts';
 import { listDoctors } from '../../backend/doctors.ts';
 import { listShiftsBetween } from '../../backend/planning.ts';
 import { listLeavesBetween } from '../../backend/leaves.ts';
+import { listHncBetween } from '../../backend/hnc.ts';
 import { FullScreenSpinner } from '../../components/Spinner.tsx';
 
 type Period = 'month' | 'quadri' | 'year';
@@ -17,6 +19,7 @@ interface Row {
   saturdays: number;
   sundays: number;
   weekendHours: number;
+  hncHours: number;
   totalHours: number;
   annualDays: number;
   trainingHours: number;
@@ -51,6 +54,7 @@ export function AllCounters() {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [leaves, setLeaves] = useState<Leave[]>([]);
+  const [hnc, setHnc] = useState<HncEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -61,14 +65,16 @@ export function AllCounters() {
 
   const load = useCallback(async () => {
     try {
-      const [d, s, l] = await Promise.all([
+      const [d, s, l, h] = await Promise.all([
         listDoctors(),
         listShiftsBetween(from, to),
         listLeavesBetween(from, to),
+        listHncBetween(from, to),
       ]);
       setDoctors(d);
       setShifts(s);
       setLeaves(l);
+      setHnc(h);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur');
@@ -93,13 +99,15 @@ export function AllCounters() {
             .filter(l => l.doctor_id === doctor.id)
             .map(l => ({ kind: l.kind, hours: l.hours }))
         );
+        const hncHours = sumHncHours(hnc.filter(h => h.doctor_id === doctor.id));
         return {
           doctor,
           fridays: c.fridays,
           saturdays: c.saturdays,
           sundays: c.sundays,
           weekendHours: c.weekendHours,
-          totalHours: c.totalHours,
+          hncHours,
+          totalHours: c.totalHours + hncHours,
           annualDays: lv.annualDays,
           trainingHours: lv.trainingHours,
         };
@@ -108,7 +116,7 @@ export function AllCounters() {
         (a, b) =>
           b.totalHours - a.totalHours || a.doctor.name.localeCompare(b.doctor.name)
       );
-  }, [doctors, shifts, leaves]);
+  }, [doctors, shifts, leaves, hnc]);
 
   function shiftPeriod(delta: number) {
     if (period === 'year') {
@@ -131,6 +139,7 @@ export function AllCounters() {
       'Samedis',
       'Dimanches',
       'Heures WE',
+      'Heures non cliniques',
       'Heures totales',
       'Congés (j)',
       'Formation (h)',
@@ -142,6 +151,7 @@ export function AllCounters() {
         r.saturdays,
         r.sundays,
         r.weekendHours,
+        r.hncHours,
         r.totalHours,
         r.annualDays,
         r.trainingHours,
@@ -223,6 +233,7 @@ export function AllCounters() {
               <Th>Sam</Th>
               <Th>Dim</Th>
               <Th>h WE</Th>
+              <Th>HNC</Th>
               <Th>h Total</Th>
               <Th>Congés</Th>
               <Th>Format.</Th>
@@ -247,6 +258,7 @@ export function AllCounters() {
                 <Td>{r.saturdays}</Td>
                 <Td>{r.sundays}</Td>
                 <Td strong>{r.weekendHours} h</Td>
+                <Td>{r.hncHours} h</Td>
                 <Td strong>{r.totalHours} h</Td>
                 <Td>{r.annualDays} j</Td>
                 <Td>{r.trainingHours} h</Td>
@@ -254,7 +266,7 @@ export function AllCounters() {
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-3 py-6 text-center text-slate-400">
+                <td colSpan={9} className="px-3 py-6 text-center text-slate-400">
                   Aucun médecin.
                 </td>
               </tr>

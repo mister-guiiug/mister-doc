@@ -40,6 +40,17 @@ export interface DayNote {
   updated_at: string;
 }
 
+/** Heures non cliniques (ex-S3) : un médecin déclare N heures pour un jour. */
+export interface HncEntry {
+  id: string;
+  doctor_id: string;
+  work_date: string; // YYYY-MM-DD
+  hours: number;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface LockedMonth {
   year: number;
   month: number; // 0 = janvier (convention JS)

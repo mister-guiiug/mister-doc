@@ -20,6 +20,7 @@ import type { LeaveKind } from '../../lib/leaves.ts';
 import type {
   Doctor,
   DayNote,
+  HncEntry,
   Leave,
   LockedMonth,
   Shift,
@@ -51,6 +52,12 @@ import {
   setWish,
   subscribeWishes,
 } from '../../backend/wishes.ts';
+import {
+  clearHnc,
+  listMonthHnc,
+  setHnc as saveHnc,
+  subscribeHnc,
+} from '../../backend/hnc.ts';
 import { proposeSwap } from '../../backend/swaps.ts';
 import {
   isMonthLocked,
@@ -65,6 +72,7 @@ import { MonthCalendarGrid } from './MonthCalendarGrid.tsx';
 import { AssignDialog, type SlotTarget } from './AssignDialog.tsx';
 import { LeaveDialog } from './LeaveDialog.tsx';
 import { NoteDialog } from './NoteDialog.tsx';
+import { HncDialog } from './HncDialog.tsx';
 import { FullScreenSpinner } from '../../components/Spinner.tsx';
 
 export function PlanningView() {
@@ -78,6 +86,7 @@ export function PlanningView() {
   const [leaves, setLeaves] = useState<Leave[]>([]);
   const [notes, setNotes] = useState<DayNote[]>([]);
   const [wishes, setWishes] = useState<Wish[]>([]);
+  const [hnc, setHnc] = useState<HncEntry[]>([]);
   const [locks, setLocks] = useState<LockedMonth[]>([]);
   const [firstLoad, setFirstLoad] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -85,6 +94,7 @@ export function PlanningView() {
   const [slot, setSlot] = useState<SlotTarget | null>(null);
   const [leaveDate, setLeaveDate] = useState<string | null>(null);
   const [noteDate, setNoteDate] = useState<string | null>(null);
+  const [hncDate, setHncDate] = useState<string | null>(null);
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [view, setView] = useState<'list' | 'grid'>(() => {
     try {
@@ -102,16 +112,18 @@ export function PlanningView() {
   const loadData = useCallback(async () => {
     setRefreshing(true);
     try {
-      const [s, l, n, w] = await Promise.all([
+      const [s, l, n, w, h] = await Promise.all([
         listMonthShifts(year, month),
         listMonthLeaves(year, month),
         listMonthNotes(year, month),
         listMonthWishes(year, month),
+        listMonthHnc(year, month),
       ]);
       setShifts(s);
       setLeaves(l);
       setNotes(n);
       setWishes(w);
+      setHnc(h);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur de chargement');
@@ -133,6 +145,7 @@ export function PlanningView() {
   useEffect(() => subscribeLeaves(() => void loadData()), [loadData]);
   useEffect(() => subscribeNotes(() => void loadData()), [loadData]);
   useEffect(() => subscribeWishes(() => void loadData()), [loadData]);
+  useEffect(() => subscribeHnc(() => void loadData()), [loadData]);
   useEffect(() => subscribeLocks(() => void listLocks().then(setLocks)), []);
 
   useEffect(() => {
@@ -166,6 +179,11 @@ export function PlanningView() {
     for (const w of wishes) (m.get(w.work_date) ?? m.set(w.work_date, []).get(w.work_date)!).push(w);
     return m;
   }, [wishes]);
+  const hncByDate = useMemo(() => {
+    const m = new Map<string, HncEntry[]>();
+    for (const h of hnc) (m.get(h.work_date) ?? m.set(h.work_date, []).get(h.work_date)!).push(h);
+    return m;
+  }, [hnc]);
   const issuesByDate = useMemo(
     () => computeIssues(shifts, leaves, nameById),
     [shifts, leaves, nameById]
@@ -333,6 +351,27 @@ export function PlanningView() {
     }
   }
 
+  async function handleSetHnc(iso: string, doctorId: string, hours: number) {
+    try {
+      await saveHnc(doctorId, iso, hours, doctor?.id ?? null);
+      await loadData();
+      toast.success('Heures non cliniques enregistrées.');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erreur');
+    }
+  }
+
+  async function handleClearHnc(id: string) {
+    const prev = hnc;
+    setHnc(cur => cur.filter(h => h.id !== id));
+    try {
+      await clearHnc(id);
+    } catch (e) {
+      setHnc(prev);
+      toast.error(e instanceof Error ? e.message : 'Erreur');
+    }
+  }
+
   async function toggleLock() {
     try {
       if (locked) await unlockMonth(year, month);
@@ -376,6 +415,7 @@ export function PlanningView() {
         <Counters
           shifts={shifts}
           leaves={leaves}
+          hnc={hnc}
           doctorId={doctor.id}
           monthLabel={monthLabel(year, month)}
         />
@@ -511,6 +551,7 @@ export function PlanningView() {
             leavesByDate={leavesByDate}
             notesByDate={notesByDate}
             wishesByDate={wishesByDate}
+            hncByDate={hncByDate}
             doctorsById={doctorsById}
             selfDoctorId={doctor.id}
             highlightId={highlightId}
@@ -520,6 +561,7 @@ export function PlanningView() {
             onRemoveLeave={leave => void handleRemoveLeave(leave)}
             onEditNote={iso => setNoteDate(iso)}
             onCycleWish={iso => void handleCycleWish(iso)}
+            onEditHnc={iso => setHncDate(iso)}
             dayRefs={dayRefs}
           />
         ) : (
@@ -530,6 +572,7 @@ export function PlanningView() {
             notesByDate={notesByDate}
             issuesByDate={issuesByDate}
             wishesByDate={wishesByDate}
+            hncByDate={hncByDate}
             doctorsById={doctorsById}
             selfDoctorId={doctor.id}
             highlightId={highlightId}
@@ -539,6 +582,7 @@ export function PlanningView() {
             onRemoveLeave={leave => void handleRemoveLeave(leave)}
             onEditNote={iso => setNoteDate(iso)}
             onCycleWish={iso => void handleCycleWish(iso)}
+            onEditHnc={iso => setHncDate(iso)}
             dayRefs={dayRefs}
           />
         ))}
@@ -576,6 +620,18 @@ export function PlanningView() {
           onSave={handleSaveNote}
           onDelete={handleDeleteNote}
           onClose={() => setNoteDate(null)}
+        />
+      )}
+
+      {hncDate && doctor && (
+        <HncDialog
+          date={hncDate}
+          doctors={doctors}
+          selfDoctorId={doctor.id}
+          dayEntries={hncByDate.get(hncDate) ?? []}
+          onSubmit={(doctorId, hours) => handleSetHnc(hncDate, doctorId, hours)}
+          onRemove={handleClearHnc}
+          onClose={() => setHncDate(null)}
         />
       )}
     </div>

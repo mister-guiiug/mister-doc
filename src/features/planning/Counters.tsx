@@ -1,21 +1,24 @@
 import { CalendarHeart } from 'lucide-react';
 import { computeCounters, type CountableShift } from '../../lib/shifts.ts';
 import { computeLeaveStats, type CountableLeave } from '../../lib/leaves.ts';
-import type { Leave, Shift } from '../../backend/types.ts';
+import { sumHncHours } from '../../lib/hnc.ts';
+import type { HncEntry, Leave, Shift } from '../../backend/types.ts';
 
 /**
  * Compteurs compacts du médecin connecté sur le mois affiché : vendredis /
- * samedis / dimanches de garde, heures week-end (ven+sam+dim), heures totales,
- * jours de congé annuel et heures de formation.
+ * samedis / dimanches de garde, heures week-end (ven+sam+dim), heures non
+ * cliniques, heures totales (cliniques + HNC), congés annuels et formation.
  */
 export function Counters({
   shifts,
   leaves,
+  hnc,
   doctorId,
   monthLabel,
 }: {
   shifts: Shift[];
   leaves: Leave[];
+  hnc: HncEntry[];
   doctorId: string;
   monthLabel: string;
 }) {
@@ -27,6 +30,8 @@ export function Counters({
     .map(l => ({ kind: l.kind, hours: l.hours }));
   const c = computeCounters(mineShifts);
   const l = computeLeaveStats(mineLeaves);
+  const hncHours = sumHncHours(hnc.filter(h => h.doctor_id === doctorId));
+  const totalHours = c.totalHours + hncHours;
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
@@ -42,7 +47,8 @@ export function Counters({
         <Pill label="Sam" value={c.saturdays} />
         <Pill label="Dim" value={c.sundays} />
         <Pill label="WE" value={`${c.weekendHours} h`} accent />
-        <Pill label="Total" value={`${c.totalHours} h`} accent />
+        <Pill label="HNC" value={`${hncHours} h`} tone="sky" />
+        <Pill label="Total" value={`${totalHours} h`} accent />
         <Pill label="Congés" value={`${l.annualDays} j`} tone="violet" />
         <Pill label="Formation" value={`${l.trainingHours} h`} tone="amber" />
       </div>
@@ -59,12 +65,14 @@ function Pill({
   label: string;
   value: number | string;
   accent?: boolean;
-  tone?: 'violet' | 'amber';
+  tone?: 'violet' | 'amber' | 'sky';
 }) {
   const cls = tone
     ? tone === 'violet'
       ? 'border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-900 dark:bg-violet-950/40 dark:text-violet-300'
-      : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300'
+      : tone === 'sky'
+        ? 'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900 dark:bg-sky-950/40 dark:text-sky-300'
+        : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300'
     : accent
       ? 'border-teal-200 bg-teal-50 text-teal-800 dark:border-teal-900 dark:bg-teal-950/40 dark:text-teal-200'
       : 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-200';

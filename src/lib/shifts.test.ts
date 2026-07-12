@@ -17,13 +17,12 @@ describe('isoWeek', () => {
 });
 
 describe('activeShiftTypes', () => {
-  it('propose les 4 créneaux un jour de semaine ordinaire', () => {
-    // 2026-07-07 = mardi
+  it('propose les 3 créneaux cliniques un jour de semaine ordinaire', () => {
+    // 2026-07-07 = mardi. S3 n'est plus un créneau clinique (heures non cliniques).
     expect(activeShiftTypes(new Date(2026, 6, 7))).toEqual([
       'S1J',
       'S1N',
       'S2J',
-      'S3',
     ]);
   });
 

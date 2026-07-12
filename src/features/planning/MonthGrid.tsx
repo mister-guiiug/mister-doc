@@ -8,6 +8,7 @@ import {
   ThumbsUp,
   ThumbsDown,
   Heart,
+  Clock3,
 } from 'lucide-react';
 import type { MonthDay } from '../../lib/dates.ts';
 import { WEEKDAY_LABELS } from '../../lib/dates.ts';
@@ -19,7 +20,14 @@ import {
 } from '../../lib/shifts.ts';
 import { LEAVE_SHORT } from '../../lib/leaves.ts';
 import type { Issue } from '../../lib/validation.ts';
-import type { Doctor, DayNote, Leave, Shift, Wish } from '../../backend/types.ts';
+import type {
+  Doctor,
+  DayNote,
+  HncEntry,
+  Leave,
+  Shift,
+  Wish,
+} from '../../backend/types.ts';
 
 export function MonthGrid({
   weeks,
@@ -28,6 +36,7 @@ export function MonthGrid({
   notesByDate,
   issuesByDate,
   wishesByDate,
+  hncByDate,
   doctorsById,
   selfDoctorId,
   highlightId,
@@ -37,6 +46,7 @@ export function MonthGrid({
   onRemoveLeave,
   onEditNote,
   onCycleWish,
+  onEditHnc,
   dayRefs,
 }: {
   weeks: { week: number; days: MonthDay[] }[];
@@ -45,6 +55,7 @@ export function MonthGrid({
   notesByDate: Map<string, DayNote>;
   issuesByDate: Map<string, Issue[]>;
   wishesByDate: Map<string, Wish[]>;
+  hncByDate: Map<string, HncEntry[]>;
   doctorsById: Map<string, Doctor>;
   selfDoctorId: string;
   highlightId: string | null;
@@ -54,6 +65,7 @@ export function MonthGrid({
   onRemoveLeave: (leave: Leave) => void;
   onEditNote: (iso: string) => void;
   onCycleWish: (iso: string) => void;
+  onEditHnc: (iso: string) => void;
   dayRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
 }) {
   return (
@@ -79,6 +91,7 @@ export function MonthGrid({
                 note={notesByDate.get(day.iso)}
                 issues={issuesByDate.get(day.iso) ?? []}
                 wishes={wishesByDate.get(day.iso) ?? []}
+                hnc={hncByDate.get(day.iso) ?? []}
                 doctorsById={doctorsById}
                 selfDoctorId={selfDoctorId}
                 highlightId={highlightId}
@@ -88,6 +101,7 @@ export function MonthGrid({
                 onRemoveLeave={onRemoveLeave}
                 onEditNote={onEditNote}
                 onCycleWish={onCycleWish}
+                onEditHnc={onEditHnc}
                 setRef={el => (dayRefs.current[day.iso] = el)}
               />
             ))}
@@ -105,6 +119,7 @@ function DayRow({
   note,
   issues,
   wishes,
+  hnc,
   doctorsById,
   selfDoctorId,
   highlightId,
@@ -114,6 +129,7 @@ function DayRow({
   onRemoveLeave,
   onEditNote,
   onCycleWish,
+  onEditHnc,
   setRef,
 }: {
   day: MonthDay;
@@ -122,6 +138,7 @@ function DayRow({
   note?: DayNote;
   issues: Issue[];
   wishes: Wish[];
+  hnc: HncEntry[];
   doctorsById: Map<string, Doctor>;
   selfDoctorId: string;
   highlightId: string | null;
@@ -131,6 +148,7 @@ function DayRow({
   onRemoveLeave: (leave: Leave) => void;
   onEditNote: (iso: string) => void;
   onCycleWish: (iso: string) => void;
+  onEditHnc: (iso: string) => void;
   setRef: (el: HTMLDivElement | null) => void;
 }) {
   const types = activeShiftTypes(day.date);
@@ -276,6 +294,37 @@ function DayRow({
             </button>
           );
         })}
+
+        {hnc.map(entry => {
+          const doc = doctorsById.get(entry.doctor_id);
+          return (
+            <button
+              key={entry.id}
+              onClick={() => onEditHnc(day.iso)}
+              title="Heures non cliniques (cliquer pour modifier)"
+              className={`flex items-center gap-1 rounded-full border border-sky-300 bg-sky-50 px-2 py-0.5 text-[11px] font-medium text-sky-800 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-200 ${
+                dim(entry.doctor_id) ? 'opacity-30' : ''
+              }`}
+            >
+              <Clock3 className="size-3" />
+              <span
+                className="inline-block size-2 shrink-0 rounded-full"
+                style={{ backgroundColor: doc?.color ?? '#999' }}
+              />
+              <span className="truncate">{doc?.name ?? '?'}</span>
+              <span className="opacity-70">· {entry.hours} h</span>
+            </button>
+          );
+        })}
+
+        {!locked && (
+          <button
+            onClick={() => onEditHnc(day.iso)}
+            className="flex items-center gap-1 rounded-full border border-dashed border-slate-300 px-2 py-0.5 text-[11px] font-medium text-slate-500 transition hover:border-sky-400 hover:text-sky-600 dark:border-slate-600"
+          >
+            <Clock3 className="size-3" /> HNC
+          </button>
+        )}
 
         {note ? (
           <button

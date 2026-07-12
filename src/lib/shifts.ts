@@ -9,11 +9,16 @@ import {
 } from './dates.ts';
 
 /**
- * Créneaux de garde et leur base horaire (donnée par le métier) :
- *   S1J = 10 h (jour), S1N = 15 h (nuit), S2J = 8 h, S3 = 8 h.
+ * Créneaux de garde CLINIQUES et leur base horaire (donnée par le métier) :
+ *   S1J = 10 h (jour), S1N = 15 h (nuit), S2J = 8 h.
+ * (« S3 » est conservé dans le type pour la compatibilité, mais n'est plus un
+ * créneau clinique : ce sont désormais des Heures Non Cliniques — cf. lib/hnc.ts.)
  */
 export const SHIFT_TYPES = ['S1J', 'S1N', 'S2J', 'S3'] as const;
 export type ShiftType = (typeof SHIFT_TYPES)[number];
+
+/** Créneaux cliniques réellement affectables (occupant unique, à couvrir). */
+export const CLINICAL_SHIFT_TYPES: readonly ShiftType[] = ['S1J', 'S1N', 'S2J'];
 
 export const SHIFT_HOURS: Record<ShiftType, number> = {
   S1J: 10,
@@ -26,13 +31,13 @@ export const SHIFT_LABEL: Record<ShiftType, string> = {
   S1J: 'S1 Jour',
   S1N: 'S1 Nuit',
   S2J: 'S2 Jour',
-  S3: 'S3',
+  S3: 'Heures non cliniques',
 };
 
 /** Créneau « principal » présent tous les jours. */
 export const PRIMARY_SHIFT: ShiftType = 'S1J';
 
-/** Créneaux actifs le week-end et les jours fériés (couverture réduite). */
+/** Créneaux cliniques actifs le week-end et les jours fériés (couverture réduite). */
 export const WEEKEND_SHIFT_TYPES: readonly ShiftType[] = ['S1J', 'S1N'];
 
 export function isShiftType(v: string): v is ShiftType {
@@ -40,11 +45,14 @@ export function isShiftType(v: string): v is ShiftType {
 }
 
 /**
- * Créneaux à couvrir pour une date donnée : les 4 en semaine, mais seulement
- * `S1J` et `S1N` le samedi, le dimanche et les jours fériés.
+ * Créneaux cliniques à couvrir pour une date donnée : S1J/S1N/S2J en semaine,
+ * seulement S1J/S1N le samedi, le dimanche et les jours fériés. (Les heures non
+ * cliniques ne font pas partie de la couverture et se saisissent tous les jours.)
  */
 export function activeShiftTypes(date: Date): readonly ShiftType[] {
-  return isSatSun(date) || isHoliday(date) ? WEEKEND_SHIFT_TYPES : SHIFT_TYPES;
+  return isSatSun(date) || isHoliday(date)
+    ? WEEKEND_SHIFT_TYPES
+    : CLINICAL_SHIFT_TYPES;
 }
 
 /** Une affectation minimale nécessaire au calcul des compteurs. */

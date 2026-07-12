@@ -7,11 +7,19 @@ import {
   ThumbsUp,
   ThumbsDown,
   Heart,
+  Clock3,
 } from 'lucide-react';
 import type { MonthDay } from '../../lib/dates.ts';
 import { activeShiftTypes, SHIFT_HOURS, type ShiftType } from '../../lib/shifts.ts';
 import { LEAVE_SHORT } from '../../lib/leaves.ts';
-import type { Doctor, DayNote, Leave, Shift, Wish } from '../../backend/types.ts';
+import type {
+  Doctor,
+  DayNote,
+  HncEntry,
+  Leave,
+  Shift,
+  Wish,
+} from '../../backend/types.ts';
 
 const DAY_HEADERS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'] as const;
 
@@ -26,6 +34,7 @@ export function MonthCalendarGrid({
   leavesByDate,
   notesByDate,
   wishesByDate,
+  hncByDate,
   doctorsById,
   selfDoctorId,
   highlightId,
@@ -35,6 +44,7 @@ export function MonthCalendarGrid({
   onRemoveLeave,
   onEditNote,
   onCycleWish,
+  onEditHnc,
   dayRefs,
 }: {
   weeks: { week: number; days: MonthDay[] }[];
@@ -42,6 +52,7 @@ export function MonthCalendarGrid({
   leavesByDate: Map<string, Leave[]>;
   notesByDate: Map<string, DayNote>;
   wishesByDate: Map<string, Wish[]>;
+  hncByDate: Map<string, HncEntry[]>;
   doctorsById: Map<string, Doctor>;
   selfDoctorId: string;
   highlightId: string | null;
@@ -51,6 +62,7 @@ export function MonthCalendarGrid({
   onRemoveLeave: (leave: Leave) => void;
   onEditNote: (iso: string) => void;
   onCycleWish: (iso: string) => void;
+  onEditHnc: (iso: string) => void;
   dayRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
 }) {
   const rows = weeks.map(({ week, days }) => {
@@ -91,6 +103,7 @@ export function MonthCalendarGrid({
                 leaves={leavesByDate.get(day.iso) ?? []}
                 note={notesByDate.get(day.iso)}
                 wishes={wishesByDate.get(day.iso) ?? []}
+                hnc={hncByDate.get(day.iso) ?? []}
                 doctorsById={doctorsById}
                 selfDoctorId={selfDoctorId}
                 highlightId={highlightId}
@@ -100,6 +113,7 @@ export function MonthCalendarGrid({
                 onRemoveLeave={onRemoveLeave}
                 onEditNote={onEditNote}
                 onCycleWish={onCycleWish}
+                onEditHnc={onEditHnc}
                 setRef={el => (dayRefs.current[day.iso] = el)}
               />
             ) : (
@@ -121,6 +135,7 @@ function DayCell({
   leaves,
   note,
   wishes,
+  hnc,
   doctorsById,
   selfDoctorId,
   highlightId,
@@ -130,6 +145,7 @@ function DayCell({
   onRemoveLeave,
   onEditNote,
   onCycleWish,
+  onEditHnc,
   setRef,
 }: {
   day: MonthDay;
@@ -137,6 +153,7 @@ function DayCell({
   leaves: Leave[];
   note?: DayNote;
   wishes: Wish[];
+  hnc: HncEntry[];
   doctorsById: Map<string, Doctor>;
   selfDoctorId: string;
   highlightId: string | null;
@@ -146,6 +163,7 @@ function DayCell({
   onRemoveLeave: (leave: Leave) => void;
   onEditNote: (iso: string) => void;
   onCycleWish: (iso: string) => void;
+  onEditHnc: (iso: string) => void;
   setRef: (el: HTMLDivElement | null) => void;
 }) {
   const types = activeShiftTypes(day.date);
@@ -268,6 +286,33 @@ function DayCell({
         </div>
       )}
 
+      {/* Heures non cliniques */}
+      {hnc.length > 0 && (
+        <div className="flex flex-wrap gap-0.5">
+          {hnc.map(entry => {
+            const doc = doctorsById.get(entry.doctor_id);
+            return (
+              <button
+                key={entry.id}
+                disabled={locked}
+                onClick={() => onEditHnc(day.iso)}
+                title={`${doc?.name ?? '?'} · ${entry.hours} h non cliniques${locked ? '' : ' — modifier'}`}
+                className={`flex items-center gap-0.5 rounded-full border border-sky-300 bg-sky-50 px-1 text-[10px] text-sky-800 disabled:cursor-default dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-200 ${
+                  dim(entry.doctor_id) ? 'opacity-30' : ''
+                }`}
+              >
+                <Clock3 className="size-2.5" />
+                <span
+                  className="inline-block size-1.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: doc?.color ?? '#999' }}
+                />
+                {entry.hours}h
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Pied : note, vœux, actions au survol */}
       <div className="mt-auto flex items-center gap-1 pt-0.5">
         {note && (
@@ -336,6 +381,13 @@ function DayCell({
               className="text-slate-400 hover:text-violet-600"
             >
               <Plus className="size-3.5" />
+            </button>
+            <button
+              onClick={() => onEditHnc(day.iso)}
+              title="Heures non cliniques"
+              className="text-slate-400 hover:text-sky-600"
+            >
+              <Clock3 className="size-3.5" />
             </button>
           </span>
         )}

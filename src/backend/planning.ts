@@ -10,7 +10,10 @@ function monthBounds(year: number, month: number): [string, string] {
   return [toISODate(first), toISODate(last)];
 }
 
-/** Toutes les affectations d'un mois. */
+// Les gardes cliniques excluent « S3 » : ces heures non cliniques vivent
+// désormais dans la table `hnc_hours` (cf. backend/hnc.ts). Le filtre neq garde
+// les anciennes lignes S3 éventuelles hors des compteurs et de la grille.
+/** Toutes les affectations (cliniques) d'un mois. */
 export async function listMonthShifts(
   year: number,
   month: number
@@ -19,6 +22,7 @@ export async function listMonthShifts(
   const { data, error } = await getSupabase()
     .from('shifts')
     .select('*')
+    .neq('shift_type', 'S3')
     .gte('work_date', from)
     .lte('work_date', to)
     .order('work_date');
@@ -26,7 +30,7 @@ export async function listMonthShifts(
   return (data ?? []) as Shift[];
 }
 
-/** Gardes sur une plage de dates (bornes ISO incluses). */
+/** Gardes cliniques sur une plage de dates (bornes ISO incluses). */
 export async function listShiftsBetween(
   fromISO: string,
   toISO: string
@@ -34,6 +38,7 @@ export async function listShiftsBetween(
   const { data, error } = await getSupabase()
     .from('shifts')
     .select('*')
+    .neq('shift_type', 'S3')
     .gte('work_date', fromISO)
     .lte('work_date', toISO);
   if (error) throw new Error(error.message);
