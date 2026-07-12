@@ -9,7 +9,7 @@ import { listShiftsBetween } from '../../backend/planning.ts';
 import { listLeavesBetween } from '../../backend/leaves.ts';
 import { FullScreenSpinner } from '../../components/Spinner.tsx';
 
-type Period = 'month' | 'quarter' | 'year';
+type Period = 'month' | 'quadri' | 'year';
 
 interface Row {
   doctor: Doctor;
@@ -26,13 +26,14 @@ function bounds(period: Period, year: number, month: number): [string, string, s
   if (period === 'year') {
     return [toISODate(new Date(year, 0, 1)), toISODate(new Date(year, 11, 31)), `${year}`];
   }
-  if (period === 'quarter') {
-    const q = Math.floor(month / 3);
-    const start = q * 3;
+  if (period === 'quadri') {
+    // Quadrimestre : 3 périodes de 4 mois (janv.–avr., mai–août, sept.–déc.).
+    const q = Math.floor(month / 4);
+    const start = q * 4;
     return [
       toISODate(new Date(year, start, 1)),
-      toISODate(new Date(year, start + 3, 0)),
-      `T${q + 1} ${year}`,
+      toISODate(new Date(year, start + 4, 0)),
+      `Quad. ${q + 1} ${year}`,
     ];
   }
   return [
@@ -112,8 +113,8 @@ export function AllCounters() {
   function shiftPeriod(delta: number) {
     if (period === 'year') {
       setYear(y => y + delta);
-    } else if (period === 'quarter') {
-      const dt = new Date(year, Math.floor(month / 3) * 3 + delta * 3, 1);
+    } else if (period === 'quadri') {
+      const dt = new Date(year, Math.floor(month / 4) * 4 + delta * 4, 1);
       setYear(dt.getFullYear());
       setMonth(dt.getMonth());
     } else {
@@ -168,13 +169,13 @@ export function AllCounters() {
         </h1>
 
         <div className="ml-auto flex items-center gap-1 rounded-lg bg-slate-100 p-1 text-xs font-medium dark:bg-slate-800">
-          {(['month', 'quarter', 'year'] as Period[]).map(p => (
+          {(['month', 'quadri', 'year'] as Period[]).map(p => (
             <button
               key={p}
               onClick={() => setPeriod(p)}
               className={`rounded-md px-2 py-1 transition ${period === p ? 'bg-white shadow-sm dark:bg-slate-700' : 'text-slate-500'}`}
             >
-              {p === 'month' ? 'Mois' : p === 'quarter' ? 'Trimestre' : 'Année'}
+              {p === 'month' ? 'Mois' : p === 'quadri' ? 'Quadrimestre' : 'Année'}
             </button>
           ))}
         </div>
