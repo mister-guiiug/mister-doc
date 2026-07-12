@@ -32,7 +32,7 @@ export function LoginPage() {
           </div>
           <h1 className="text-xl font-bold">mister-doc</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            Planning de gardes d'anesthésie
+            Planning de gardes des médecins d'un hôpital
           </p>
         </div>
 

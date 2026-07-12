@@ -1,4 +1,4 @@
--- mister-doc — Schéma initial du planning anesthésie
+-- mister-doc — Schéma initial du planning de gardes
 -- ---------------------------------------------------------------------------
 -- Modèle : un roster de médecins (avec ou sans compte) + des affectations de
 -- gardes (S1J/S1N/S2J/S3), 1 médecin par créneau et par jour.

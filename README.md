@@ -1,7 +1,7 @@
-# mister-doc — Planning anesthésie (PWA)
+# mister-doc — Planning de gardes (PWA)
 
-Application web progressive (PWA) permettant à une équipe de médecins
-anesthésistes de **synchroniser leur planning de gardes** en dehors de l'outil
+Application web progressive (PWA) permettant à une équipe de **médecins d'un
+hôpital** de **synchroniser leur planning de gardes** en dehors de l'outil
 métier, à partir d'un modèle simple de créneaux mensuels.
 
 > Reprend les bonnes pratiques de la famille d'applications `miss-*`/`mister-*`

@@ -191,7 +191,7 @@ Deno.serve(async (req: Request) => {
 
     const calName = scopedDoctorId
       ? `mister-doc — ${nameById.get(scopedDoctorId) ?? 'médecin'}`
-      : 'mister-doc — Planning anesthésie';
+      : 'mister-doc — Planning de gardes';
 
     const ics = [
       'BEGIN:VCALENDAR',

@@ -4,7 +4,7 @@
   "license": "MIT",
   "version": "1.0.0",
   "type": "module",
-  "description": "mister-doc — PWA de synchronisation du planning de gardes d'anesthésie. Vue mensuelle des créneaux S1J/S1N/S2J/S3, authentification Supabase, compteurs week-end et heures par médecin.",
+  "description": "mister-doc — PWA de synchronisation du planning de gardes des médecins d'un hôpital. Vue mensuelle des créneaux, authentification Supabase, compteurs week-end et heures par médecin.",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

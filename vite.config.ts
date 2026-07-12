@@ -69,10 +69,10 @@ export default defineConfig(({ command }) => {
         },
         manifest: {
           id: '/mister-doc/',
-          name: 'mister-doc — Planning anesthésie',
+          name: 'mister-doc — Planning de gardes',
           short_name: 'mister-doc',
           description:
-            "Synchronisation du planning de gardes d'anesthésie entre médecins : vue mensuelle des créneaux (S1J, S1N, S2J, S3), numéro de semaine, compteurs week-end et heures par médecin.",
+            "Synchronisation du planning de gardes des médecins d'un hôpital : vue mensuelle des créneaux, numéro de semaine, compteurs week-end et heures par médecin.",
           theme_color: '#0f766e',
           background_color: '#f8fafc',
           display: 'standalone',

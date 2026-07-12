@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Trash2,
   UserPlus,
@@ -10,6 +10,9 @@ import {
   Repeat,
   ThumbsUp,
   ThumbsDown,
+  History,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { WEEKDAY_LABELS, fromISODate, mondayIndex } from '../../lib/dates.ts';
 import { SHIFT_LABEL, SHIFT_HOURS, type ShiftType } from '../../lib/shifts.ts';
@@ -18,8 +21,25 @@ import {
   doctorsWorking,
   violatesRest,
 } from '../../lib/validation.ts';
-import type { Doctor, Leave, Shift, WishKind } from '../../backend/types.ts';
+import type {
+  Doctor,
+  Leave,
+  Shift,
+  ShiftHistory,
+  WishKind,
+} from '../../backend/types.ts';
+import { listSlotHistory } from '../../backend/history.ts';
 import { Modal } from '../../components/Modal.tsx';
+
+/** Temps relatif court en français (pour l'historique). */
+function frTime(iso: string): string {
+  const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (diff < 60) return "à l'instant";
+  if (diff < 3600) return `il y a ${Math.floor(diff / 60)} min`;
+  if (diff < 86400) return `il y a ${Math.floor(diff / 3600)} h`;
+  if (diff < 7 * 86400) return `il y a ${Math.floor(diff / 86400)} j`;
+  return new Date(iso).toLocaleDateString('fr-FR');
+}
 
 export interface SlotTarget {
   iso: string;
@@ -56,10 +76,31 @@ export function AssignDialog({
   const [swapOpen, setSwapOpen] = useState(false);
   const [swapTarget, setSwapTarget] = useState('');
   const [swapMsg, setSwapMsg] = useState('');
+  const [history, setHistory] = useState<ShiftHistory[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(true);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const isMine = currentShift?.doctor_id === selfDoctorId;
 
   const d = fromISODate(target.iso);
   const dayLabel = `${WEEKDAY_LABELS[mondayIndex(d)]} ${d.getDate()}`;
+  const doctorsById = useMemo(
+    () => new Map(doctors.map(doc => [doc.id, doc])),
+    [doctors]
+  );
+  const nameOf = (id: string | null) =>
+    id ? (doctorsById.get(id)?.name ?? 'compte supprimé') : '—';
+
+  useEffect(() => {
+    let alive = true;
+    setLoadingHistory(true);
+    listSlotHistory(target.iso, target.shiftType, 10)
+      .then(h => alive && setHistory(h))
+      .catch(() => {})
+      .finally(() => alive && setLoadingHistory(false));
+    return () => {
+      alive = false;
+    };
+  }, [target.iso, target.shiftType]);
 
   const onLeave = useMemo(() => doctorsOnLeave(target.iso, leaves), [target.iso, leaves]);
   const working = useMemo(
@@ -185,6 +226,88 @@ export function AssignDialog({
                 Proposer
               </button>
             </div>
+          </div>
+        )}
+      </div>
+
+      <div className="border-b border-slate-100 px-3 py-2 dark:border-slate-800">
+        <button
+          type="button"
+          onClick={() => setHistoryOpen(o => !o)}
+          aria-expanded={historyOpen}
+          className="flex w-full items-center gap-2 text-xs font-medium text-slate-500 transition hover:text-slate-700 dark:hover:text-slate-300"
+        >
+          <History className="size-3.5" />
+          Historique des changements
+          {history.length > 0 && (
+            <span className="rounded-full bg-slate-100 px-1.5 text-[10px] font-semibold text-slate-500 dark:bg-slate-800">
+              {history.length}
+            </span>
+          )}
+          {historyOpen ? (
+            <ChevronUp className="ml-auto size-4" />
+          ) : (
+            <ChevronDown className="ml-auto size-4" />
+          )}
+        </button>
+        {historyOpen && (
+          <div className="mt-1.5">
+            {loadingHistory ? (
+              <p className="py-2 text-center text-slate-400">
+                <Loader2 className="inline size-4 animate-spin" />
+              </p>
+            ) : history.length === 0 ? (
+              <p className="py-1 text-xs text-slate-400">
+                Aucun changement enregistré.
+              </p>
+            ) : (
+              <ul className="flex max-h-40 flex-col gap-1.5 overflow-y-auto pr-1">
+                {history.map(h => (
+                  <li
+                    key={h.id}
+                    className="flex items-start gap-1.5 text-[11px] leading-tight"
+                  >
+                    <span
+                      className={`mt-1 inline-block size-1.5 shrink-0 rounded-full ${
+                        h.action === 'removed'
+                          ? 'bg-red-400'
+                          : h.action === 'reassigned'
+                            ? 'bg-amber-400'
+                            : 'bg-teal-500'
+                      }`}
+                    />
+                    <span className="min-w-0 flex-1">
+                      {h.action === 'assigned' && (
+                        <>
+                          {h.changed_by
+                            ? `${nameOf(h.changed_by)} a attribué à `
+                            : 'Attribué à '}
+                          <span className="font-medium">{nameOf(h.doctor_id)}</span>
+                        </>
+                      )}
+                      {h.action === 'reassigned' && (
+                        <>
+                          {h.changed_by ? `${nameOf(h.changed_by)} : ` : ''}
+                          {nameOf(h.prev_doctor_id)} →{' '}
+                          <span className="font-medium">{nameOf(h.doctor_id)}</span>
+                        </>
+                      )}
+                      {h.action === 'removed' && (
+                        <>
+                          {h.changed_by
+                            ? `${nameOf(h.changed_by)} a libéré`
+                            : 'Libéré'}{' '}
+                          ({nameOf(h.prev_doctor_id)})
+                        </>
+                      )}
+                    </span>
+                    <span className="shrink-0 text-slate-400">
+                      {frTime(h.changed_at)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         )}
       </div>

@@ -81,6 +81,18 @@ export interface BackupMeta {
   created_at: string;
 }
 
+export type ShiftAction = 'assigned' | 'reassigned' | 'removed';
+export interface ShiftHistory {
+  id: string;
+  work_date: string;
+  shift_type: ShiftType;
+  action: ShiftAction;
+  doctor_id: string | null;
+  prev_doctor_id: string | null;
+  changed_by: string | null;
+  changed_at: string;
+}
+
 export type WishKind = 'prefer' | 'avoid';
 export interface Wish {
   id: string;
