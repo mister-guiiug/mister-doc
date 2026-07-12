@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   ChevronLeft,
   ChevronRight,
@@ -13,7 +14,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth.ts';
 import { useToast } from '../../components/Toast.tsx';
-import { monthLabel, weeksOfMonth } from '../../lib/dates.ts';
+import { fromISODate, monthLabel, weeksOfMonth } from '../../lib/dates.ts';
 import { activeShiftTypes, type ShiftType } from '../../lib/shifts.ts';
 import { computeIssues } from '../../lib/validation.ts';
 import type { LeaveKind } from '../../lib/leaves.ts';
@@ -114,6 +115,7 @@ export function PlanningView() {
   );
   const dayRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const touchX = useRef<number | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const loadData = useCallback(async () => {
     setRefreshing(true);
@@ -160,6 +162,25 @@ export function PlanningView() {
     mq.addEventListener('change', on);
     return () => mq.removeEventListener('change', on);
   }, []);
+
+  // Raccourci depuis une notification (`#/?d=YYYY-MM-DD`) : bascule sur le bon
+  // mois, défile jusqu'au jour, puis nettoie le paramètre.
+  useEffect(() => {
+    const d = searchParams.get('d');
+    if (!d) return;
+    const dt = fromISODate(d);
+    if (Number.isNaN(dt.getTime())) {
+      setSearchParams({}, { replace: true });
+      return;
+    }
+    setYear(dt.getFullYear());
+    setMonth(dt.getMonth());
+    const t = setTimeout(() => {
+      dayRefs.current[d]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setSearchParams({}, { replace: true });
+    }, 350);
+    return () => clearTimeout(t);
+  }, [searchParams, setSearchParams]);
 
   const weeks = useMemo(() => weeksOfMonth(year, month), [year, month]);
   const doctorsById = useMemo(() => new Map(doctors.map(d => [d.id, d])), [doctors]);

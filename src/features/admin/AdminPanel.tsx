@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   UserCheck,
   UserPlus,
+  UserX,
   Shield,
   ShieldOff,
   Trash2,
@@ -15,6 +16,7 @@ import type { AppSettings, Doctor } from '../../backend/types.ts';
 import {
   adminAddRoster,
   adminDeleteDoctor,
+  adminRejectDoctor,
   adminSetDoctor,
   adminUpdateDoctor,
   listDoctors,
@@ -158,6 +160,22 @@ export function AdminPanel() {
                     <UserCheck className="size-4" />
                   )}
                   Approuver
+                </button>
+                <button
+                  disabled={busyId === d.id}
+                  onClick={() => {
+                    if (
+                      confirm(
+                        `Rejeter la demande de ${d.name}${d.email ? ` (${d.email})` : ''} ? Le compte sera supprimé.`
+                      )
+                    )
+                      void act(d.id, () => adminRejectDoctor(d.id));
+                  }}
+                  title="Rejeter la demande"
+                  className="flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 dark:border-red-900/60 dark:hover:bg-red-950/30"
+                >
+                  <UserX className="size-4" />
+                  Rejeter
                 </button>
               </li>
             ))}

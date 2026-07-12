@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Bell,
   X,
   Check,
+  ChevronRight,
   CalendarPlus,
   CalendarX,
   CalendarOff,
@@ -13,9 +15,17 @@ import {
   deleteNotification,
   listNotifications,
   markAllRead,
+  markRead,
   subscribeNotifications,
 } from '../backend/notifications.ts';
 import type { Notification } from '../backend/types.ts';
+
+/** Destination (route) associée à une notification, pour le raccourci au clic. */
+function targetFor(n: Notification): string {
+  if (n.type === 'approval_request') return '/admin';
+  if (n.work_date) return `/?d=${n.work_date}`;
+  return '/';
+}
 
 function iconFor(type: string) {
   switch (type) {
@@ -45,6 +55,7 @@ function relative(iso: string): string {
 export function NotificationsBell() {
   const [items, setItems] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
 
   const load = () => listNotifications().then(setItems).catch(() => {});
 
@@ -71,6 +82,16 @@ export function NotificationsBell() {
     } catch {
       load();
     }
+  }
+
+  /** Raccourci : marque la notif lue, ferme le panneau et va au bon menu. */
+  function handleOpen(n: Notification) {
+    setOpen(false);
+    if (!n.read) {
+      setItems(cur => cur.map(x => (x.id === n.id ? { ...x, read: true } : x)));
+      markRead(n.id).catch(() => {});
+    }
+    navigate(targetFor(n));
   }
 
   return (
@@ -126,26 +147,32 @@ export function NotificationsBell() {
               {items.map(n => (
                 <li
                   key={n.id}
-                  className={`group flex items-start gap-2 border-b border-slate-50 px-3 py-2.5 dark:border-slate-800/60 ${
+                  className={`group flex items-stretch border-b border-slate-50 dark:border-slate-800/60 ${
                     n.read ? '' : 'bg-teal-50/40 dark:bg-teal-950/20'
                   }`}
                 >
-                  <span className="mt-0.5 shrink-0">{iconFor(n.type)}</span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium">{n.title}</p>
-                    {n.body && (
-                      <p className="truncate text-xs text-slate-500 dark:text-slate-400">
-                        {n.body}
+                  <button
+                    onClick={() => handleOpen(n)}
+                    className="flex min-w-0 flex-1 items-start gap-2 px-3 py-2.5 text-left transition hover:bg-slate-50 dark:hover:bg-slate-800/40"
+                  >
+                    <span className="mt-0.5 shrink-0">{iconFor(n.type)}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium">{n.title}</p>
+                      {n.body && (
+                        <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+                          {n.body}
+                        </p>
+                      )}
+                      <p className="text-[10px] text-slate-400">
+                        {relative(n.created_at)}
                       </p>
-                    )}
-                    <p className="text-[10px] text-slate-400">
-                      {relative(n.created_at)}
-                    </p>
-                  </div>
+                    </div>
+                    <ChevronRight className="mt-0.5 size-4 shrink-0 self-center text-slate-300 opacity-0 transition group-hover:opacity-100" />
+                  </button>
                   <button
                     onClick={() => void handleDelete(n.id)}
                     aria-label="Supprimer"
-                    className="shrink-0 rounded p-1 text-slate-300 opacity-0 transition hover:text-slate-500 group-hover:opacity-100"
+                    className="shrink-0 px-2 text-slate-300 opacity-0 transition hover:text-slate-500 group-hover:opacity-100"
                   >
                     <X className="size-3.5" />
                   </button>

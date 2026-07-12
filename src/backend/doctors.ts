@@ -103,3 +103,11 @@ export async function adminDeleteDoctor(id: string): Promise<void> {
   });
   if (error) throw new Error(error.message);
 }
+
+/** Admin : rejeter une demande en attente (supprime la fiche + le compte auth). */
+export async function adminRejectDoctor(id: string): Promise<void> {
+  const { error } = await getSupabase().rpc('admin_reject_doctor', {
+    p_id: id,
+  });
+  if (error) throw new Error(error.message);
+}
