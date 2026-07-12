@@ -11,6 +11,7 @@ import {
   AlertTriangle,
   List,
   LayoutGrid,
+  FileDown,
 } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth.ts';
 import { useToast } from '../../components/Toast.tsx';
@@ -70,6 +71,7 @@ import {
 import { Counters } from './Counters.tsx';
 import { MonthGrid } from './MonthGrid.tsx';
 import { MonthCalendarGrid } from './MonthCalendarGrid.tsx';
+import { exportMonthPdf } from './monthPdf.ts';
 import { AssignDialog, type SlotTarget } from './AssignDialog.tsx';
 import { LeaveDialog } from './LeaveDialog.tsx';
 import { NoteDialog } from './NoteDialog.tsx';
@@ -242,6 +244,15 @@ export function PlanningView() {
     } catch {
       /* ignore */
     }
+  }
+
+  function handleExportPdf() {
+    exportMonthPdf({
+      title: monthLabel(year, month),
+      weeks,
+      shiftIndex,
+      doctorsById,
+    });
   }
 
   async function handleAssign(doctorId: string) {
@@ -557,6 +568,13 @@ export function PlanningView() {
               <LayoutGrid className="size-4" /> Grille
             </button>
           </div>
+          <button
+            onClick={handleExportPdf}
+            title="Exporter le mois en PDF (Sem · Jour · S1J · S1N · S2J)"
+            className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800"
+          >
+            <FileDown className="size-4" /> PDF
+          </button>
           <button
             onClick={() => void loadData()}
             className="rounded-xl border border-slate-200 bg-white p-2 text-slate-500 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800"
