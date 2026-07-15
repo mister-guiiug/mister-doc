@@ -83,6 +83,16 @@ les médecins, sur une période **Mois / Quadrimestre (4 mois) / Année**, avec
 **export CSV, Excel (.xlsx) et PDF**. Les 3 quadrimestres de l'année : janv.–avr.,
 mai–août, sept.–déc.
 
+La page « Compteurs » propose deux vues : **Tableau** (détail chiffré ci-dessus)
+et **Équité**, qui compare la charge « pénible » par médecin — **jours de
+week-end**, **nuits** (`S1N`), **jours fériés**, **heures cliniques** — avec une
+barre proportionnelle au maximum de l'équipe et l'**écart à la moyenne** (▲/▼),
+pour repérer les déséquilibres de répartition.
+
+**Mon planning** (`/mon-planning`, accessible à tout médecin) : agenda
+**personnel** du mois (mes gardes, absences et HNC) en liste chronologique, avec
+mes compteurs en tête et l'accès à l'abonnement calendrier `.ics`.
+
 ## 5. Congés et formations
 
 - Une **absence** = un médecin, un jour, un **type** :
@@ -100,11 +110,16 @@ mai–août, sept.–déc.
 - **1 vœu par médecin et par jour** ; chacun gère les siens, visibles de tous
   (aide à construire un planning équitable). Sans effet contraignant.
 
-## 7. Échange de gardes
+## 7. Échange de gardes (Bourse aux gardes)
 
 - Un médecin peut **proposer d'échanger** une de ses gardes :
+  - depuis la **Bourse aux gardes** — bouton « Proposer une garde », qui liste ses
+    gardes cliniques à venir (60 j) — ou depuis le planning ;
   - **ciblé** (à un collègue précis) ou **ouvert à tous** ;
   - avec un message facultatif.
+- La page **Bourse aux gardes** regroupe : les propositions **pour moi**, celles
+  **ouvertes à tous** (triées par date, avec « dans N j »), **mes propositions**
+  (annulables) et un **historique** des propositions résolues.
 - **Accepter** une proposition **réaffecte la garde** au repreneur ; les autres
   propositions en attente sur le même créneau sont automatiquement annulées.
 - Statuts : en attente / acceptée / refusée / annulée. Notifications à chaque
