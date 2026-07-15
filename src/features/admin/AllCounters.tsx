@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Users, Download } from 'lucide-react';
-import { MONTH_LABELS, toISODate } from '../../lib/dates.ts';
+import {
+  MONTH_LABELS,
+  quadrimesterBounds,
+  quadrimesterIndex,
+  toISODate,
+} from '../../lib/dates.ts';
 import { computeCounters } from '../../lib/shifts.ts';
 import { computeLeaveStats } from '../../lib/leaves.ts';
 import { sumHncHours } from '../../lib/hnc.ts';
@@ -31,13 +36,8 @@ function bounds(period: Period, year: number, month: number): [string, string, s
   }
   if (period === 'quadri') {
     // Quadrimestre : 3 périodes de 4 mois (janv.–avr., mai–août, sept.–déc.).
-    const q = Math.floor(month / 4);
-    const start = q * 4;
-    return [
-      toISODate(new Date(year, start, 1)),
-      toISODate(new Date(year, start + 4, 0)),
-      `Quad. ${q + 1} ${year}`,
-    ];
+    const [from, to] = quadrimesterBounds(year, month);
+    return [from, to, `Quad. ${quadrimesterIndex(month) + 1} ${year}`];
   }
   return [
     toISODate(new Date(year, month, 1)),
@@ -122,7 +122,7 @@ export function AllCounters() {
     if (period === 'year') {
       setYear(y => y + delta);
     } else if (period === 'quadri') {
-      const dt = new Date(year, Math.floor(month / 4) * 4 + delta * 4, 1);
+      const dt = new Date(year, quadrimesterIndex(month) * 4 + delta * 4, 1);
       setYear(dt.getFullYear());
       setMonth(dt.getMonth());
     } else {

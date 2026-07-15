@@ -208,3 +208,33 @@ export function weeksOfMonth(
 export function monthLabel(year: number, month: number): string {
   return `${MONTH_LABELS[month]} ${year}`;
 }
+
+// ------------------------------ Quadrimestres ------------------------------
+
+/**
+ * Index du quadrimestre (bloc de 4 mois) contenant `month` :
+ * 0 = janvier–avril, 1 = mai–août, 2 = septembre–décembre.
+ */
+export function quadrimesterIndex(month: number): number {
+  return Math.floor(month / 4);
+}
+
+/**
+ * Bornes ISO `[premier, dernier]` (incluses) du quadrimestre contenant `month`.
+ */
+export function quadrimesterBounds(
+  year: number,
+  month: number
+): [string, string] {
+  const start = quadrimesterIndex(month) * 4;
+  return [
+    toISODate(new Date(year, start, 1)),
+    toISODate(new Date(year, start + 4, 0)),
+  ];
+}
+
+/** Libellé du quadrimestre, p. ex. « Mai – Août 2026 ». */
+export function quadrimesterLabel(year: number, month: number): string {
+  const start = quadrimesterIndex(month) * 4;
+  return `${MONTH_LABELS[start]} – ${MONTH_LABELS[start + 3]} ${year}`;
+}

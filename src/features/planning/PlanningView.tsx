@@ -472,7 +472,8 @@ export function PlanningView() {
           leaves={leaves}
           hnc={hnc}
           doctorId={doctor.id}
-          monthLabel={monthLabel(year, month)}
+          year={year}
+          month={month}
         />
       )}
 
