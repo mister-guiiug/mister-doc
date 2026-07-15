@@ -51,9 +51,11 @@ métier, à partir d'un modèle simple de créneaux mensuels.
   masquer temporairement ses fonctions admin pour voir l'app comme un non-admin.
 
 ### Notifications & sauvegardes
-- **Notifications in-app** (cloche, temps réel) : garde attribuée/retirée, absence,
-  demande de compte (aux admins), approbation. **Clic = raccourci** vers le bon
-  menu (planning au bon mois, ou Admin) ; **glissement latéral = marquer lu**.
+- **Notifications in-app** (cloche, temps réel) : garde attribuée/retirée, absence
+  (posée/supprimée, **groupée par plage**), HNC, échange proposé/accepté/décliné,
+  mois verrouillé/déverrouillé, demande de compte (aux admins), approbation.
+  **Clic = raccourci** vers le bon menu ; **glissement latéral = marquer lu** ;
+  **toast** à l'arrivée d'une notif app ouverte.
 - **Sauvegarde/restauration** (admin) + **sauvegarde auto hebdomadaire** (pg_cron).
 
 ### Technique

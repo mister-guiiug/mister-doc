@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Bell,
@@ -8,8 +8,14 @@ import {
   CalendarPlus,
   CalendarX,
   CalendarOff,
+  CalendarCheck,
   UserPlus,
   CheckCircle2,
+  ArrowLeftRight,
+  XCircle,
+  Clock,
+  Lock,
+  LockOpen,
 } from 'lucide-react';
 import {
   deleteNotification,
@@ -18,6 +24,7 @@ import {
   markRead,
   subscribeNotifications,
 } from '../backend/notifications.ts';
+import { useToast } from './Toast.tsx';
 import type { Notification } from '../backend/types.ts';
 
 /** Destination (route) associée à une notification, pour le raccourci au clic. */
@@ -35,6 +42,20 @@ function iconFor(type: string) {
       return <CalendarX className="size-4 text-red-500" />;
     case 'leave_added':
       return <CalendarOff className="size-4 text-violet-600" />;
+    case 'leave_removed':
+      return <CalendarCheck className="size-4 text-teal-600" />;
+    case 'hnc_added':
+      return <Clock className="size-4 text-sky-600" />;
+    case 'swap_offer':
+      return <ArrowLeftRight className="size-4 text-amber-600" />;
+    case 'swap_accepted':
+      return <CheckCircle2 className="size-4 text-teal-600" />;
+    case 'swap_declined':
+      return <XCircle className="size-4 text-red-500" />;
+    case 'month_locked':
+      return <Lock className="size-4 text-slate-500" />;
+    case 'month_unlocked':
+      return <LockOpen className="size-4 text-teal-600" />;
     case 'approval_request':
       return <UserPlus className="size-4 text-amber-600" />;
     case 'approved':
@@ -55,13 +76,46 @@ function relative(iso: string): string {
 export function NotificationsBell() {
   const [items, setItems] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
+  const [, setTick] = useState(0);
   const navigate = useNavigate();
+  // `useToast()` renvoie un objet neuf à chaque rendu : on le lit via une ref
+  // pour garder `load` stable (sinon l'abonnement temps réel se recréerait à
+  // chaque rendu).
+  const toast = useToast();
+  const toastRef = useRef(toast);
+  toastRef.current = toast;
+  // IDs déjà vus : au 1er chargement on ne « toaste » rien ; ensuite, toute
+  // notif non lue jamais vue déclenche un toast (arrivée en temps réel).
+  const seen = useRef<Set<string> | null>(null);
 
-  const load = () => listNotifications().then(setItems).catch(() => {});
+  const load = useCallback(async () => {
+    let list: Notification[];
+    try {
+      list = await listNotifications();
+    } catch {
+      return;
+    }
+    setItems(list);
+    const ids = new Set(list.map(n => n.id));
+    if (seen.current === null) {
+      seen.current = ids;
+    } else {
+      for (const n of list) {
+        if (!seen.current.has(n.id) && !n.read) toastRef.current.success(n.title);
+      }
+      seen.current = ids;
+    }
+  }, []);
 
   useEffect(() => {
-    load();
-    return subscribeNotifications(load);
+    void load();
+    return subscribeNotifications(() => void load());
+  }, [load]);
+
+  // Rafraîchit l'heure relative (« il y a 3 min ») une fois par minute.
+  useEffect(() => {
+    const id = setInterval(() => setTick(t => t + 1), 60_000);
+    return () => clearInterval(id);
   }, []);
 
   const unread = items.filter(n => !n.read).length;
@@ -104,16 +158,25 @@ export function NotificationsBell() {
     <>
       <button
         onClick={() => setOpen(o => !o)}
-        aria-label="Notifications"
+        aria-label={
+          unread > 0 ? `Notifications, ${unread} non lues` : 'Notifications'
+        }
         className="relative rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800"
       >
         <Bell className="size-5" />
         {unread > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 grid min-w-4 place-items-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-4 text-white">
+          <span
+            aria-hidden="true"
+            className="absolute -right-0.5 -top-0.5 grid min-w-4 place-items-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-4 text-white"
+          >
             {unread > 9 ? '9+' : unread}
           </span>
         )}
       </button>
+      {/* Annonce discrète pour les lecteurs d'écran quand le compteur change. */}
+      <span className="sr-only" role="status" aria-live="polite">
+        {unread > 0 ? `${unread} notifications non lues` : ''}
+      </span>
 
       {open && (
         <div className="fixed inset-0 z-40" onClick={() => setOpen(false)}>
