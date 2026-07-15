@@ -1,4 +1,4 @@
-import { getSupabase } from '../lib/supabase.ts';
+import { getSupabase, subscribeTable } from '../lib/supabase.ts';
 import type { Notification } from './types.ts';
 
 /** Dernières notifications du médecin connecté (RLS : les siennes seulement). */
@@ -31,15 +31,5 @@ export async function deleteNotification(id: string): Promise<void> {
 }
 
 export function subscribeNotifications(onChange: () => void): () => void {
-  const channel = getSupabase()
-    .channel('notifications-changes')
-    .on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: 'notifications' },
-      () => onChange()
-    )
-    .subscribe();
-  return () => {
-    void getSupabase().removeChannel(channel);
-  };
+  return subscribeTable('notifications', onChange);
 }

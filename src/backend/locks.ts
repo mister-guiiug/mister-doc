@@ -1,4 +1,4 @@
-import { getSupabase } from '../lib/supabase.ts';
+import { getSupabase, subscribeTable } from '../lib/supabase.ts';
 import type { LockedMonth } from './types.ts';
 
 export async function listLocks(): Promise<LockedMonth[]> {
@@ -36,15 +36,5 @@ export async function unlockMonth(year: number, month: number): Promise<void> {
 }
 
 export function subscribeLocks(onChange: () => void): () => void {
-  const channel = getSupabase()
-    .channel('locks-changes')
-    .on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: 'locked_months' },
-      () => onChange()
-    )
-    .subscribe();
-  return () => {
-    void getSupabase().removeChannel(channel);
-  };
+  return subscribeTable('locked_months', onChange);
 }

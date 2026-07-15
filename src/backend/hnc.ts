@@ -1,4 +1,4 @@
-import { getSupabase } from '../lib/supabase.ts';
+import { getSupabase, subscribeTable } from '../lib/supabase.ts';
 import { toISODate } from '../lib/dates.ts';
 import type { HncEntry } from './types.ts';
 
@@ -72,15 +72,5 @@ export async function clearHnc(id: string): Promise<void> {
 }
 
 export function subscribeHnc(onChange: () => void): () => void {
-  const channel = getSupabase()
-    .channel('hnc-changes')
-    .on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: 'hnc_hours' },
-      () => onChange()
-    )
-    .subscribe();
-  return () => {
-    void getSupabase().removeChannel(channel);
-  };
+  return subscribeTable('hnc_hours', onChange);
 }

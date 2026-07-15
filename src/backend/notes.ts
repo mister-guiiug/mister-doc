@@ -1,4 +1,4 @@
-import { getSupabase } from '../lib/supabase.ts';
+import { getSupabase, subscribeTable } from '../lib/supabase.ts';
 import { toISODate } from '../lib/dates.ts';
 import type { DayNote } from './types.ts';
 
@@ -43,15 +43,5 @@ export async function clearNote(workDate: string): Promise<void> {
 }
 
 export function subscribeNotes(onChange: () => void): () => void {
-  const channel = getSupabase()
-    .channel('notes-changes')
-    .on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: 'day_notes' },
-      () => onChange()
-    )
-    .subscribe();
-  return () => {
-    void getSupabase().removeChannel(channel);
-  };
+  return subscribeTable('day_notes', onChange);
 }

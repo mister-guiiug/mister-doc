@@ -1,4 +1,4 @@
-import { getSupabase } from '../lib/supabase.ts';
+import { getSupabase, subscribeTable } from '../lib/supabase.ts';
 import { toISODate } from '../lib/dates.ts';
 import type { ShiftType } from '../lib/shifts.ts';
 import type { Shift } from './types.ts';
@@ -87,15 +87,5 @@ export async function clearShift(
  * désabonnement. `onChange` est appelé à chaque INSERT/UPDATE/DELETE.
  */
 export function subscribeShifts(onChange: () => void): () => void {
-  const channel = getSupabase()
-    .channel('shifts-changes')
-    .on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: 'shifts' },
-      () => onChange()
-    )
-    .subscribe();
-  return () => {
-    void getSupabase().removeChannel(channel);
-  };
+  return subscribeTable('shifts', onChange);
 }

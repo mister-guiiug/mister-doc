@@ -1,4 +1,4 @@
-import { getSupabase } from '../lib/supabase.ts';
+import { getSupabase, subscribeTable } from '../lib/supabase.ts';
 import { toISODate } from '../lib/dates.ts';
 import type { Wish, WishKind } from './types.ts';
 
@@ -49,15 +49,5 @@ export async function clearWish(
 }
 
 export function subscribeWishes(onChange: () => void): () => void {
-  const channel = getSupabase()
-    .channel('wishes-changes')
-    .on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: 'wishes' },
-      () => onChange()
-    )
-    .subscribe();
-  return () => {
-    void getSupabase().removeChannel(channel);
-  };
+  return subscribeTable('wishes', onChange);
 }
