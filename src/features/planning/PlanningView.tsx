@@ -17,6 +17,7 @@ import { useAuth } from '../../auth/useAuth.ts';
 import { useToast } from '../../components/Toast.tsx';
 import { fromISODate, monthLabel, weeksOfMonth } from '../../lib/dates.ts';
 import { useDebouncedCallback } from '../../lib/useDebouncedCallback.ts';
+import { groupBy } from '../../lib/collections.ts';
 import { activeShiftTypes, type ShiftType } from '../../lib/shifts.ts';
 import { computeIssues } from '../../lib/validation.ts';
 import type { LeaveKind } from '../../lib/leaves.ts';
@@ -204,25 +205,13 @@ export function PlanningView() {
     () => new Map(shifts.map(s => [`${s.work_date}|${s.shift_type}`, s])),
     [shifts]
   );
-  const leavesByDate = useMemo(() => {
-    const m = new Map<string, Leave[]>();
-    for (const l of leaves) (m.get(l.work_date) ?? m.set(l.work_date, []).get(l.work_date)!).push(l);
-    return m;
-  }, [leaves]);
+  const leavesByDate = useMemo(() => groupBy(leaves, l => l.work_date), [leaves]);
   const notesByDate = useMemo(
     () => new Map(notes.map(n => [n.work_date, n])),
     [notes]
   );
-  const wishesByDate = useMemo(() => {
-    const m = new Map<string, Wish[]>();
-    for (const w of wishes) (m.get(w.work_date) ?? m.set(w.work_date, []).get(w.work_date)!).push(w);
-    return m;
-  }, [wishes]);
-  const hncByDate = useMemo(() => {
-    const m = new Map<string, HncEntry[]>();
-    for (const h of hnc) (m.get(h.work_date) ?? m.set(h.work_date, []).get(h.work_date)!).push(h);
-    return m;
-  }, [hnc]);
+  const wishesByDate = useMemo(() => groupBy(wishes, w => w.work_date), [wishes]);
+  const hncByDate = useMemo(() => groupBy(hnc, h => h.work_date), [hnc]);
   const issuesByDate = useMemo(
     () => computeIssues(shifts, leaves, nameById),
     [shifts, leaves, nameById]
