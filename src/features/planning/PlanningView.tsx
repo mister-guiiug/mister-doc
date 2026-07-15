@@ -16,6 +16,7 @@ import {
 import { useAuth } from '../../auth/useAuth.ts';
 import { useToast } from '../../components/Toast.tsx';
 import { fromISODate, monthLabel, weeksOfMonth } from '../../lib/dates.ts';
+import { useDebouncedCallback } from '../../lib/useDebouncedCallback.ts';
 import { activeShiftTypes, type ShiftType } from '../../lib/shifts.ts';
 import { computeIssues } from '../../lib/validation.ts';
 import type { LeaveKind } from '../../lib/leaves.ts';
@@ -151,11 +152,16 @@ export function PlanningView() {
     loadData().finally(() => setFirstLoad(false));
   }, [loadData]);
 
-  useEffect(() => subscribeShifts(() => void loadData()), [loadData]);
-  useEffect(() => subscribeLeaves(() => void loadData()), [loadData]);
-  useEffect(() => subscribeNotes(() => void loadData()), [loadData]);
-  useEffect(() => subscribeWishes(() => void loadData()), [loadData]);
-  useEffect(() => subscribeHnc(() => void loadData()), [loadData]);
+  // Un seul rechargement anti-rebond pour toutes les tables : une rafale
+  // d'événements Realtime (ou l'écho d'une édition optimiste) ne déclenche
+  // qu'un rechargement au lieu de N. La référence est stable → les abonnements
+  // ne se recréent pas à chaque changement de mois.
+  const reloadDebounced = useDebouncedCallback(() => void loadData(), 250);
+  useEffect(() => subscribeShifts(reloadDebounced), [reloadDebounced]);
+  useEffect(() => subscribeLeaves(reloadDebounced), [reloadDebounced]);
+  useEffect(() => subscribeNotes(reloadDebounced), [reloadDebounced]);
+  useEffect(() => subscribeWishes(reloadDebounced), [reloadDebounced]);
+  useEffect(() => subscribeHnc(reloadDebounced), [reloadDebounced]);
   useEffect(() => subscribeLocks(() => void listLocks().then(setLocks)), []);
 
   useEffect(() => {
