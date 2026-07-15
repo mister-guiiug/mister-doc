@@ -10,6 +10,11 @@ import { InstallPrompt } from './components/InstallPrompt.tsx';
 import { FullScreenSpinner } from './components/Spinner.tsx';
 import { PlanningView } from './features/planning/PlanningView.tsx';
 
+const MyPlanningView = lazy(() =>
+  import('./features/planning/MyPlanningView.tsx').then(m => ({
+    default: m.MyPlanningView,
+  }))
+);
 const AdminPanel = lazy(() =>
   import('./features/admin/AdminPanel.tsx').then(m => ({ default: m.AdminPanel }))
 );
@@ -45,6 +50,7 @@ export default function App() {
                 <Suspense fallback={<FullScreenSpinner label="Chargement…" />}>
                   <Routes>
                     <Route path="/" element={<PlanningView />} />
+                    <Route path="/mon-planning" element={<MyPlanningView />} />
                     <Route path="/echanges" element={<SwapBoard />} />
                     <Route path="/profil" element={<ProfilePage />} />
                     <Route

@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import {
   CalendarDays,
+  CalendarCheck,
   Repeat,
   BarChart3,
   Shield,
@@ -26,6 +27,7 @@ export function BottomNav() {
 
   const items: Item[] = [
     { to: '/', label: 'Planning', icon: <CalendarDays className="size-5" />, end: true },
+    { to: '/mon-planning', label: 'Moi', icon: <CalendarCheck className="size-5" /> },
     { to: '/echanges', label: 'Échanges', icon: <Repeat className="size-5" /> },
     ...(isAdmin
       ? [

@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import {
   CalendarDays,
+  CalendarCheck,
   Shield,
   ShieldCheck,
   ShieldOff,
@@ -35,6 +36,14 @@ export function Header() {
           <NavLink to="/" end className={linkClass}>
             Planning
           </NavLink>
+          {doctor && (
+            <NavLink to="/mon-planning" className={linkClass} title="Mon planning">
+              <span className="flex items-center gap-1">
+                <CalendarCheck className="size-4" />
+                Moi
+              </span>
+            </NavLink>
+          )}
           {doctor && (
             <NavLink to="/echanges" className={linkClass} title="Échanges">
               <span className="flex items-center gap-1">
