@@ -32,8 +32,11 @@ métier, à partir d'un modèle simple de créneaux mensuels.
 - **Édition partagée** temps réel (Supabase Realtime) : tout médecin approuvé
   affecte n'importe qui, avec **alertes** (repos de sécurité après une nuit,
   conflit garde/absence, cumul). **Confirmation avant chaque suppression.**
-- **Échange de gardes** entre médecins (proposition ciblée ou ouverte,
-  acceptation qui réaffecte la garde) — page **Échanges**.
+- **Bourse aux gardes** : proposer une de ses gardes (ciblée ou ouverte à tous)
+  depuis la bourse (« Proposer une garde ») ou le planning ; **accepter réaffecte
+  la garde** ; tri par date, « dans N j » et **historique** — page **Échanges**.
+- **Mon planning** (`/mon-planning`) : agenda **personnel** du mois (mes gardes,
+  absences, HNC) en liste, avec compteurs perso et abonnement calendrier.
 - **Compteurs du médecin connecté** (bascule **mois** / **quadrimestre**) :
   vendredis / samedis / dimanches, heures de week-end, **HNC**, heures totales,
   congés, formation.
@@ -46,8 +49,9 @@ métier, à partir d'un modèle simple de créneaux mensuels.
   version + « forcer la mise à jour », déconnexion.
 - Un compte **en attente** peut supprimer lui-même sa demande ; un **admin** peut
   l'**approuver** ou la **rejeter**.
-- **Vue admin `/compteurs`** : compteurs de toute l'équipe par mois / quadrimestre
-  (4 mois) / année, export **CSV**, **Excel (.xlsx)** et **PDF**.
+- **Vue admin `/compteurs`** : compteurs de toute l'équipe (bascule **Tableau /
+  Équité**) par mois / quadrimestre (4 mois) / année, export **CSV**, **Excel
+  (.xlsx)** et **PDF**.
 - **Aperçu « médecin »** : un admin peut, via le **bouclier** de l'en-tête,
   masquer temporairement ses fonctions admin pour voir l'app comme un non-admin.
 
