@@ -100,6 +100,9 @@ export function PlanningView() {
   const [locks, setLocks] = useState<LockedMonth[]>([]);
   const [firstLoad, setFirstLoad] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  // Incrémenté à chaque rechargement réel des données (pas aux éditions
+  // optimistes) : déclencheur du refetch quadrimestre des compteurs.
+  const [reloadKey, setReloadKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [slot, setSlot] = useState<SlotTarget | null>(null);
   const [leaveDate, setLeaveDate] = useState<string | null>(null);
@@ -135,6 +138,7 @@ export function PlanningView() {
       setNotes(n);
       setWishes(w);
       setHnc(h);
+      setReloadKey(k => k + 1);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur de chargement');
@@ -480,6 +484,7 @@ export function PlanningView() {
           doctorId={doctor.id}
           year={year}
           month={month}
+          reloadKey={reloadKey}
         />
       )}
 
