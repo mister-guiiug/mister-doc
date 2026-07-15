@@ -11,6 +11,7 @@ import {
 import { listShiftsBetween } from '../../backend/planning.ts';
 import { listLeavesBetween } from '../../backend/leaves.ts';
 import { listHncBetween } from '../../backend/hnc.ts';
+import { logError } from '../../lib/logger.ts';
 import type { HncEntry, Leave, Shift } from '../../backend/types.ts';
 
 /** Portée des compteurs : mois affiché ou quadrimestre (bloc de 4 mois). */
@@ -76,7 +77,8 @@ export function Counters({
       .then(([s, l, h]) => {
         if (alive) setQuad({ shifts: s, leaves: l, hnc: h });
       })
-      .catch(() => {
+      .catch(e => {
+        logError('Counters quadrimestre', e);
         if (alive) setQuad({ shifts: [], leaves: [], hnc: [] });
       })
       .finally(() => {

@@ -18,6 +18,7 @@ import { useToast } from '../../components/Toast.tsx';
 import { fromISODate, monthLabel, weeksOfMonth } from '../../lib/dates.ts';
 import { useDebouncedCallback } from '../../lib/useDebouncedCallback.ts';
 import { groupBy } from '../../lib/collections.ts';
+import { logError } from '../../lib/logger.ts';
 import { activeShiftTypes, type ShiftType } from '../../lib/shifts.ts';
 import { computeIssues } from '../../lib/validation.ts';
 import type { LeaveKind } from '../../lib/leaves.ts';
@@ -149,8 +150,15 @@ export function PlanningView() {
   }, [year, month]);
 
   useEffect(() => {
-    listDoctors().then(setDoctors).catch(() => {});
-    listLocks().then(setLocks).catch(() => {});
+    listDoctors()
+      .then(setDoctors)
+      .catch(e => {
+        logError('listDoctors', e);
+        setError('Impossible de charger la liste des médecins.');
+      });
+    listLocks()
+      .then(setLocks)
+      .catch(e => logError('listLocks', e));
   }, []);
 
   useEffect(() => {
