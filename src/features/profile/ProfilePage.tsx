@@ -12,12 +12,20 @@ import {
   Loader2,
   Check,
   ShieldCheck,
+  BellRing,
 } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth.ts';
 import { useToast } from '../../components/Toast.tsx';
 import { useTheme } from '../../lib/theme.ts';
 import { DOCTOR_COLORS } from '../../lib/colors.ts';
 import { APP_BUILD, forceUpdate } from '../../lib/appVersion.ts';
+import {
+  currentPushEndpoint,
+  disablePush,
+  enablePush,
+  pushConfigured,
+  pushDenied,
+} from '../../lib/push.ts';
 import { updateMyProfile } from '../../backend/doctors.ts';
 import { CalendarDialog } from '../../components/CalendarDialog.tsx';
 
@@ -60,6 +68,10 @@ export function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [calendar, setCalendar] = useState(false);
+  const pushOn = pushConfigured();
+  const [push, setPush] = useState<'loading' | 'on' | 'off' | 'denied' | 'busy'>(
+    'loading'
+  );
 
   // Resynchronise si la fiche change (approbation, édition admin…).
   useEffect(() => {
@@ -68,6 +80,22 @@ export function ProfilePage() {
       setColor(doctor.color);
     }
   }, [doctor]);
+
+  // État initial du push (abonné sur ce navigateur ? autorisation refusée ?).
+  useEffect(() => {
+    if (!pushOn) return;
+    let alive = true;
+    currentPushEndpoint()
+      .then(ep => {
+        if (alive) setPush(ep ? 'on' : pushDenied() ? 'denied' : 'off');
+      })
+      .catch(() => {
+        if (alive) setPush('off');
+      });
+    return () => {
+      alive = false;
+    };
+  }, [pushOn]);
 
   if (!doctor) return null;
 
@@ -84,6 +112,32 @@ export function ProfilePage() {
       toast.error(e instanceof Error ? e.message : 'Erreur');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function togglePush() {
+    if (!doctor) return;
+    if (push === 'on') {
+      setPush('busy');
+      try {
+        await disablePush();
+        setPush('off');
+        toast.success('Notifications push désactivées.');
+      } catch {
+        setPush('on');
+        toast.error('Erreur lors de la désactivation.');
+      }
+      return;
+    }
+    setPush('busy');
+    try {
+      const r = await enablePush(doctor.id);
+      setPush(r === 'on' ? 'on' : 'denied');
+      if (r === 'on') toast.success('Notifications push activées.');
+      else toast.error('Autorisation refusée dans le navigateur.');
+    } catch {
+      setPush('off');
+      toast.error('Activation impossible.');
     }
   }
 
@@ -203,6 +257,41 @@ export function ProfilePage() {
           <CalendarPlus className="size-4" /> Gérer mon abonnement
         </button>
       </Section>
+
+      {/* Notifications push (masqué si non configuré côté déploiement) */}
+      {pushOn && (
+        <Section
+          icon={<BellRing className="size-4" />}
+          title="Notifications push"
+          desc="Être prévenu même quand l'app est fermée"
+        >
+          {push === 'denied' ? (
+            <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
+              Les notifications sont bloquées pour ce site. Autorisez-les dans les
+              réglages du navigateur pour activer le push.
+            </p>
+          ) : (
+            <button
+              onClick={() => void togglePush()}
+              disabled={push === 'loading' || push === 'busy'}
+              className={`flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold transition disabled:opacity-60 ${
+                push === 'on'
+                  ? 'border border-slate-300 hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-800'
+                  : 'bg-teal-600 text-white hover:bg-teal-700'
+              }`}
+            >
+              {push === 'busy' || push === 'loading' ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <BellRing className="size-4" />
+              )}
+              {push === 'on'
+                ? 'Désactiver les notifications push'
+                : 'Activer les notifications push'}
+            </button>
+          )}
+        </Section>
+      )}
 
       {/* Application */}
       <Section
