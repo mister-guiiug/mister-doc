@@ -1,11 +1,7 @@
-import { getSupabase } from '../lib/supabase.ts';
-import { toISODate } from '../lib/dates.ts';
+import { getSupabase, subscribeTable } from '../lib/supabase.ts';
+import { monthBounds, toISODate } from '../lib/dates.ts';
 import type { LeaveKind } from '../lib/leaves.ts';
 import type { Leave } from './types.ts';
-
-function monthBounds(year: number, month: number): [string, string] {
-  return [toISODate(new Date(year, month, 1)), toISODate(new Date(year, month + 1, 0))];
-}
 
 /** Toutes les absences d'un mois. */
 export async function listMonthLeaves(
@@ -103,15 +99,5 @@ export async function clearLeave(id: string): Promise<void> {
 }
 
 export function subscribeLeaves(onChange: () => void): () => void {
-  const channel = getSupabase()
-    .channel('leaves-changes')
-    .on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: 'leaves' },
-      () => onChange()
-    )
-    .subscribe();
-  return () => {
-    void getSupabase().removeChannel(channel);
-  };
+  return subscribeTable('leaves', onChange);
 }

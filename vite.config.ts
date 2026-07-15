@@ -1,12 +1,62 @@
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 
 const { version } = JSON.parse(readFileSync('./package.json', 'utf-8')) as {
   version: string;
 };
+
+/**
+ * Injecte la Content-Security-Policy (défense en profondeur) dans le <head>.
+ * En PROD : `script-src` = 'self' + hash SHA-256 de CHAQUE script inline sans
+ * attribut (le script anti-FOUC) — pas de 'unsafe-inline'. En DEV, on conserve
+ * 'unsafe-inline' pour le préambule Fast Refresh inline de @vitejs/plugin-react.
+ * Le hash est recalculé à partir du HTML final : il reste correct si le script
+ * change.
+ */
+function cspPlugin(isDev: boolean): Plugin {
+  return {
+    name: 'mister-doc-csp',
+    transformIndexHtml: {
+      order: 'post',
+      handler(html) {
+        // Le navigateur normalise les fins de ligne (CRLF → LF) du contenu du
+        // script avant d'en calculer le hash CSP : on normalise donc AUSSI ici,
+        // sinon un build Windows (CRLF) produirait un hash qui ne correspond pas
+        // et le script serait bloqué.
+        const hashes = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(
+          m =>
+            `'sha256-${createHash('sha256')
+              .update(m[1].replace(/\r\n/g, '\n'))
+              .digest('base64')}'`
+        );
+        const scriptSrc = isDev
+          ? "'self' 'unsafe-inline'"
+          : ["'self'", ...hashes].join(' ');
+        const csp = [
+          "default-src 'self'",
+          `script-src ${scriptSrc}`,
+          "style-src 'self' 'unsafe-inline'",
+          "img-src 'self' data: blob:",
+          "font-src 'self' data:",
+          "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+          "manifest-src 'self'",
+          "worker-src 'self'",
+          "object-src 'none'",
+          "base-uri 'self'",
+          "form-action 'self'",
+        ].join('; ');
+        return html.replace(
+          '<meta charset="UTF-8" />',
+          `<meta charset="UTF-8" />\n    <meta http-equiv="Content-Security-Policy" content="${csp}" />`
+        );
+      },
+    },
+  };
+}
 
 // Identifiant de build UNIQUE : sha court du commit en CI, sinon horodatage.
 // Sert à afficher une version distincte à chaque déploiement et à confirmer
@@ -54,6 +104,7 @@ export default defineConfig(({ command }) => {
     plugins: [
       react(),
       tailwindcss(),
+      cspPlugin(command === 'serve'),
       VitePWA({
         registerType: 'autoUpdate',
         includeAssets: [

@@ -16,6 +16,9 @@ import {
 import { useAuth } from '../../auth/useAuth.ts';
 import { useToast } from '../../components/Toast.tsx';
 import { fromISODate, monthLabel, weeksOfMonth } from '../../lib/dates.ts';
+import { useDebouncedCallback } from '../../lib/useDebouncedCallback.ts';
+import { groupBy } from '../../lib/collections.ts';
+import { logError } from '../../lib/logger.ts';
 import { activeShiftTypes, type ShiftType } from '../../lib/shifts.ts';
 import { computeIssues } from '../../lib/validation.ts';
 import type { LeaveKind } from '../../lib/leaves.ts';
@@ -99,6 +102,9 @@ export function PlanningView() {
   const [locks, setLocks] = useState<LockedMonth[]>([]);
   const [firstLoad, setFirstLoad] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  // Incrémenté à chaque rechargement réel des données (pas aux éditions
+  // optimistes) : déclencheur du refetch quadrimestre des compteurs.
+  const [reloadKey, setReloadKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [slot, setSlot] = useState<SlotTarget | null>(null);
   const [leaveDate, setLeaveDate] = useState<string | null>(null);
@@ -134,6 +140,7 @@ export function PlanningView() {
       setNotes(n);
       setWishes(w);
       setHnc(h);
+      setReloadKey(k => k + 1);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur de chargement');
@@ -143,19 +150,31 @@ export function PlanningView() {
   }, [year, month]);
 
   useEffect(() => {
-    listDoctors().then(setDoctors).catch(() => {});
-    listLocks().then(setLocks).catch(() => {});
+    listDoctors()
+      .then(setDoctors)
+      .catch(e => {
+        logError('listDoctors', e);
+        setError('Impossible de charger la liste des médecins.');
+      });
+    listLocks()
+      .then(setLocks)
+      .catch(e => logError('listLocks', e));
   }, []);
 
   useEffect(() => {
     loadData().finally(() => setFirstLoad(false));
   }, [loadData]);
 
-  useEffect(() => subscribeShifts(() => void loadData()), [loadData]);
-  useEffect(() => subscribeLeaves(() => void loadData()), [loadData]);
-  useEffect(() => subscribeNotes(() => void loadData()), [loadData]);
-  useEffect(() => subscribeWishes(() => void loadData()), [loadData]);
-  useEffect(() => subscribeHnc(() => void loadData()), [loadData]);
+  // Un seul rechargement anti-rebond pour toutes les tables : une rafale
+  // d'événements Realtime (ou l'écho d'une édition optimiste) ne déclenche
+  // qu'un rechargement au lieu de N. La référence est stable → les abonnements
+  // ne se recréent pas à chaque changement de mois.
+  const reloadDebounced = useDebouncedCallback(() => void loadData(), 250);
+  useEffect(() => subscribeShifts(reloadDebounced), [reloadDebounced]);
+  useEffect(() => subscribeLeaves(reloadDebounced), [reloadDebounced]);
+  useEffect(() => subscribeNotes(reloadDebounced), [reloadDebounced]);
+  useEffect(() => subscribeWishes(reloadDebounced), [reloadDebounced]);
+  useEffect(() => subscribeHnc(reloadDebounced), [reloadDebounced]);
   useEffect(() => subscribeLocks(() => void listLocks().then(setLocks)), []);
 
   useEffect(() => {
@@ -194,25 +213,13 @@ export function PlanningView() {
     () => new Map(shifts.map(s => [`${s.work_date}|${s.shift_type}`, s])),
     [shifts]
   );
-  const leavesByDate = useMemo(() => {
-    const m = new Map<string, Leave[]>();
-    for (const l of leaves) (m.get(l.work_date) ?? m.set(l.work_date, []).get(l.work_date)!).push(l);
-    return m;
-  }, [leaves]);
+  const leavesByDate = useMemo(() => groupBy(leaves, l => l.work_date), [leaves]);
   const notesByDate = useMemo(
     () => new Map(notes.map(n => [n.work_date, n])),
     [notes]
   );
-  const wishesByDate = useMemo(() => {
-    const m = new Map<string, Wish[]>();
-    for (const w of wishes) (m.get(w.work_date) ?? m.set(w.work_date, []).get(w.work_date)!).push(w);
-    return m;
-  }, [wishes]);
-  const hncByDate = useMemo(() => {
-    const m = new Map<string, HncEntry[]>();
-    for (const h of hnc) (m.get(h.work_date) ?? m.set(h.work_date, []).get(h.work_date)!).push(h);
-    return m;
-  }, [hnc]);
+  const wishesByDate = useMemo(() => groupBy(wishes, w => w.work_date), [wishes]);
+  const hncByDate = useMemo(() => groupBy(hnc, h => h.work_date), [hnc]);
   const issuesByDate = useMemo(
     () => computeIssues(shifts, leaves, nameById),
     [shifts, leaves, nameById]
@@ -310,23 +317,26 @@ export function PlanningView() {
     }
   }
 
-  async function handleRemoveLeave(leave: Leave) {
-    const doc = doctorsById.get(leave.doctor_id);
-    if (
-      !confirm(
-        `Supprimer l'absence de ${doc?.name ?? 'ce médecin'} le ${frDate(leave.work_date)} ?`
+  const handleRemoveLeave = useCallback(
+    async (leave: Leave) => {
+      const doc = doctorsById.get(leave.doctor_id);
+      if (
+        !confirm(
+          `Supprimer l'absence de ${doc?.name ?? 'ce médecin'} le ${frDate(leave.work_date)} ?`
+        )
       )
-    )
-      return;
-    const prev = leaves;
-    setLeaves(cur => cur.filter(l => l.id !== leave.id));
-    try {
-      await clearLeave(leave.id);
-    } catch (e) {
-      setLeaves(prev);
-      toast.error(e instanceof Error ? e.message : 'Erreur');
-    }
-  }
+        return;
+      const prev = leaves;
+      setLeaves(cur => cur.filter(l => l.id !== leave.id));
+      try {
+        await clearLeave(leave.id);
+      } catch (e) {
+        setLeaves(prev);
+        toast.error(e instanceof Error ? e.message : 'Erreur');
+      }
+    },
+    [doctorsById, leaves, toast]
+  );
 
   async function handleSaveNote(text: string) {
     if (!noteDate) return;
@@ -349,42 +359,45 @@ export function PlanningView() {
     }
   }
 
-  async function handleCycleWish(iso: string) {
-    if (!doctor) return;
-    const cur = wishes.find(
-      w => w.work_date === iso && w.doctor_id === doctor.id
-    )?.kind;
-    const next: WishKind | null =
-      cur === undefined ? 'prefer' : cur === 'prefer' ? 'avoid' : null;
-    // Optimiste
-    setWishes(list => {
-      const others = list.filter(
-        w => !(w.work_date === iso && w.doctor_id === doctor.id)
-      );
-      if (next === null) return others;
-      const existing = list.find(
+  const handleCycleWish = useCallback(
+    async (iso: string) => {
+      if (!doctor) return;
+      const cur = wishes.find(
         w => w.work_date === iso && w.doctor_id === doctor.id
-      );
-      return [
-        ...others,
-        {
-          id: existing?.id ?? `tmp-${iso}`,
-          doctor_id: doctor.id,
-          work_date: iso,
-          kind: next,
-          note: null,
-          created_at: existing?.created_at ?? '',
-        },
-      ];
-    });
-    try {
-      if (next === null) await clearWish(doctor.id, iso);
-      else await setWish(doctor.id, iso, next, null);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Erreur');
-      await loadData();
-    }
-  }
+      )?.kind;
+      const next: WishKind | null =
+        cur === undefined ? 'prefer' : cur === 'prefer' ? 'avoid' : null;
+      // Optimiste
+      setWishes(list => {
+        const others = list.filter(
+          w => !(w.work_date === iso && w.doctor_id === doctor.id)
+        );
+        if (next === null) return others;
+        const existing = list.find(
+          w => w.work_date === iso && w.doctor_id === doctor.id
+        );
+        return [
+          ...others,
+          {
+            id: existing?.id ?? `tmp-${iso}`,
+            doctor_id: doctor.id,
+            work_date: iso,
+            kind: next,
+            note: null,
+            created_at: existing?.created_at ?? '',
+          },
+        ];
+      });
+      try {
+        if (next === null) await clearWish(doctor.id, iso);
+        else await setWish(doctor.id, iso, next, null);
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : 'Erreur');
+        await loadData();
+      }
+    },
+    [doctor, wishes, toast, loadData]
+  );
 
   async function handlePropose(toDoctor: string | null, message: string) {
     if (!slot) return;
@@ -443,6 +456,24 @@ export function PlanningView() {
     if (iso) dayRefs.current[iso]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
+  // Callbacks stables passés aux grilles mémoïsées : sans eux, chaque cellule se
+  // re-rendrait à tout changement d'état sans rapport (dialogue, surlignage…).
+  const onSlotClick = useCallback(
+    (iso: string, shiftType: ShiftType) => setSlot({ iso, shiftType }),
+    []
+  );
+  const onAddLeaveClick = useCallback((iso: string) => setLeaveDate(iso), []);
+  const onEditNoteClick = useCallback((iso: string) => setNoteDate(iso), []);
+  const onEditHncClick = useCallback((iso: string) => setHncDate(iso), []);
+  const onRemoveLeaveClick = useCallback(
+    (leave: Leave) => void handleRemoveLeave(leave),
+    [handleRemoveLeave]
+  );
+  const onCycleWishClick = useCallback(
+    (iso: string) => void handleCycleWish(iso),
+    [handleCycleWish]
+  );
+
   const currentShift = slot
     ? shiftIndex.get(`${slot.iso}|${slot.shiftType}`)
     : undefined;
@@ -474,6 +505,7 @@ export function PlanningView() {
           doctorId={doctor.id}
           year={year}
           month={month}
+          reloadKey={reloadKey}
         />
       )}
 
@@ -619,12 +651,12 @@ export function PlanningView() {
             selfDoctorId={doctor.id}
             highlightId={highlightId}
             locked={locked}
-            onSlotClick={(iso, shiftType: ShiftType) => setSlot({ iso, shiftType })}
-            onAddLeave={iso => setLeaveDate(iso)}
-            onRemoveLeave={leave => void handleRemoveLeave(leave)}
-            onEditNote={iso => setNoteDate(iso)}
-            onCycleWish={iso => void handleCycleWish(iso)}
-            onEditHnc={iso => setHncDate(iso)}
+            onSlotClick={onSlotClick}
+            onAddLeave={onAddLeaveClick}
+            onRemoveLeave={onRemoveLeaveClick}
+            onEditNote={onEditNoteClick}
+            onCycleWish={onCycleWishClick}
+            onEditHnc={onEditHncClick}
             dayRefs={dayRefs}
           />
         ) : (
@@ -640,12 +672,12 @@ export function PlanningView() {
             selfDoctorId={doctor.id}
             highlightId={highlightId}
             locked={locked}
-            onSlotClick={(iso, shiftType: ShiftType) => setSlot({ iso, shiftType })}
-            onAddLeave={iso => setLeaveDate(iso)}
-            onRemoveLeave={leave => void handleRemoveLeave(leave)}
-            onEditNote={iso => setNoteDate(iso)}
-            onCycleWish={iso => void handleCycleWish(iso)}
-            onEditHnc={iso => setHncDate(iso)}
+            onSlotClick={onSlotClick}
+            onAddLeave={onAddLeaveClick}
+            onRemoveLeave={onRemoveLeaveClick}
+            onEditNote={onEditNoteClick}
+            onCycleWish={onCycleWishClick}
+            onEditHnc={onEditHncClick}
             dayRefs={dayRefs}
           />
         ))}

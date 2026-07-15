@@ -15,3 +15,26 @@ export function getSupabase(): SupabaseClient {
   });
   return client;
 }
+
+/**
+ * Abonnement Realtime générique à une table : appelle `onChange` à chaque
+ * INSERT/UPDATE/DELETE et renvoie une fonction de désabonnement. Factorise le
+ * boilerplate identique des modules `backend/*` (un canal par table).
+ */
+export function subscribeTable(
+  table: string,
+  onChange: () => void
+): () => void {
+  const sb = getSupabase();
+  const channel = sb
+    .channel(`${table}-changes`)
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table },
+      () => onChange()
+    )
+    .subscribe();
+  return () => {
+    void sb.removeChannel(channel);
+  };
+}

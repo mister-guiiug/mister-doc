@@ -46,7 +46,7 @@ supabase secrets set \
   VAPID_PRIVATE_KEY=yyy... \
   VAPID_SUBJECT=mailto:admin@votre-domaine.fr \
   APP_URL=https://mister-guiiug.github.io/mister-doc/ \
-  WEBHOOK_SECRET=un-secret-aleatoire   # optionnel mais recommandé
+  WEBHOOK_SECRET=un-secret-aleatoire   # OBLIGATOIRE (fail-closed sans lui)
 ```
 
 `SUPABASE_URL` et `SUPABASE_SERVICE_ROLE_KEY` sont fournis automatiquement.
@@ -57,7 +57,7 @@ Supabase → **Database → Webhooks → Create** :
 
 - Table : `public.notifications`, évènement : **INSERT**
 - Type : **HTTP Request** → URL de la fonction `…/functions/v1/push`
-- Header (si `WEBHOOK_SECRET` défini) : `x-webhook-secret: un-secret-aleatoire`
+- Header (**obligatoire**) : `x-webhook-secret: un-secret-aleatoire`
 
 > Alternative sans UI : un trigger `pg_net` (`net.http_post`) sur
 > `notifications` appelant l'URL de la fonction avec le même header.

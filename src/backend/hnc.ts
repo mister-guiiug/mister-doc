@@ -1,15 +1,11 @@
-import { getSupabase } from '../lib/supabase.ts';
-import { toISODate } from '../lib/dates.ts';
+import { getSupabase, subscribeTable } from '../lib/supabase.ts';
+import { monthBounds } from '../lib/dates.ts';
 import type { HncEntry } from './types.ts';
 
 /**
  * Accès aux heures non cliniques (table `hnc_hours`). Modèle proche des congés :
  * une entrée par médecin et par jour, édition partagée entre médecins approuvés.
  */
-
-function monthBounds(year: number, month: number): [string, string] {
-  return [toISODate(new Date(year, month, 1)), toISODate(new Date(year, month + 1, 0))];
-}
 
 /** Toutes les entrées HNC d'un mois. */
 export async function listMonthHnc(
@@ -72,15 +68,5 @@ export async function clearHnc(id: string): Promise<void> {
 }
 
 export function subscribeHnc(onChange: () => void): () => void {
-  const channel = getSupabase()
-    .channel('hnc-changes')
-    .on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: 'hnc_hours' },
-      () => onChange()
-    )
-    .subscribe();
-  return () => {
-    void getSupabase().removeChannel(channel);
-  };
+  return subscribeTable('hnc_hours', onChange);
 }

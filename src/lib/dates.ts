@@ -209,6 +209,14 @@ export function monthLabel(year: number, month: number): string {
   return `${MONTH_LABELS[month]} ${year}`;
 }
 
+/** Bornes ISO `[premier, dernier]` (incluses) d'un mois (année, mois 0-indexé). */
+export function monthBounds(year: number, month: number): [string, string] {
+  return [
+    toISODate(new Date(year, month, 1)),
+    toISODate(new Date(year, month + 1, 0)),
+  ];
+}
+
 // ------------------------------ Quadrimestres ------------------------------
 
 /**

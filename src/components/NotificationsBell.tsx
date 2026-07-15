@@ -25,6 +25,7 @@ import {
   subscribeNotifications,
 } from '../backend/notifications.ts';
 import { useToast } from './Toast.tsx';
+import { logError } from '../lib/logger.ts';
 import type { Notification } from '../backend/types.ts';
 
 /** Destination (route) associée à une notification, pour le raccourci au clic. */
@@ -92,7 +93,8 @@ export function NotificationsBell() {
     let list: Notification[];
     try {
       list = await listNotifications();
-    } catch {
+    } catch (e) {
+      logError('listNotifications', e);
       return;
     }
     setItems(list);

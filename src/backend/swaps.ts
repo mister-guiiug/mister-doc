@@ -1,4 +1,4 @@
-import { getSupabase } from '../lib/supabase.ts';
+import { getSupabase, subscribeTable } from '../lib/supabase.ts';
 import type { ShiftType } from '../lib/shifts.ts';
 import type { SwapRequest } from './types.ts';
 
@@ -44,15 +44,5 @@ export async function cancelSwap(id: string): Promise<void> {
 }
 
 export function subscribeSwaps(onChange: () => void): () => void {
-  const channel = getSupabase()
-    .channel('swaps-changes')
-    .on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: 'swap_requests' },
-      () => onChange()
-    )
-    .subscribe();
-  return () => {
-    void getSupabase().removeChannel(channel);
-  };
+  return subscribeTable('swap_requests', onChange);
 }

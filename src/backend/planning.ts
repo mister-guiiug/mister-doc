@@ -1,14 +1,7 @@
-import { getSupabase } from '../lib/supabase.ts';
-import { toISODate } from '../lib/dates.ts';
+import { getSupabase, subscribeTable } from '../lib/supabase.ts';
+import { monthBounds } from '../lib/dates.ts';
 import type { ShiftType } from '../lib/shifts.ts';
 import type { Shift } from './types.ts';
-
-/** Bornes ISO d'un mois (année, mois 0-indexé) : [premier, dernier] inclus. */
-function monthBounds(year: number, month: number): [string, string] {
-  const first = new Date(year, month, 1);
-  const last = new Date(year, month + 1, 0);
-  return [toISODate(first), toISODate(last)];
-}
 
 // Les gardes cliniques excluent « S3 » : ces heures non cliniques vivent
 // désormais dans la table `hnc_hours` (cf. backend/hnc.ts). Le filtre neq garde
@@ -87,15 +80,5 @@ export async function clearShift(
  * désabonnement. `onChange` est appelé à chaque INSERT/UPDATE/DELETE.
  */
 export function subscribeShifts(onChange: () => void): () => void {
-  const channel = getSupabase()
-    .channel('shifts-changes')
-    .on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: 'shifts' },
-      () => onChange()
-    )
-    .subscribe();
-  return () => {
-    void getSupabase().removeChannel(channel);
-  };
+  return subscribeTable('shifts', onChange);
 }

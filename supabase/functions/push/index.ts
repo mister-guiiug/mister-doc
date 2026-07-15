@@ -64,12 +64,26 @@ function targetUrl(rec: NotificationRecord): string {
   return `${base}#/`;
 }
 
+/** Comparaison à temps constant (évite un oracle temporel sur le secret). */
+function timingSafeEqual(a: string, b: string): boolean {
+  const enc = new TextEncoder();
+  const ab = enc.encode(a);
+  const bb = enc.encode(b);
+  if (ab.length !== bb.length) return false;
+  let diff = 0;
+  for (let i = 0; i < ab.length; i++) diff |= ab[i] ^ bb[i];
+  return diff === 0;
+}
+
 Deno.serve(async req => {
   if (req.method !== 'POST') return new Response('ok'); // sonde santé / GET
-  if (
-    WEBHOOK_SECRET &&
-    req.headers.get('x-webhook-secret') !== WEBHOOK_SECRET
-  ) {
+  // Fail-closed : la fonction étant déployée `--no-verify-jwt`, le secret partagé
+  // avec le webhook base de données est OBLIGATOIRE. Sans lui, la fonction est
+  // refusée (sinon n'importe quel POST anonyme enverrait des push arbitraires).
+  if (!WEBHOOK_SECRET) {
+    return new Response('WEBHOOK_SECRET non configuré', { status: 500 });
+  }
+  if (!timingSafeEqual(req.headers.get('x-webhook-secret') ?? '', WEBHOOK_SECRET)) {
     return new Response('forbidden', { status: 401 });
   }
   if (!VAPID_PUBLIC || !VAPID_PRIVATE) {

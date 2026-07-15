@@ -11,6 +11,7 @@ import {
 import { listShiftsBetween } from '../../backend/planning.ts';
 import { listLeavesBetween } from '../../backend/leaves.ts';
 import { listHncBetween } from '../../backend/hnc.ts';
+import { logError } from '../../lib/logger.ts';
 import type { HncEntry, Leave, Shift } from '../../backend/types.ts';
 
 /** Portée des compteurs : mois affiché ou quadrimestre (bloc de 4 mois). */
@@ -31,6 +32,7 @@ export function Counters({
   doctorId,
   year,
   month,
+  reloadKey,
 }: {
   shifts: Shift[];
   leaves: Leave[];
@@ -38,6 +40,9 @@ export function Counters({
   doctorId: string;
   year: number;
   month: number;
+  /** Incrémenté à chaque vrai rechargement du planning (pas aux éditions
+   * optimistes) : sert de déclencheur unique au refetch du quadrimestre. */
+  reloadKey: number;
 }) {
   const [scope, setScope] = useState<Scope>(() => {
     try {
@@ -57,8 +62,9 @@ export function Counters({
   const [from, to] = quadrimesterBounds(year, month);
 
   // Charge (et recharge) le quadrimestre quand la portée passe à « quadri. »,
-  // que le bloc de 4 mois change, ou que le planning courant est rechargé
-  // (les abonnements Realtime rafraîchissent les props `shifts`/`leaves`/`hnc`).
+  // que le bloc de 4 mois change, ou qu'un vrai rechargement du planning a lieu
+  // (`reloadKey`). On ne dépend PAS des tableaux `shifts`/`leaves`/`hnc` : leur
+  // identité change aussi aux éditions optimistes, ce qui doublait les refetch.
   useEffect(() => {
     if (scope !== 'quad') return;
     let alive = true;
@@ -71,7 +77,8 @@ export function Counters({
       .then(([s, l, h]) => {
         if (alive) setQuad({ shifts: s, leaves: l, hnc: h });
       })
-      .catch(() => {
+      .catch(e => {
+        logError('Counters quadrimestre', e);
         if (alive) setQuad({ shifts: [], leaves: [], hnc: [] });
       })
       .finally(() => {
@@ -80,7 +87,7 @@ export function Counters({
     return () => {
       alive = false;
     };
-  }, [scope, from, to, shifts, leaves, hnc]);
+  }, [scope, from, to, reloadKey]);
 
   function changeScope(next: Scope) {
     setScope(next);
