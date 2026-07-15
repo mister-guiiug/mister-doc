@@ -309,23 +309,26 @@ export function PlanningView() {
     }
   }
 
-  async function handleRemoveLeave(leave: Leave) {
-    const doc = doctorsById.get(leave.doctor_id);
-    if (
-      !confirm(
-        `Supprimer l'absence de ${doc?.name ?? 'ce médecin'} le ${frDate(leave.work_date)} ?`
+  const handleRemoveLeave = useCallback(
+    async (leave: Leave) => {
+      const doc = doctorsById.get(leave.doctor_id);
+      if (
+        !confirm(
+          `Supprimer l'absence de ${doc?.name ?? 'ce médecin'} le ${frDate(leave.work_date)} ?`
+        )
       )
-    )
-      return;
-    const prev = leaves;
-    setLeaves(cur => cur.filter(l => l.id !== leave.id));
-    try {
-      await clearLeave(leave.id);
-    } catch (e) {
-      setLeaves(prev);
-      toast.error(e instanceof Error ? e.message : 'Erreur');
-    }
-  }
+        return;
+      const prev = leaves;
+      setLeaves(cur => cur.filter(l => l.id !== leave.id));
+      try {
+        await clearLeave(leave.id);
+      } catch (e) {
+        setLeaves(prev);
+        toast.error(e instanceof Error ? e.message : 'Erreur');
+      }
+    },
+    [doctorsById, leaves, toast]
+  );
 
   async function handleSaveNote(text: string) {
     if (!noteDate) return;
@@ -348,42 +351,45 @@ export function PlanningView() {
     }
   }
 
-  async function handleCycleWish(iso: string) {
-    if (!doctor) return;
-    const cur = wishes.find(
-      w => w.work_date === iso && w.doctor_id === doctor.id
-    )?.kind;
-    const next: WishKind | null =
-      cur === undefined ? 'prefer' : cur === 'prefer' ? 'avoid' : null;
-    // Optimiste
-    setWishes(list => {
-      const others = list.filter(
-        w => !(w.work_date === iso && w.doctor_id === doctor.id)
-      );
-      if (next === null) return others;
-      const existing = list.find(
+  const handleCycleWish = useCallback(
+    async (iso: string) => {
+      if (!doctor) return;
+      const cur = wishes.find(
         w => w.work_date === iso && w.doctor_id === doctor.id
-      );
-      return [
-        ...others,
-        {
-          id: existing?.id ?? `tmp-${iso}`,
-          doctor_id: doctor.id,
-          work_date: iso,
-          kind: next,
-          note: null,
-          created_at: existing?.created_at ?? '',
-        },
-      ];
-    });
-    try {
-      if (next === null) await clearWish(doctor.id, iso);
-      else await setWish(doctor.id, iso, next, null);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Erreur');
-      await loadData();
-    }
-  }
+      )?.kind;
+      const next: WishKind | null =
+        cur === undefined ? 'prefer' : cur === 'prefer' ? 'avoid' : null;
+      // Optimiste
+      setWishes(list => {
+        const others = list.filter(
+          w => !(w.work_date === iso && w.doctor_id === doctor.id)
+        );
+        if (next === null) return others;
+        const existing = list.find(
+          w => w.work_date === iso && w.doctor_id === doctor.id
+        );
+        return [
+          ...others,
+          {
+            id: existing?.id ?? `tmp-${iso}`,
+            doctor_id: doctor.id,
+            work_date: iso,
+            kind: next,
+            note: null,
+            created_at: existing?.created_at ?? '',
+          },
+        ];
+      });
+      try {
+        if (next === null) await clearWish(doctor.id, iso);
+        else await setWish(doctor.id, iso, next, null);
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : 'Erreur');
+        await loadData();
+      }
+    },
+    [doctor, wishes, toast, loadData]
+  );
 
   async function handlePropose(toDoctor: string | null, message: string) {
     if (!slot) return;
@@ -441,6 +447,24 @@ export function PlanningView() {
     const iso = uncovered[0]?.iso;
     if (iso) dayRefs.current[iso]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
+
+  // Callbacks stables passés aux grilles mémoïsées : sans eux, chaque cellule se
+  // re-rendrait à tout changement d'état sans rapport (dialogue, surlignage…).
+  const onSlotClick = useCallback(
+    (iso: string, shiftType: ShiftType) => setSlot({ iso, shiftType }),
+    []
+  );
+  const onAddLeaveClick = useCallback((iso: string) => setLeaveDate(iso), []);
+  const onEditNoteClick = useCallback((iso: string) => setNoteDate(iso), []);
+  const onEditHncClick = useCallback((iso: string) => setHncDate(iso), []);
+  const onRemoveLeaveClick = useCallback(
+    (leave: Leave) => void handleRemoveLeave(leave),
+    [handleRemoveLeave]
+  );
+  const onCycleWishClick = useCallback(
+    (iso: string) => void handleCycleWish(iso),
+    [handleCycleWish]
+  );
 
   const currentShift = slot
     ? shiftIndex.get(`${slot.iso}|${slot.shiftType}`)
@@ -619,12 +643,12 @@ export function PlanningView() {
             selfDoctorId={doctor.id}
             highlightId={highlightId}
             locked={locked}
-            onSlotClick={(iso, shiftType: ShiftType) => setSlot({ iso, shiftType })}
-            onAddLeave={iso => setLeaveDate(iso)}
-            onRemoveLeave={leave => void handleRemoveLeave(leave)}
-            onEditNote={iso => setNoteDate(iso)}
-            onCycleWish={iso => void handleCycleWish(iso)}
-            onEditHnc={iso => setHncDate(iso)}
+            onSlotClick={onSlotClick}
+            onAddLeave={onAddLeaveClick}
+            onRemoveLeave={onRemoveLeaveClick}
+            onEditNote={onEditNoteClick}
+            onCycleWish={onCycleWishClick}
+            onEditHnc={onEditHncClick}
             dayRefs={dayRefs}
           />
         ) : (
@@ -640,12 +664,12 @@ export function PlanningView() {
             selfDoctorId={doctor.id}
             highlightId={highlightId}
             locked={locked}
-            onSlotClick={(iso, shiftType: ShiftType) => setSlot({ iso, shiftType })}
-            onAddLeave={iso => setLeaveDate(iso)}
-            onRemoveLeave={leave => void handleRemoveLeave(leave)}
-            onEditNote={iso => setNoteDate(iso)}
-            onCycleWish={iso => void handleCycleWish(iso)}
-            onEditHnc={iso => setHncDate(iso)}
+            onSlotClick={onSlotClick}
+            onAddLeave={onAddLeaveClick}
+            onRemoveLeave={onRemoveLeaveClick}
+            onEditNote={onEditNoteClick}
+            onCycleWish={onCycleWishClick}
+            onEditHnc={onEditHncClick}
             dayRefs={dayRefs}
           />
         ))}

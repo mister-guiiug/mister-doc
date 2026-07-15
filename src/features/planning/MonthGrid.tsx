@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import {
   AlertTriangle,
   Star,
@@ -28,6 +29,10 @@ import type {
   Shift,
   Wish,
 } from '../../backend/types.ts';
+
+// Référence stable pour les jours sans absence/alerte/vœu/HNC : évite de créer
+// un nouveau `[]` à chaque rendu, ce qui casserait la mémoïsation de `DayRow`.
+const EMPTY: never[] = [];
 
 export function MonthGrid({
   weeks,
@@ -87,11 +92,11 @@ export function MonthGrid({
                 key={day.iso}
                 day={day}
                 shiftIndex={shiftIndex}
-                leaves={leavesByDate.get(day.iso) ?? []}
+                leaves={leavesByDate.get(day.iso) ?? EMPTY}
                 note={notesByDate.get(day.iso)}
-                issues={issuesByDate.get(day.iso) ?? []}
-                wishes={wishesByDate.get(day.iso) ?? []}
-                hnc={hncByDate.get(day.iso) ?? []}
+                issues={issuesByDate.get(day.iso) ?? EMPTY}
+                wishes={wishesByDate.get(day.iso) ?? EMPTY}
+                hnc={hncByDate.get(day.iso) ?? EMPTY}
                 doctorsById={doctorsById}
                 selfDoctorId={selfDoctorId}
                 highlightId={highlightId}
@@ -102,7 +107,7 @@ export function MonthGrid({
                 onEditNote={onEditNote}
                 onCycleWish={onCycleWish}
                 onEditHnc={onEditHnc}
-                setRef={el => (dayRefs.current[day.iso] = el)}
+                dayRefs={dayRefs}
               />
             ))}
           </div>
@@ -112,7 +117,7 @@ export function MonthGrid({
   );
 }
 
-function DayRow({
+const DayRow = memo(function DayRow({
   day,
   shiftIndex,
   leaves,
@@ -130,7 +135,7 @@ function DayRow({
   onEditNote,
   onCycleWish,
   onEditHnc,
-  setRef,
+  dayRefs,
 }: {
   day: MonthDay;
   shiftIndex: Map<string, Shift>;
@@ -149,7 +154,7 @@ function DayRow({
   onEditNote: (iso: string) => void;
   onCycleWish: (iso: string) => void;
   onEditHnc: (iso: string) => void;
-  setRef: (el: HTMLDivElement | null) => void;
+  dayRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
 }) {
   const types = activeShiftTypes(day.date);
   const missing = types.filter(t => !shiftIndex.has(`${day.iso}|${t}`)).length;
@@ -162,7 +167,9 @@ function DayRow({
 
   return (
     <div
-      ref={setRef}
+      ref={el => {
+        dayRefs.current[day.iso] = el;
+      }}
       className={`scroll-mt-20 rounded-xl border p-2.5 ${
         day.reduced
           ? 'border-teal-200 bg-teal-50/60 dark:border-teal-900/60 dark:bg-teal-950/20'
@@ -405,4 +412,4 @@ function DayRow({
       </div>
     </div>
   );
-}
+});

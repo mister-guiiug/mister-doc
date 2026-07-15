@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import {
   AlertTriangle,
   Star,
@@ -22,6 +23,9 @@ import type {
 } from '../../backend/types.ts';
 
 const DAY_HEADERS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'] as const;
+
+// Référence stable pour les jours sans absence/vœu/HNC (mémoïsation de DayCell).
+const EMPTY: never[] = [];
 
 /**
  * Vue « grille » 7 colonnes (lundi → dimanche), pensée pour le desktop. Chaque
@@ -100,10 +104,10 @@ export function MonthCalendarGrid({
                 key={day.iso}
                 day={day}
                 shiftIndex={shiftIndex}
-                leaves={leavesByDate.get(day.iso) ?? []}
+                leaves={leavesByDate.get(day.iso) ?? EMPTY}
                 note={notesByDate.get(day.iso)}
-                wishes={wishesByDate.get(day.iso) ?? []}
-                hnc={hncByDate.get(day.iso) ?? []}
+                wishes={wishesByDate.get(day.iso) ?? EMPTY}
+                hnc={hncByDate.get(day.iso) ?? EMPTY}
                 doctorsById={doctorsById}
                 selfDoctorId={selfDoctorId}
                 highlightId={highlightId}
@@ -114,7 +118,7 @@ export function MonthCalendarGrid({
                 onEditNote={onEditNote}
                 onCycleWish={onCycleWish}
                 onEditHnc={onEditHnc}
-                setRef={el => (dayRefs.current[day.iso] = el)}
+                dayRefs={dayRefs}
               />
             ) : (
               <div
@@ -129,7 +133,7 @@ export function MonthCalendarGrid({
   );
 }
 
-function DayCell({
+const DayCell = memo(function DayCell({
   day,
   shiftIndex,
   leaves,
@@ -146,7 +150,7 @@ function DayCell({
   onEditNote,
   onCycleWish,
   onEditHnc,
-  setRef,
+  dayRefs,
 }: {
   day: MonthDay;
   shiftIndex: Map<string, Shift>;
@@ -164,7 +168,7 @@ function DayCell({
   onEditNote: (iso: string) => void;
   onCycleWish: (iso: string) => void;
   onEditHnc: (iso: string) => void;
-  setRef: (el: HTMLDivElement | null) => void;
+  dayRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
 }) {
   const types = activeShiftTypes(day.date);
   const missing = types.filter(t => !shiftIndex.has(`${day.iso}|${t}`)).length;
@@ -175,7 +179,9 @@ function DayCell({
 
   return (
     <div
-      ref={setRef}
+      ref={el => {
+        dayRefs.current[day.iso] = el;
+      }}
       className={`group/cell scroll-mt-20 flex min-h-24 flex-col gap-1 border-r border-slate-100 p-1.5 last:border-r-0 dark:border-slate-800/60 ${
         day.reduced
           ? 'bg-teal-50/50 dark:bg-teal-950/20'
@@ -394,4 +400,4 @@ function DayCell({
       </div>
     </div>
   );
-}
+});
