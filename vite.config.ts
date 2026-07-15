@@ -66,6 +66,9 @@ export default defineConfig(({ command }) => {
           navigateFallback: 'index.html',
           cleanupOutdatedCaches: true,
           maximumFileSizeToCacheInBytes: 4_000_000,
+          // Handlers Web Push (fichier statique servi à la racine du scope) ;
+          // ajoutés au SW généré sans changer sa stratégie de cache.
+          importScripts: ['push-sw.js'],
         },
         manifest: {
           id: '/mister-doc/',

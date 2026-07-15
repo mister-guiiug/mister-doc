@@ -42,7 +42,8 @@ métier, à partir d'un modèle simple de créneaux mensuels.
 ### Comptes, rôles, admin
 - **Authentification Supabase** + barrière d'approbation (voir Sécurité).
 - **Profil dédié** (`/profil`) : nom, couleur, thème clair/sombre, abonnement
-  calendrier, version + « forcer la mise à jour », déconnexion.
+  calendrier, **notifications push** (opt-in), version + « forcer la mise à jour »,
+  déconnexion.
 - Un compte **en attente** peut supprimer lui-même sa demande ; un **admin** peut
   l'**approuver** ou la **rejeter**.
 - **Vue admin `/compteurs`** : compteurs de toute l'équipe par mois / quadrimestre
@@ -56,6 +57,8 @@ métier, à partir d'un modèle simple de créneaux mensuels.
   mois verrouillé/déverrouillé, demande de compte (aux admins), approbation.
   **Clic = raccourci** vers le bon menu ; **glissement latéral = marquer lu** ;
   **toast** à l'arrivée d'une notif app ouverte.
+- **Notifications push** (optionnel) : reçues même app fermée, via service worker +
+  VAPID. Opt-in depuis le profil. Configuration : [docs/notifications-push.md](docs/notifications-push.md).
 - **Sauvegarde/restauration** (admin) + **sauvegarde auto hebdomadaire** (pg_cron).
 
 ### Technique
