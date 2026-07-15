@@ -42,12 +42,12 @@ métier, à partir d'un modèle simple de créneaux mensuels.
 ### Comptes, rôles, admin
 - **Authentification Supabase** + barrière d'approbation (voir Sécurité).
 - **Profil dédié** (`/profil`) : nom, couleur, thème clair/sombre, abonnement
-  calendrier, **notifications push** (opt-in), version + « forcer la mise à jour »,
-  déconnexion.
+  calendrier, **partage du lien de l'app**, **notifications push** (opt-in),
+  version + « forcer la mise à jour », déconnexion.
 - Un compte **en attente** peut supprimer lui-même sa demande ; un **admin** peut
   l'**approuver** ou la **rejeter**.
 - **Vue admin `/compteurs`** : compteurs de toute l'équipe par mois / quadrimestre
-  (4 mois) / année, export **CSV**.
+  (4 mois) / année, export **CSV**, **Excel (.xlsx)** et **PDF**.
 - **Aperçu « médecin »** : un admin peut, via le **bouclier** de l'en-tête,
   masquer temporairement ses fonctions admin pour voir l'app comme un non-admin.
 

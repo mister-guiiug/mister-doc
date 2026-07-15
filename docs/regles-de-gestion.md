@@ -80,7 +80,8 @@ est mémorisé (localStorage). Dans les deux cas, les compteurs sont :
 
 Compteurs de **l'équipe** (admin, page « Compteurs ») : même logique, pour tous
 les médecins, sur une période **Mois / Quadrimestre (4 mois) / Année**, avec
-**export CSV**. Les 3 quadrimestres de l'année : janv.–avr., mai–août, sept.–déc.
+**export CSV, Excel (.xlsx) et PDF**. Les 3 quadrimestres de l'année : janv.–avr.,
+mai–août, sept.–déc.
 
 ## 5. Congés et formations
 

@@ -12,6 +12,8 @@ import {
   Loader2,
   Check,
   ShieldCheck,
+  Share2,
+  Copy,
   BellRing,
 } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth.ts';
@@ -68,10 +70,16 @@ export function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [calendar, setCalendar] = useState(false);
+  const [copied, setCopied] = useState(false);
   const pushOn = pushConfigured();
   const [push, setPush] = useState<'loading' | 'on' | 'off' | 'denied' | 'busy'>(
     'loading'
   );
+
+  // Lien racine de l'application (HashRouter → l'accueil), indépendant de la
+  // route courante. `BASE_URL` vaut « /mister-doc/ » en prod, « / » en local.
+  const appUrl = window.location.origin + import.meta.env.BASE_URL;
+  const canShare = typeof navigator.share === 'function';
 
   // Resynchronise si la fiche change (approbation, édition admin…).
   useEffect(() => {
@@ -138,6 +146,30 @@ export function ProfilePage() {
     } catch {
       setPush('off');
       toast.error('Activation impossible.');
+    }
+  }
+
+  // Partage natif si disponible (mobile), sinon repli sur la copie du lien.
+  async function handleShare() {
+    if (canShare) {
+      try {
+        await navigator.share({
+          title: 'mister-doc',
+          text: 'Planning des gardes — mister-doc',
+          url: appUrl,
+        });
+      } catch {
+        /* partage annulé par l'utilisateur */
+      }
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(appUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+      toast.success('Lien copié.');
+    } catch {
+      toast.error('Copie impossible — sélectionnez le lien manuellement.');
     }
   }
 
@@ -255,6 +287,32 @@ export function ProfilePage() {
           className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 py-2.5 text-sm font-medium transition hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-800"
         >
           <CalendarPlus className="size-4" /> Gérer mon abonnement
+        </button>
+      </Section>
+
+      {/* Partager */}
+      <Section
+        icon={<Share2 className="size-4" />}
+        title="Partager"
+        desc="Envoyer le lien de l'application à un collègue"
+      >
+        <div className="mb-3 flex items-center rounded-lg bg-slate-50 px-3 py-2 text-xs dark:bg-slate-800">
+          <span className="truncate font-mono text-slate-500 dark:text-slate-400">
+            {appUrl}
+          </span>
+        </div>
+        <button
+          onClick={() => void handleShare()}
+          className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 py-2.5 text-sm font-medium transition hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-800"
+        >
+          {copied ? (
+            <Check className="size-4 text-teal-600" />
+          ) : canShare ? (
+            <Share2 className="size-4" />
+          ) : (
+            <Copy className="size-4" />
+          )}
+          {copied ? 'Lien copié' : 'Partager l’application'}
         </button>
       </Section>
 
