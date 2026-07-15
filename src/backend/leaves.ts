@@ -1,11 +1,7 @@
 import { getSupabase, subscribeTable } from '../lib/supabase.ts';
-import { toISODate } from '../lib/dates.ts';
+import { monthBounds, toISODate } from '../lib/dates.ts';
 import type { LeaveKind } from '../lib/leaves.ts';
 import type { Leave } from './types.ts';
-
-function monthBounds(year: number, month: number): [string, string] {
-  return [toISODate(new Date(year, month, 1)), toISODate(new Date(year, month + 1, 0))];
-}
 
 /** Toutes les absences d'un mois. */
 export async function listMonthLeaves(
