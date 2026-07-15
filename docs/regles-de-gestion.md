@@ -65,7 +65,9 @@ avec le code (`src/lib/`, `supabase/migrations/`).
 
 ## 4. Compteurs
 
-Compteurs du **médecin connecté** sur le **mois affiché** :
+Compteurs du **médecin connecté**, avec une **bascule Mois / Quadrimestre** : le
+**mois affiché**, ou le **quadrimestre** (bloc de 4 mois) le contenant. Le choix
+est mémorisé (localStorage). Dans les deux cas, les compteurs sont :
 
 - **Vendredis / Samedis / Dimanches** : nombre de **jours distincts** de garde
   clinique tombant un vendredi / samedi / dimanche (un jour compte une seule

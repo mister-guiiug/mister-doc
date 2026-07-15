@@ -34,8 +34,9 @@ métier, à partir d'un modèle simple de créneaux mensuels.
   conflit garde/absence, cumul). **Confirmation avant chaque suppression.**
 - **Échange de gardes** entre médecins (proposition ciblée ou ouverte,
   acceptation qui réaffecte la garde) — page **Échanges**.
-- **Compteurs du médecin connecté** (mois affiché) : vendredis / samedis /
-  dimanches, heures de week-end, **HNC**, heures totales, congés, formation.
+- **Compteurs du médecin connecté** (bascule **mois** / **quadrimestre**) :
+  vendredis / samedis / dimanches, heures de week-end, **HNC**, heures totales,
+  congés, formation.
 - **Verrouillage de mois** (admin) pour figer un planning validé.
 
 ### Comptes, rôles, admin
