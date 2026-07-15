@@ -3,15 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <!--
-      Content-Security-Policy en défense en profondeur.
-      connect-src élargi à Supabase (REST + Realtime wss). 'self' couvre le
-      websocket HMR de Vite en dev (même origine). 'unsafe-inline' :
-      script anti-FOUC inline + styles JIT Tailwind 4 / réinjection vite-plugin-pwa.
+      La Content-Security-Policy (défense en profondeur) est injectée par
+      vite.config.ts (plugin `csp`) : en PROD, `script-src` n'autorise que
+      'self' + le hash SHA-256 du script anti-FOUC ci-dessous (pas de
+      'unsafe-inline'). En DEV, 'unsafe-inline' est conservé pour le préambule
+      Fast Refresh inline de @vitejs/plugin-react.
     -->
-    <meta
-      http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'"
-    />
 
     <!-- Anti-FOUC : applique le thème avant le premier rendu. -->
     <script>
