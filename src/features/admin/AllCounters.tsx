@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, Users, Download } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Users,
+  Download,
+  FileSpreadsheet,
+  FileText,
+} from 'lucide-react';
 import {
   MONTH_LABELS,
   quadrimesterBounds,
@@ -15,6 +22,12 @@ import { listShiftsBetween } from '../../backend/planning.ts';
 import { listLeavesBetween } from '../../backend/leaves.ts';
 import { listHncBetween } from '../../backend/hnc.ts';
 import { FullScreenSpinner } from '../../components/Spinner.tsx';
+import {
+  exportCountersCsv,
+  exportCountersPdf,
+  exportCountersXlsx,
+  type CounterRow,
+} from './countersExport.ts';
 
 type Period = 'month' | 'quadri' | 'year';
 
@@ -132,42 +145,22 @@ export function AllCounters() {
     }
   }
 
-  function exportCsv() {
-    const header = [
-      'Médecin',
-      'Vendredis',
-      'Samedis',
-      'Dimanches',
-      'Heures WE',
-      'Heures non cliniques',
-      'Heures totales',
-      'Congés (j)',
-      'Formation (h)',
-    ];
-    const lines = rows.map(r =>
-      [
-        r.doctor.name,
-        r.fridays,
-        r.saturdays,
-        r.sundays,
-        r.weekendHours,
-        r.hncHours,
-        r.totalHours,
-        r.annualDays,
-        r.trainingHours,
-      ]
-        .map(v => `"${String(v).replace(/"/g, '""')}"`)
-        .join(';')
-    );
-    const csv = '﻿' + [header.join(';'), ...lines].join('\r\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `compteurs-${label.replace(/\s+/g, '-')}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
+  // Lignes exportables (nom du médecin + compteurs), partagées par CSV/Excel/PDF.
+  const exportRows = useMemo<CounterRow[]>(
+    () =>
+      rows.map(r => ({
+        name: r.doctor.name,
+        fridays: r.fridays,
+        saturdays: r.saturdays,
+        sundays: r.sundays,
+        weekendHours: r.weekendHours,
+        hncHours: r.hncHours,
+        totalHours: r.totalHours,
+        annualDays: r.annualDays,
+        trainingHours: r.trainingHours,
+      })),
+    [rows]
+  );
 
   if (loading) return <FullScreenSpinner label="Chargement…" />;
 
@@ -210,12 +203,29 @@ export function AllCounters() {
           </button>
         </div>
 
-        <button
-          onClick={exportCsv}
-          className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800"
-        >
-          <Download className="size-4" /> CSV
-        </button>
+        <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 dark:border-slate-800 dark:bg-slate-900">
+          <ExportButton
+            onClick={() => exportCountersCsv(exportRows, label)}
+            disabled={exportRows.length === 0}
+            title="Exporter en CSV"
+            icon={<Download className="size-4" />}
+            label="CSV"
+          />
+          <ExportButton
+            onClick={() => exportCountersXlsx(exportRows, label)}
+            disabled={exportRows.length === 0}
+            title="Exporter en Excel (.xlsx)"
+            icon={<FileSpreadsheet className="size-4" />}
+            label="Excel"
+          />
+          <ExportButton
+            onClick={() => exportCountersPdf(exportRows, label)}
+            disabled={exportRows.length === 0}
+            title="Exporter en PDF"
+            icon={<FileText className="size-4" />}
+            label="PDF"
+          />
+        </div>
       </div>
 
       {error && (
@@ -291,5 +301,31 @@ function Td({ children, strong }: { children: React.ReactNode; strong?: boolean 
     >
       {children}
     </td>
+  );
+}
+
+/** Bouton d'export compact (CSV / Excel / PDF) du groupe d'actions. */
+function ExportButton({
+  onClick,
+  disabled,
+  title,
+  icon,
+  label,
+}: {
+  onClick: () => void;
+  disabled?: boolean;
+  title: string;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-sm font-medium transition hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-transparent dark:hover:bg-slate-800"
+    >
+      {icon} {label}
+    </button>
   );
 }
