@@ -30,6 +30,7 @@ import type {
 } from '../../backend/types.ts';
 import { listSlotHistory } from '../../backend/history.ts';
 import { Modal } from '../../components/Modal.tsx';
+import { Button } from '../../components/ui/Button.tsx';
 import { useConfirm } from '../../components/ui/confirmContext.ts';
 
 /** Temps relatif court en français (pour l'historique). */
@@ -157,15 +158,17 @@ export function AssignDialog({
       </div>
 
       <div className="border-b border-slate-100 p-3 dark:border-slate-800">
-        <button
+        <Button
+          className="w-full py-2.5"
           disabled={busy || currentShift?.doctor_id === selfDoctorId}
           onClick={() => void run(() => onAssign(selfDoctorId))}
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-teal-600 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:opacity-50"
         >
           <UserPlus className="size-4" /> M'assigner ce créneau
-        </button>
+        </Button>
         {currentShift && (
-          <button
+          <Button
+            variant="dangerGhost"
+            className="mt-2 w-full py-2"
             disabled={busy}
             onClick={async () => {
               if (
@@ -177,19 +180,19 @@ export function AssignDialog({
               )
                 void run(onClear);
             }}
-            className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-red-200 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50 dark:border-red-900/60 dark:hover:bg-red-950/30"
           >
             <Trash2 className="size-4" /> Libérer le créneau
-          </button>
+          </Button>
         )}
 
         {isMine && !swapOpen && (
-          <button
+          <Button
+            variant="secondary"
+            className="mt-2 w-full py-2"
             onClick={() => setSwapOpen(true)}
-            className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 py-2 text-sm font-medium transition hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-800"
           >
             <Repeat className="size-4" /> Proposer un échange
-          </button>
+          </Button>
         )}
         {isMine && swapOpen && (
           <div className="mt-2 flex flex-col gap-2 rounded-lg border border-slate-200 p-2 dark:border-slate-700">
@@ -214,21 +217,24 @@ export function AssignDialog({
               className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm dark:border-slate-600 dark:bg-slate-800"
             />
             <div className="flex gap-2">
-              <button
+              <Button
+                variant="secondary"
+                size="sm"
+                className="flex-1"
                 onClick={() => setSwapOpen(false)}
-                className="flex-1 rounded-lg border border-slate-300 py-1.5 text-sm dark:border-slate-600"
               >
                 Annuler
-              </button>
-              <button
+              </Button>
+              <Button
+                size="sm"
+                className="flex-1"
                 disabled={busy}
                 onClick={() =>
                   void run(() => onPropose(swapTarget || null, swapMsg))
                 }
-                className="flex-1 rounded-lg bg-teal-600 py-1.5 text-sm font-semibold text-white disabled:opacity-50"
               >
                 Proposer
-              </button>
+              </Button>
             </div>
           </div>
         )}

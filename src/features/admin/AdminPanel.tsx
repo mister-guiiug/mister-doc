@@ -25,6 +25,7 @@ import { getSettings, setSettings as saveSettings } from '../../backend/settings
 import { setIncludePentecote } from '../../lib/dates.ts';
 import { FullScreenSpinner } from '../../components/Spinner.tsx';
 import { ProfileDialog } from '../../components/ProfileDialog.tsx';
+import { EmptyState } from '../../components/ui/EmptyState.tsx';
 import { useConfirm } from '../../components/ui/confirmContext.ts';
 import { BackupCard } from './BackupCard.tsx';
 import { DOCTOR_COLORS, DEFAULT_DOCTOR_COLOR } from '../../lib/colors.ts';
@@ -377,7 +378,5 @@ function Dot({ color }: { color: string }) {
 }
 
 function Empty({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="py-4 text-center text-sm text-slate-400">{children}</p>
-  );
+  return <EmptyState className="py-4">{children}</EmptyState>;
 }

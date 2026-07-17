@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes } from 'react';
 import { Loader2 } from 'lucide-react';
 
-type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
+type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'dangerGhost';
 type Size = 'sm' | 'md';
 
 const VARIANTS: Record<Variant, string> = {
@@ -11,6 +11,9 @@ const VARIANTS: Record<Variant, string> = {
   ghost:
     'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800',
   danger: 'bg-red-600 text-white hover:bg-red-700',
+  // Action destructive « secondaire » : contour rouge (Libérer, Annuler, etc.).
+  dangerGhost:
+    'border border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900/60 dark:text-red-400 dark:hover:bg-red-950/30',
 };
 
 const SIZES: Record<Size, string> = {

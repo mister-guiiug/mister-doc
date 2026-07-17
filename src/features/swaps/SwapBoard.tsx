@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Repeat, Check, X, Loader2, ArrowRight, Inbox, Plus, History } from 'lucide-react';
+import { Repeat, X, ArrowRight, Inbox, Plus, History } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth.ts';
 import { useToast } from '../../components/Toast.tsx';
+import { Button } from '../../components/ui/Button.tsx';
+import { EmptyState } from '../../components/ui/EmptyState.tsx';
 import { fromISODate, WEEKDAY_LABELS, mondayIndex } from '../../lib/dates.ts';
 import { SHIFT_LABEL, type ShiftType } from '../../lib/shifts.ts';
 import { logError } from '../../lib/logger.ts';
@@ -151,14 +153,13 @@ export function SwapBoard() {
   );
 
   const AcceptBtn = ({ s }: { s: SwapRequest }) => (
-    <button
-      disabled={busy === s.id}
+    <Button
+      size="sm"
+      loading={busy === s.id}
       onClick={() => void act(s.id, () => acceptSwap(s.id), 'Garde reprise.')}
-      className="flex items-center gap-1 rounded-lg bg-teal-600 px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-50"
     >
-      {busy === s.id ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
       Accepter
-    </button>
+    </Button>
   );
 
   return (
@@ -167,12 +168,9 @@ export function SwapBoard() {
         <h1 className="flex items-center gap-2 text-lg font-bold">
           <Repeat className="size-5 text-teal-600" /> Bourse aux gardes
         </h1>
-        <button
-          onClick={() => setProposing(true)}
-          className="ml-auto flex items-center gap-1 rounded-xl bg-teal-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-teal-700"
-        >
+        <Button className="ml-auto" onClick={() => setProposing(true)}>
           <Plus className="size-4" /> Proposer une garde
-        </button>
+        </Button>
       </div>
 
       <Section title="Pour moi" count={forMe.length}>
@@ -187,13 +185,14 @@ export function SwapBoard() {
                 actions={
                   <>
                     <AcceptBtn s={s} />
-                    <button
+                    <Button
+                      variant="secondary"
+                      size="sm"
                       disabled={busy === s.id}
                       onClick={() => void act(s.id, () => declineSwap(s.id), 'Proposition déclinée.')}
-                      className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm text-slate-500 disabled:opacity-50 dark:border-slate-600"
                     >
                       <X className="size-4" />
-                    </button>
+                    </Button>
                   </>
                 }
               />
@@ -224,13 +223,14 @@ export function SwapBoard() {
                 key={s.id}
                 s={s}
                 actions={
-                  <button
+                  <Button
+                    variant="dangerGhost"
+                    size="sm"
                     disabled={busy === s.id}
                     onClick={() => void act(s.id, () => cancelSwap(s.id), 'Proposition annulée.')}
-                    className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 disabled:opacity-50 dark:border-red-900/60"
                   >
                     Annuler
-                  </button>
+                  </Button>
                 }
               />
             ))}
@@ -323,5 +323,5 @@ function Section({
 }
 
 function Empty({ children }: { children: React.ReactNode }) {
-  return <p className="py-3 text-center text-sm text-slate-400">{children}</p>;
+  return <EmptyState className="py-3">{children}</EmptyState>;
 }

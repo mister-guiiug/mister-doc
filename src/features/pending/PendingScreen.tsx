@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Clock, LogOut, KeyRound, Loader2, Trash2 } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth.ts';
 import { claimAdmin, deleteMyAccount } from '../../backend/doctors.ts';
+import { Button } from '../../components/ui/Button.tsx';
 import { useConfirm } from '../../components/ui/confirmContext.ts';
 
 export function PendingScreen() {
@@ -82,14 +83,9 @@ export function PendingScreen() {
                   placeholder="code de bootstrap"
                   className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:border-slate-600 dark:bg-slate-900"
                 />
-                <button
-                  type="submit"
-                  disabled={busy || !code.trim()}
-                  className="flex items-center gap-1 rounded-lg bg-teal-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
-                >
-                  {busy && <Loader2 className="size-4 animate-spin" />}
+                <Button type="submit" loading={busy} disabled={!code.trim()}>
                   Valider
-                </button>
+                </Button>
               </div>
               {error && (
                 <p className="text-left text-xs text-red-600">{error}</p>

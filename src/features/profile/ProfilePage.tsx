@@ -9,7 +9,6 @@ import {
   RefreshCw,
   Info,
   LogOut,
-  Loader2,
   Check,
   ShieldCheck,
   Share2,
@@ -30,6 +29,7 @@ import {
 } from '../../lib/push.ts';
 import { updateMyProfile } from '../../backend/doctors.ts';
 import { CalendarDialog } from '../../components/CalendarDialog.tsx';
+import { Button } from '../../components/ui/Button.tsx';
 import { SegmentedControl } from '../../components/ui/SegmentedControl.tsx';
 
 /** Carte de section réutilisable. */
@@ -237,14 +237,15 @@ export function ProfilePage() {
           </div>
         </div>
 
-        <button
+        <Button
+          className="w-full py-2.5"
+          loading={saving}
+          disabled={!dirty || !name.trim()}
           onClick={() => void handleSave()}
-          disabled={!dirty || saving || !name.trim()}
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-teal-600 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:opacity-50"
         >
-          {saving ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
+          {!saving && <Check className="size-4" />}
           {dirty ? 'Enregistrer' : 'À jour'}
-        </button>
+        </Button>
       </Section>
 
       {/* Apparence */}
@@ -285,12 +286,13 @@ export function ProfilePage() {
         title="Calendrier"
         desc="S'abonner au flux .ics (Apple, Google, Outlook)"
       >
-        <button
+        <Button
+          variant="secondary"
+          className="w-full py-2.5"
           onClick={() => setCalendar(true)}
-          className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 py-2.5 text-sm font-medium transition hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-800"
         >
           <CalendarPlus className="size-4" /> Gérer mon abonnement
-        </button>
+        </Button>
       </Section>
 
       {/* Partager */}
@@ -304,9 +306,10 @@ export function ProfilePage() {
             {appUrl}
           </span>
         </div>
-        <button
+        <Button
+          variant="secondary"
+          className="w-full py-2.5"
           onClick={() => void handleShare()}
-          className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 py-2.5 text-sm font-medium transition hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-800"
         >
           {copied ? (
             <Check className="size-4 text-teal-600" />
@@ -316,7 +319,7 @@ export function ProfilePage() {
             <Copy className="size-4" />
           )}
           {copied ? 'Lien copié' : 'Partager l’application'}
-        </button>
+        </Button>
       </Section>
 
       {/* Notifications push (masqué si non configuré côté déploiement) */}
@@ -332,24 +335,19 @@ export function ProfilePage() {
               réglages du navigateur pour activer le push.
             </p>
           ) : (
-            <button
+            <Button
+              variant={push === 'on' ? 'secondary' : 'primary'}
+              className="w-full py-2.5"
+              loading={push === 'busy' || push === 'loading'}
               onClick={() => void togglePush()}
-              disabled={push === 'loading' || push === 'busy'}
-              className={`flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold transition disabled:opacity-60 ${
-                push === 'on'
-                  ? 'border border-slate-300 hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-800'
-                  : 'bg-teal-600 text-white hover:bg-teal-700'
-              }`}
             >
-              {push === 'busy' || push === 'loading' ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
+              {push !== 'busy' && push !== 'loading' && (
                 <BellRing className="size-4" />
               )}
               {push === 'on'
                 ? 'Désactiver les notifications push'
                 : 'Activer les notifications push'}
-            </button>
+            </Button>
           )}
         </Section>
       )}
@@ -366,25 +364,27 @@ export function ProfilePage() {
             {APP_BUILD}
           </span>
         </div>
-        <button
+        <Button
+          variant="secondary"
+          className="w-full py-2.5"
+          disabled={updating}
           onClick={() => {
             setUpdating(true);
             void forceUpdate();
           }}
-          disabled={updating}
-          className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 py-2.5 text-sm font-medium transition hover:bg-slate-100 disabled:opacity-60 dark:border-slate-600 dark:hover:bg-slate-800"
         >
           <RefreshCw className={`size-4 ${updating ? 'animate-spin' : ''}`} />
           Forcer la mise à jour
-        </button>
+        </Button>
       </Section>
 
-      <button
+      <Button
+        variant="dangerGhost"
+        className="mt-1 w-full py-2.5 font-semibold"
         onClick={() => void signOut()}
-        className="mt-1 flex items-center justify-center gap-2 rounded-lg border border-red-200 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 dark:border-red-900/60 dark:hover:bg-red-950/30"
       >
         <LogOut className="size-4" /> Se déconnecter
-      </button>
+      </Button>
 
       {calendar && <CalendarDialog onClose={() => setCalendar(false)} />}
     </div>
