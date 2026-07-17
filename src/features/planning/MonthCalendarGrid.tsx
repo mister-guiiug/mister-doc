@@ -11,17 +11,9 @@ import {
   Clock3,
 } from 'lucide-react';
 import type { MonthDay } from '../../lib/dates.ts';
-import { activeShiftTypes, SHIFT_HOURS, type ShiftType } from '../../lib/shifts.ts';
+import { activeShiftTypes, SHIFT_HOURS } from '../../lib/shifts.ts';
 import { LEAVE_SHORT } from '../../lib/leaves.ts';
-import type { Issue } from '../../lib/validation.ts';
-import type {
-  Doctor,
-  DayNote,
-  HncEntry,
-  Leave,
-  Shift,
-  Wish,
-} from '../../backend/types.ts';
+import type { PlanningGridProps, DayProps } from './gridTypes.ts';
 
 const DAY_HEADERS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'] as const;
 
@@ -53,27 +45,7 @@ export function MonthCalendarGrid({
   onCycleWish,
   onEditHnc,
   dayRefs,
-}: {
-  weeks: { week: number; days: MonthDay[] }[];
-  shiftIndex: Map<string, Shift>;
-  leavesByDate: Map<string, Leave[]>;
-  notesByDate: Map<string, DayNote>;
-  issuesByDate: Map<string, Issue[]>;
-  wishesByDate: Map<string, Wish[]>;
-  hncByDate: Map<string, HncEntry[]>;
-  doctorsById: Map<string, Doctor>;
-  selfDoctorId: string;
-  highlightId: string | null;
-  todayIso: string;
-  locked: boolean;
-  onSlotClick: (iso: string, shiftType: ShiftType) => void;
-  onAddLeave: (iso: string) => void;
-  onRemoveLeave: (leave: Leave) => void;
-  onEditNote: (iso: string) => void;
-  onCycleWish: (iso: string) => void;
-  onEditHnc: (iso: string) => void;
-  dayRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
-}) {
+}: PlanningGridProps) {
   const rows = weeks.map(({ week, days }) => {
     const cells: (MonthDay | null)[] = Array(7).fill(null);
     for (const d of days) cells[d.weekday] = d;
@@ -160,27 +132,7 @@ const DayCell = memo(function DayCell({
   onCycleWish,
   onEditHnc,
   dayRefs,
-}: {
-  day: MonthDay;
-  shiftIndex: Map<string, Shift>;
-  leaves: Leave[];
-  note?: DayNote;
-  issues: Issue[];
-  wishes: Wish[];
-  hnc: HncEntry[];
-  doctorsById: Map<string, Doctor>;
-  selfDoctorId: string;
-  highlightId: string | null;
-  isToday: boolean;
-  locked: boolean;
-  onSlotClick: (iso: string, shiftType: ShiftType) => void;
-  onAddLeave: (iso: string) => void;
-  onRemoveLeave: (leave: Leave) => void;
-  onEditNote: (iso: string) => void;
-  onCycleWish: (iso: string) => void;
-  onEditHnc: (iso: string) => void;
-  dayRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
-}) {
+}: DayProps) {
   const types = activeShiftTypes(day.date);
   const missing = types.filter(t => !shiftIndex.has(`${day.iso}|${t}`)).length;
   const dim = (id?: string) => highlightId != null && id !== highlightId;

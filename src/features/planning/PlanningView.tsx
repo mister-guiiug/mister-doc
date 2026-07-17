@@ -15,62 +15,9 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth.ts';
 import { useToast } from '../../components/Toast.tsx';
-import { fromISODate, monthLabel, toISODate, weeksOfMonth } from '../../lib/dates.ts';
-import { useDebouncedCallback } from '../../lib/useDebouncedCallback.ts';
-import { groupBy } from '../../lib/collections.ts';
-import { logError } from '../../lib/logger.ts';
-import { activeShiftTypes, type ShiftType } from '../../lib/shifts.ts';
-import { computeIssues } from '../../lib/validation.ts';
-import type { LeaveKind } from '../../lib/leaves.ts';
-import type {
-  Doctor,
-  DayNote,
-  HncEntry,
-  Leave,
-  LockedMonth,
-  Shift,
-  Wish,
-  WishKind,
-} from '../../backend/types.ts';
-import { listDoctors } from '../../backend/doctors.ts';
-import {
-  assignShift,
-  clearShift,
-  listMonthShifts,
-  subscribeShifts,
-} from '../../backend/planning.ts';
-import {
-  clearLeave,
-  listMonthLeaves,
-  setLeaveRange,
-  subscribeLeaves,
-} from '../../backend/leaves.ts';
-import {
-  clearNote,
-  listMonthNotes,
-  setNote,
-  subscribeNotes,
-} from '../../backend/notes.ts';
-import {
-  clearWish,
-  listMonthWishes,
-  setWish,
-  subscribeWishes,
-} from '../../backend/wishes.ts';
-import {
-  clearHnc,
-  listMonthHnc,
-  setHnc as saveHnc,
-  subscribeHnc,
-} from '../../backend/hnc.ts';
-import { proposeSwap } from '../../backend/swaps.ts';
-import {
-  isMonthLocked,
-  listLocks,
-  lockMonth,
-  subscribeLocks,
-  unlockMonth,
-} from '../../backend/locks.ts';
+import { fromISODate, monthLabel, toISODate } from '../../lib/dates.ts';
+import type { ShiftType } from '../../lib/shifts.ts';
+import type { Leave, WishKind } from '../../backend/types.ts';
 import { Counters } from './Counters.tsx';
 import { MonthGrid } from './MonthGrid.tsx';
 import { MonthCalendarGrid } from './MonthCalendarGrid.tsx';
@@ -80,12 +27,8 @@ import { LeaveDialog } from './LeaveDialog.tsx';
 import { NoteDialog } from './NoteDialog.tsx';
 import { HncDialog } from './HncDialog.tsx';
 import { FullScreenSpinner } from '../../components/Spinner.tsx';
-
-/** Formate une clé ISO `YYYY-MM-DD` en `DD/MM/YYYY` (messages de confirmation). */
-function frDate(iso: string): string {
-  const [y, m, d] = iso.split('-');
-  return `${d}/${m}/${y}`;
-}
+import { usePlanningData } from './usePlanningData.ts';
+import { usePlanningMutations } from './usePlanningMutations.ts';
 
 /** Sérialise un mois affiché pour l'URL (`?m=YYYY-MM`). */
 function monthParam(year: number, month: number): string {
@@ -113,19 +56,6 @@ export function PlanningView() {
     { year: today.getFullYear(), month: today.getMonth() };
   const [year, setYear] = useState(initialMonth.year);
   const [month, setMonth] = useState(initialMonth.month);
-  const [doctors, setDoctors] = useState<Doctor[]>([]);
-  const [shifts, setShifts] = useState<Shift[]>([]);
-  const [leaves, setLeaves] = useState<Leave[]>([]);
-  const [notes, setNotes] = useState<DayNote[]>([]);
-  const [wishes, setWishes] = useState<Wish[]>([]);
-  const [hnc, setHnc] = useState<HncEntry[]>([]);
-  const [locks, setLocks] = useState<LockedMonth[]>([]);
-  const [firstLoad, setFirstLoad] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  // Incrémenté à chaque rechargement réel des données (pas aux éditions
-  // optimistes) : déclencheur du refetch quadrimestre des compteurs.
-  const [reloadKey, setReloadKey] = useState(0);
-  const [error, setError] = useState<string | null>(null);
   const [slot, setSlot] = useState<SlotTarget | null>(null);
   const [leaveDate, setLeaveDate] = useState<string | null>(null);
   const [noteDate, setNoteDate] = useState<string | null>(null);
@@ -143,6 +73,21 @@ export function PlanningView() {
   );
   const dayRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const touchX = useRef<number | null>(null);
+
+  const data = usePlanningData(year, month);
+  const {
+    handleAssign,
+    handleClearSlot,
+    handleAddLeave,
+    handleRemoveLeave,
+    handleSaveNote,
+    handleDeleteNote,
+    handleCycleWish,
+    handlePropose,
+    handleSetHnc,
+    handleClearHnc,
+    toggleLock,
+  } = usePlanningMutations(data, { doctor, year, month, toast });
 
   // Navigue vers un mois en reflétant le choix dans l'URL (`?m=YYYY-MM`) : le
   // lien devient partageable et le mois est conservé au rechargement.
@@ -163,58 +108,6 @@ export function PlanningView() {
     },
     [setSearchParams]
   );
-
-  const loadData = useCallback(async () => {
-    setRefreshing(true);
-    try {
-      const [s, l, n, w, h] = await Promise.all([
-        listMonthShifts(year, month),
-        listMonthLeaves(year, month),
-        listMonthNotes(year, month),
-        listMonthWishes(year, month),
-        listMonthHnc(year, month),
-      ]);
-      setShifts(s);
-      setLeaves(l);
-      setNotes(n);
-      setWishes(w);
-      setHnc(h);
-      setReloadKey(k => k + 1);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur de chargement');
-    } finally {
-      setRefreshing(false);
-    }
-  }, [year, month]);
-
-  useEffect(() => {
-    listDoctors()
-      .then(setDoctors)
-      .catch(e => {
-        logError('listDoctors', e);
-        setError('Impossible de charger la liste des médecins.');
-      });
-    listLocks()
-      .then(setLocks)
-      .catch(e => logError('listLocks', e));
-  }, []);
-
-  useEffect(() => {
-    loadData().finally(() => setFirstLoad(false));
-  }, [loadData]);
-
-  // Un seul rechargement anti-rebond pour toutes les tables : une rafale
-  // d'événements Realtime (ou l'écho d'une édition optimiste) ne déclenche
-  // qu'un rechargement au lieu de N. La référence est stable → les abonnements
-  // ne se recréent pas à chaque changement de mois.
-  const reloadDebounced = useDebouncedCallback(() => void loadData(), 250);
-  useEffect(() => subscribeShifts(reloadDebounced), [reloadDebounced]);
-  useEffect(() => subscribeLeaves(reloadDebounced), [reloadDebounced]);
-  useEffect(() => subscribeNotes(reloadDebounced), [reloadDebounced]);
-  useEffect(() => subscribeWishes(reloadDebounced), [reloadDebounced]);
-  useEffect(() => subscribeHnc(reloadDebounced), [reloadDebounced]);
-  useEffect(() => subscribeLocks(() => void listLocks().then(setLocks)), []);
 
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 1024px)');
@@ -273,41 +166,6 @@ export function PlanningView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const weeks = useMemo(() => weeksOfMonth(year, month), [year, month]);
-  const doctorsById = useMemo(() => new Map(doctors.map(d => [d.id, d])), [doctors]);
-  const nameById = useMemo(
-    () => new Map(doctors.map(d => [d.id, d.name])),
-    [doctors]
-  );
-  const shiftIndex = useMemo(
-    () => new Map(shifts.map(s => [`${s.work_date}|${s.shift_type}`, s])),
-    [shifts]
-  );
-  const leavesByDate = useMemo(() => groupBy(leaves, l => l.work_date), [leaves]);
-  const notesByDate = useMemo(
-    () => new Map(notes.map(n => [n.work_date, n])),
-    [notes]
-  );
-  const wishesByDate = useMemo(() => groupBy(wishes, w => w.work_date), [wishes]);
-  const hncByDate = useMemo(() => groupBy(hnc, h => h.work_date), [hnc]);
-  const issuesByDate = useMemo(
-    () => computeIssues(shifts, leaves, nameById),
-    [shifts, leaves, nameById]
-  );
-  const locked = useMemo(
-    () => isMonthLocked(locks, year, month),
-    [locks, year, month]
-  );
-  const uncovered = useMemo(
-    () =>
-      weeks
-        .flatMap(w => w.days)
-        .filter(d =>
-          activeShiftTypes(d.date).some(t => !shiftIndex.has(`${d.iso}|${t}`))
-        ),
-    [weeks, shiftIndex]
-  );
-
   function shiftMonth(delta: number) {
     goToMonth(year, month + delta);
   }
@@ -324,203 +182,14 @@ export function PlanningView() {
   function handleExportPdf() {
     exportMonthPdf({
       title: monthLabel(year, month),
-      weeks,
-      shiftIndex,
-      doctorsById,
+      weeks: data.weeks,
+      shiftIndex: data.shiftIndex,
+      doctorsById: data.doctorsById,
     });
   }
 
-  async function handleAssign(doctorId: string) {
-    if (!slot || !doctor) return;
-    const prev = shifts;
-    setShifts(cur => [
-      ...cur.filter(s => !(s.work_date === slot.iso && s.shift_type === slot.shiftType)),
-      {
-        id: `tmp-${slot.iso}-${slot.shiftType}`,
-        work_date: slot.iso,
-        shift_type: slot.shiftType,
-        doctor_id: doctorId,
-        created_by: doctor.id,
-        created_at: '',
-        updated_at: '',
-      } as Shift,
-    ]);
-    try {
-      await assignShift(slot.iso, slot.shiftType, doctorId, doctor.id);
-      toast.success('Garde attribuée.');
-    } catch (e) {
-      setShifts(prev);
-      toast.error(e instanceof Error ? e.message : 'Erreur');
-    }
-  }
-
-  async function handleClearSlot() {
-    if (!slot) return;
-    const prev = shifts;
-    setShifts(cur =>
-      cur.filter(s => !(s.work_date === slot.iso && s.shift_type === slot.shiftType))
-    );
-    try {
-      await clearShift(slot.iso, slot.shiftType);
-      toast.success('Créneau libéré.');
-    } catch (e) {
-      setShifts(prev);
-      toast.error(e instanceof Error ? e.message : 'Erreur');
-    }
-  }
-
-  async function handleAddLeave(
-    doctorId: string,
-    from: string,
-    to: string,
-    kind: LeaveKind,
-    hours: number | null
-  ) {
-    try {
-      await setLeaveRange(doctorId, from, to, kind, hours, doctor?.id ?? null);
-      await loadData();
-      toast.success('Absence enregistrée.');
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Erreur');
-    }
-  }
-
-  const handleRemoveLeave = useCallback(
-    async (leave: Leave) => {
-      const doc = doctorsById.get(leave.doctor_id);
-      if (
-        !confirm(
-          `Supprimer l'absence de ${doc?.name ?? 'ce médecin'} le ${frDate(leave.work_date)} ?`
-        )
-      )
-        return;
-      const prev = leaves;
-      setLeaves(cur => cur.filter(l => l.id !== leave.id));
-      try {
-        await clearLeave(leave.id);
-      } catch (e) {
-        setLeaves(prev);
-        toast.error(e instanceof Error ? e.message : 'Erreur');
-      }
-    },
-    [doctorsById, leaves, toast]
-  );
-
-  async function handleSaveNote(text: string) {
-    if (!noteDate) return;
-    try {
-      await setNote(noteDate, text, doctor?.id ?? null);
-      await loadData();
-      toast.success('Note enregistrée.');
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Erreur');
-    }
-  }
-
-  async function handleDeleteNote() {
-    if (!noteDate) return;
-    try {
-      await clearNote(noteDate);
-      await loadData();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Erreur');
-    }
-  }
-
-  const handleCycleWish = useCallback(
-    async (iso: string) => {
-      if (!doctor) return;
-      const cur = wishes.find(
-        w => w.work_date === iso && w.doctor_id === doctor.id
-      )?.kind;
-      const next: WishKind | null =
-        cur === undefined ? 'prefer' : cur === 'prefer' ? 'avoid' : null;
-      // Optimiste
-      setWishes(list => {
-        const others = list.filter(
-          w => !(w.work_date === iso && w.doctor_id === doctor.id)
-        );
-        if (next === null) return others;
-        const existing = list.find(
-          w => w.work_date === iso && w.doctor_id === doctor.id
-        );
-        return [
-          ...others,
-          {
-            id: existing?.id ?? `tmp-${iso}`,
-            doctor_id: doctor.id,
-            work_date: iso,
-            kind: next,
-            note: null,
-            created_at: existing?.created_at ?? '',
-          },
-        ];
-      });
-      try {
-        if (next === null) await clearWish(doctor.id, iso);
-        else await setWish(doctor.id, iso, next, null);
-      } catch (e) {
-        toast.error(e instanceof Error ? e.message : 'Erreur');
-        await loadData();
-      }
-    },
-    [doctor, wishes, toast, loadData]
-  );
-
-  async function handlePropose(toDoctor: string | null, message: string) {
-    if (!slot) return;
-    try {
-      await proposeSwap(slot.iso, slot.shiftType, toDoctor, message);
-      toast.success('Proposition d’échange envoyée.');
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Erreur');
-    }
-  }
-
-  async function handleSetHnc(iso: string, doctorId: string, hours: number) {
-    try {
-      await saveHnc(doctorId, iso, hours, doctor?.id ?? null);
-      await loadData();
-      toast.success('Heures non cliniques enregistrées.');
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Erreur');
-    }
-  }
-
-  async function handleClearHnc(id: string) {
-    const entry = hnc.find(h => h.id === id);
-    const doc = entry ? doctorsById.get(entry.doctor_id) : undefined;
-    if (
-      !confirm(
-        `Supprimer les heures non cliniques${doc ? ` de ${doc.name}` : ''}${
-          entry ? ` le ${frDate(entry.work_date)}` : ''
-        } ?`
-      )
-    )
-      return;
-    const prev = hnc;
-    setHnc(cur => cur.filter(h => h.id !== id));
-    try {
-      await clearHnc(id);
-    } catch (e) {
-      setHnc(prev);
-      toast.error(e instanceof Error ? e.message : 'Erreur');
-    }
-  }
-
-  async function toggleLock() {
-    try {
-      if (locked) await unlockMonth(year, month);
-      else await lockMonth(year, month, doctor?.id ?? null);
-      setLocks(await listLocks());
-      toast.success(locked ? 'Mois déverrouillé.' : 'Mois verrouillé.');
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Erreur');
-    }
-  }
-
   function jumpToFirstUncovered() {
-    const iso = uncovered[0]?.iso;
+    const iso = data.uncovered[0]?.iso;
     if (iso) dayRefs.current[iso]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
@@ -543,16 +212,16 @@ export function PlanningView() {
   );
 
   const currentShift = slot
-    ? shiftIndex.get(`${slot.iso}|${slot.shiftType}`)
+    ? data.shiftIndex.get(`${slot.iso}|${slot.shiftType}`)
     : undefined;
   const slotDayWishes = useMemo(() => {
     const m = new Map<string, WishKind>();
     if (slot)
-      for (const w of wishesByDate.get(slot.iso) ?? []) m.set(w.doctor_id, w.kind);
+      for (const w of data.wishesByDate.get(slot.iso) ?? []) m.set(w.doctor_id, w.kind);
     return m;
-  }, [slot, wishesByDate]);
+  }, [slot, data.wishesByDate]);
 
-  if (firstLoad) return <FullScreenSpinner label="Chargement du planning…" />;
+  if (data.firstLoad) return <FullScreenSpinner label="Chargement du planning…" />;
 
   return (
     <div
@@ -567,13 +236,13 @@ export function PlanningView() {
     >
       {doctor && (
         <Counters
-          shifts={shifts}
-          leaves={leaves}
-          hnc={hnc}
+          shifts={data.shifts}
+          leaves={data.leaves}
+          hnc={data.hnc}
           doctorId={doctor.id}
           year={year}
           month={month}
-          reloadKey={reloadKey}
+          reloadKey={data.reloadKey}
         />
       )}
 
@@ -589,7 +258,7 @@ export function PlanningView() {
           <span className="flex min-w-32 items-center justify-center gap-2 px-1 text-sm font-semibold capitalize sm:min-w-40 sm:text-base">
             <CalendarDays className="size-4 shrink-0 text-teal-600" />
             {monthLabel(year, month)}
-            {locked && <Lock className="size-4 text-slate-400" />}
+            {data.locked && <Lock className="size-4 text-slate-400" />}
           </span>
           <button
             onClick={() => shiftMonth(1)}
@@ -615,7 +284,7 @@ export function PlanningView() {
             aria-label="Surligner un médecin"
           >
             <option value="">Tous</option>
-            {doctors.map(d => (
+            {data.doctors.map(d => (
               <option key={d.id} value={d.id}>
                 {d.name}
               </option>
@@ -627,13 +296,13 @@ export function PlanningView() {
           <button
             onClick={() => void toggleLock()}
             className={`flex items-center gap-1 rounded-xl border px-3 py-2 text-sm font-medium ${
-              locked
+              data.locked
                 ? 'border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300'
                 : 'border-slate-200 bg-white hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800'
             }`}
           >
-            {locked ? <LockOpen className="size-4" /> : <Lock className="size-4" />}
-            <span className="hidden sm:inline">{locked ? 'Déverrouiller' : 'Verrouiller'}</span>
+            {data.locked ? <LockOpen className="size-4" /> : <Lock className="size-4" />}
+            <span className="hidden sm:inline">{data.locked ? 'Déverrouiller' : 'Verrouiller'}</span>
           </button>
         )}
 
@@ -674,30 +343,30 @@ export function PlanningView() {
             <FileDown className="size-4" /> PDF
           </button>
           <button
-            onClick={() => void loadData()}
+            onClick={() => void data.loadData()}
             className="rounded-xl border border-slate-200 bg-white p-2 text-slate-500 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800"
             aria-label="Rafraîchir"
             title="Rafraîchir"
           >
-            <RefreshCw className={`size-5 ${refreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`size-5 ${data.refreshing ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </div>
 
-      {error && (
+      {data.error && (
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">
-          {error}
+          {data.error}
         </p>
       )}
 
-      {uncovered.length > 0 && (
+      {data.uncovered.length > 0 && (
         <button
           onClick={jumpToFirstUncovered}
           className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-left text-sm text-red-700 hover:bg-red-100 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300"
         >
           <AlertTriangle className="size-4 shrink-0" />
           <span className="flex-1">
-            {uncovered.length} jour{uncovered.length > 1 ? 's' : ''} avec un créneau à couvrir
+            {data.uncovered.length} jour{data.uncovered.length > 1 ? 's' : ''} avec un créneau à couvrir
           </span>
           <span className="font-semibold underline">Voir</span>
         </button>
@@ -706,18 +375,18 @@ export function PlanningView() {
       {doctor &&
         (isDesktop && view === 'grid' ? (
           <MonthCalendarGrid
-            weeks={weeks}
-            shiftIndex={shiftIndex}
-            leavesByDate={leavesByDate}
-            notesByDate={notesByDate}
-            issuesByDate={issuesByDate}
-            wishesByDate={wishesByDate}
-            hncByDate={hncByDate}
-            doctorsById={doctorsById}
+            weeks={data.weeks}
+            shiftIndex={data.shiftIndex}
+            leavesByDate={data.leavesByDate}
+            notesByDate={data.notesByDate}
+            issuesByDate={data.issuesByDate}
+            wishesByDate={data.wishesByDate}
+            hncByDate={data.hncByDate}
+            doctorsById={data.doctorsById}
             selfDoctorId={doctor.id}
             highlightId={highlightId}
             todayIso={todayIso}
-            locked={locked}
+            locked={data.locked}
             onSlotClick={onSlotClick}
             onAddLeave={onAddLeaveClick}
             onRemoveLeave={onRemoveLeaveClick}
@@ -728,18 +397,18 @@ export function PlanningView() {
           />
         ) : (
           <MonthGrid
-            weeks={weeks}
-            shiftIndex={shiftIndex}
-            leavesByDate={leavesByDate}
-            notesByDate={notesByDate}
-            issuesByDate={issuesByDate}
-            wishesByDate={wishesByDate}
-            hncByDate={hncByDate}
-            doctorsById={doctorsById}
+            weeks={data.weeks}
+            shiftIndex={data.shiftIndex}
+            leavesByDate={data.leavesByDate}
+            notesByDate={data.notesByDate}
+            issuesByDate={data.issuesByDate}
+            wishesByDate={data.wishesByDate}
+            hncByDate={data.hncByDate}
+            doctorsById={data.doctorsById}
             selfDoctorId={doctor.id}
             highlightId={highlightId}
             todayIso={todayIso}
-            locked={locked}
+            locked={data.locked}
             onSlotClick={onSlotClick}
             onAddLeave={onAddLeaveClick}
             onRemoveLeave={onRemoveLeaveClick}
@@ -754,14 +423,14 @@ export function PlanningView() {
         <AssignDialog
           target={slot}
           currentShift={currentShift}
-          doctors={doctors}
+          doctors={data.doctors}
           selfDoctorId={doctor.id}
-          monthShifts={shifts}
-          leaves={leaves}
+          monthShifts={data.shifts}
+          leaves={data.leaves}
           dayWishes={slotDayWishes}
-          onAssign={handleAssign}
-          onClear={handleClearSlot}
-          onPropose={handlePropose}
+          onAssign={doctorId => handleAssign(slot, doctorId)}
+          onClear={() => handleClearSlot(slot)}
+          onPropose={(toDoctor, message) => handlePropose(slot, toDoctor, message)}
           onClose={() => setSlot(null)}
         />
       )}
@@ -769,7 +438,7 @@ export function PlanningView() {
       {leaveDate && doctor && (
         <LeaveDialog
           date={leaveDate}
-          doctors={doctors}
+          doctors={data.doctors}
           selfDoctorId={doctor.id}
           onSubmit={handleAddLeave}
           onClose={() => setLeaveDate(null)}
@@ -779,9 +448,9 @@ export function PlanningView() {
       {noteDate && (
         <NoteDialog
           date={noteDate}
-          initialNote={notesByDate.get(noteDate)?.note ?? ''}
-          onSave={handleSaveNote}
-          onDelete={handleDeleteNote}
+          initialNote={data.notesByDate.get(noteDate)?.note ?? ''}
+          onSave={text => handleSaveNote(noteDate, text)}
+          onDelete={() => handleDeleteNote(noteDate)}
           onClose={() => setNoteDate(null)}
         />
       )}
@@ -789,9 +458,9 @@ export function PlanningView() {
       {hncDate && doctor && (
         <HncDialog
           date={hncDate}
-          doctors={doctors}
+          doctors={data.doctors}
           selfDoctorId={doctor.id}
-          dayEntries={hncByDate.get(hncDate) ?? []}
+          dayEntries={data.hncByDate.get(hncDate) ?? []}
           onSubmit={(doctorId, hours) => handleSetHnc(hncDate, doctorId, hours)}
           onRemove={handleClearHnc}
           onClose={() => setHncDate(null)}
