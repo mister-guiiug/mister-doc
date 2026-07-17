@@ -12,6 +12,7 @@ import {
   List,
   LayoutGrid,
   FileDown,
+  WifiOff,
 } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth.ts';
 import { useToast } from '../../components/Toast.tsx';
@@ -33,6 +34,16 @@ import { usePlanningMutations } from './usePlanningMutations.ts';
 /** Sérialise un mois affiché pour l'URL (`?m=YYYY-MM`). */
 function monthParam(year: number, month: number): string {
   return `${year}-${String(month + 1).padStart(2, '0')}`;
+}
+
+/** Horodatage court `DD/MM HH:MM` (dernière synchro affichée hors-ligne). */
+function syncLabel(ts: number): string {
+  return new Date(ts).toLocaleString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
 /** Lit un paramètre `?m=YYYY-MM` ; renvoie null si absent ou invalide. */
@@ -357,6 +368,17 @@ export function PlanningView() {
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">
           {data.error}
         </p>
+      )}
+
+      {data.offline && (
+        <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-300">
+          <WifiOff className="size-4 shrink-0" />
+          <span className="flex-1">
+            Hors ligne — planning affiché depuis le cache
+            {data.lastSync ? ` (synchronisé le ${syncLabel(data.lastSync)})` : ''}.
+            Les modifications nécessitent une connexion.
+          </span>
+        </div>
       )}
 
       {data.uncovered.length > 0 && (

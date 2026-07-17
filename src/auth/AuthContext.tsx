@@ -5,6 +5,7 @@ import { ensureSelfDoctor } from '../backend/doctors.ts';
 import { getSettings } from '../backend/settings.ts';
 import { setIncludePentecote } from '../lib/dates.ts';
 import { frAuthError } from '../lib/authErrors.ts';
+import { idbGet, idbSet } from '../lib/idbCache.ts';
 import type { Doctor } from '../backend/types.ts';
 import { AuthContext } from './useAuth.ts';
 
@@ -32,13 +33,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setDoctor(null);
       return;
     }
+    const key = `self-doctor:${data.session.user.id}`;
     try {
       const name =
         (data.session.user.user_metadata?.full_name as string | undefined) ??
         undefined;
-      setDoctor(await ensureSelfDoctor(name));
+      const d = await ensureSelfDoctor(name);
+      setDoctor(d);
+      void idbSet(key, d);
     } catch {
-      setDoctor(null);
+      setDoctor((await idbGet<Doctor>(key)) ?? null);
     }
   }, []);
 
@@ -48,15 +52,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async function hydrate(s: Session | null) {
       setSession(s);
       if (s) {
+        const key = `self-doctor:${s.user.id}`;
         try {
           const name =
             (s.user.user_metadata?.full_name as string | undefined) ??
             undefined;
           const d = await ensureSelfDoctor(name);
           setDoctor(d);
+          void idbSet(key, d);
           await applySettings(d.approved);
         } catch {
-          setDoctor(null);
+          // Hors-ligne / réseau : replier sur le médecin en cache pour rester
+          // utilisable (consultation du planning mis en cache).
+          setDoctor((await idbGet<Doctor>(key)) ?? null);
         }
       } else {
         setDoctor(null);
