@@ -25,6 +25,7 @@ import { getSettings, setSettings as saveSettings } from '../../backend/settings
 import { setIncludePentecote } from '../../lib/dates.ts';
 import { FullScreenSpinner } from '../../components/Spinner.tsx';
 import { ProfileDialog } from '../../components/ProfileDialog.tsx';
+import { Button } from '../../components/ui/Button.tsx';
 import { EmptyState } from '../../components/ui/EmptyState.tsx';
 import { useConfirm } from '../../components/ui/confirmContext.ts';
 import { BackupCard } from './BackupCard.tsx';
@@ -152,20 +153,19 @@ export function AdminPanel() {
                   <p className="truncate text-sm font-medium">{d.name}</p>
                   <p className="truncate text-xs text-slate-400">{d.email}</p>
                 </div>
-                <button
-                  disabled={busyId === d.id}
+                <Button
+                  size="sm"
+                  loading={busyId === d.id}
                   onClick={() => void act(d.id, () => adminSetDoctor(d.id, true, null))}
-                  className="flex items-center gap-1 rounded-lg bg-teal-600 px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-50"
                 >
-                  {busyId === d.id ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <UserCheck className="size-4" />
-                  )}
+                  {busyId !== d.id && <UserCheck className="size-4" />}
                   Approuver
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="dangerGhost"
+                  size="sm"
                   disabled={busyId === d.id}
+                  title="Rejeter la demande"
                   onClick={async () => {
                     if (
                       await confirm({
@@ -176,12 +176,10 @@ export function AdminPanel() {
                     )
                       void act(d.id, () => adminRejectDoctor(d.id));
                   }}
-                  title="Rejeter la demande"
-                  className="flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 dark:border-red-900/60 dark:hover:bg-red-950/30"
                 >
                   <UserX className="size-4" />
                   Rejeter
-                </button>
+                </Button>
               </li>
             ))}
           </ul>
@@ -213,18 +211,16 @@ export function AdminPanel() {
                 aria-label={`Couleur ${c}`}
               />
             ))}
-            <button
+            <Button
               type="submit"
-              disabled={busyId === 'new' || !newName.trim()}
-              className="ml-auto flex items-center gap-1 rounded-lg bg-teal-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
+              size="sm"
+              className="ml-auto"
+              loading={busyId === 'new'}
+              disabled={!newName.trim()}
             >
-              {busyId === 'new' ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <UserPlus className="size-4" />
-              )}
+              {busyId !== 'new' && <UserPlus className="size-4" />}
               Ajouter
-            </button>
+            </Button>
           </div>
           <p className="text-xs text-slate-400">
             Une entrée de roster est assignable au planning même sans compte. Le

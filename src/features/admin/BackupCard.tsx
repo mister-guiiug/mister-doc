@@ -3,12 +3,12 @@ import {
   DatabaseBackup,
   Download,
   Upload,
-  Loader2,
   Trash2,
   RotateCcw,
   Info,
 } from 'lucide-react';
 import { useToast } from '../../components/Toast.tsx';
+import { Button } from '../../components/ui/Button.tsx';
 import { useConfirm } from '../../components/ui/confirmContext.ts';
 import type { BackupMeta } from '../../backend/types.ts';
 import {
@@ -133,21 +133,17 @@ export function BackupCard() {
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <button
-          onClick={() => void handleExport()}
-          disabled={busy}
-          className="flex items-center gap-1 rounded-lg bg-teal-600 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-50"
-        >
-          {busy ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
+        <Button loading={busy} onClick={() => void handleExport()}>
+          {!busy && <Download className="size-4" />}
           Exporter (.json)
-        </button>
-        <button
-          onClick={() => fileRef.current?.click()}
+        </Button>
+        <Button
+          variant="secondary"
           disabled={busy}
-          className="flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100 disabled:opacity-50 dark:border-slate-600 dark:hover:bg-slate-800"
+          onClick={() => fileRef.current?.click()}
         >
           <Upload className="size-4" /> Importer un fichier…
-        </button>
+        </Button>
         <input
           ref={fileRef}
           type="file"
@@ -160,20 +156,22 @@ export function BackupCard() {
       {pending && (
         <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
           <span className="truncate text-xs text-slate-500">{pending.name}</span>
-          <button
-            onClick={() => void handleImport('merge')}
+          <Button
+            variant="secondary"
+            size="sm"
             disabled={busy}
-            className="rounded-lg border border-slate-300 px-2 py-1 disabled:opacity-50 dark:border-slate-600"
+            onClick={() => void handleImport('merge')}
           >
             Fusionner
-          </button>
-          <button
-            onClick={() => void handleImport('replace')}
+          </Button>
+          <Button
+            variant="dangerGhost"
+            size="sm"
             disabled={busy}
-            className="rounded-lg border border-red-300 px-2 py-1 text-red-600 disabled:opacity-50 dark:border-red-800"
+            onClick={() => void handleImport('replace')}
           >
             Remplacer
-          </button>
+          </Button>
           <button
             onClick={() => {
               setPending(null);
