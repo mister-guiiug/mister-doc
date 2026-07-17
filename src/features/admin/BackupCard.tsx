@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '../../components/Toast.tsx';
 import { Button } from '../../components/ui/Button.tsx';
+import { SectionCard } from '../../components/ui/SectionCard.tsx';
 import { useConfirm } from '../../components/ui/confirmContext.ts';
 import type { BackupMeta } from '../../backend/types.ts';
 import {
@@ -126,12 +127,10 @@ export function BackupCard() {
   }
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-      <div className="mb-3 flex items-center gap-2">
-        <DatabaseBackup className="size-5 text-teal-600" />
-        <h2 className="font-semibold">Sauvegarde &amp; restauration</h2>
-      </div>
-
+    <SectionCard
+      title="Sauvegarde & restauration"
+      icon={<DatabaseBackup className="size-4" />}
+    >
       <div className="flex flex-wrap gap-2">
         <Button loading={busy} onClick={() => void handleExport()}>
           {!busy && <Download className="size-4" />}
@@ -239,6 +238,6 @@ export function BackupCard() {
           ))}
         </ul>
       )}
-    </section>
+    </SectionCard>
   );
 }

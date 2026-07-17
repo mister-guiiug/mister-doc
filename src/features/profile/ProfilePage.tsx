@@ -30,9 +30,10 @@ import {
 import { updateMyProfile } from '../../backend/doctors.ts';
 import { CalendarDialog } from '../../components/CalendarDialog.tsx';
 import { Button } from '../../components/ui/Button.tsx';
+import { SectionCard } from '../../components/ui/SectionCard.tsx';
 import { SegmentedControl } from '../../components/ui/SegmentedControl.tsx';
 
-/** Carte de section réutilisable. */
+/** Carte de section réutilisable (alias local du `SectionCard` du design system). */
 function Section({
   icon,
   title,
@@ -45,20 +46,9 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-      <div className="mb-3 flex items-center gap-2">
-        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-teal-600 dark:bg-slate-800">
-          {icon}
-        </span>
-        <div className="min-w-0">
-          <h2 className="text-sm font-semibold">{title}</h2>
-          {desc && (
-            <p className="text-xs text-slate-500 dark:text-slate-400">{desc}</p>
-          )}
-        </div>
-      </div>
+    <SectionCard icon={icon} title={title} desc={desc}>
       {children}
-    </section>
+    </SectionCard>
   );
 }
 

@@ -27,6 +27,7 @@ import { FullScreenSpinner } from '../../components/Spinner.tsx';
 import { ProfileDialog } from '../../components/ProfileDialog.tsx';
 import { Button } from '../../components/ui/Button.tsx';
 import { EmptyState } from '../../components/ui/EmptyState.tsx';
+import { SectionCard } from '../../components/ui/SectionCard.tsx';
 import { useConfirm } from '../../components/ui/confirmContext.ts';
 import { BackupCard } from './BackupCard.tsx';
 import { DOCTOR_COLORS, DEFAULT_DOCTOR_COLOR } from '../../lib/colors.ts';
@@ -111,7 +112,7 @@ export function AdminPanel() {
       )}
 
       {/* Réglages */}
-      <Card title="Réglages" icon={<Settings className="size-5 text-slate-500" />}>
+      <Card title="Réglages" icon={<Settings className="size-4" />}>
         <label className="flex items-start gap-3 text-sm">
           <input
             type="checkbox"
@@ -136,7 +137,7 @@ export function AdminPanel() {
       {/* Comptes en attente */}
       <Card
         title="Comptes en attente"
-        icon={<Clock className="size-5 text-amber-500" />}
+        icon={<Clock className="size-4" />}
         count={pending.length}
       >
         {pending.length === 0 ? (
@@ -189,7 +190,7 @@ export function AdminPanel() {
       {/* Ajouter au roster */}
       <Card
         title="Ajouter un médecin au roster"
-        icon={<UserPlus className="size-5 text-teal-600" />}
+        icon={<UserPlus className="size-4" />}
       >
         <form onSubmit={handleAdd} className="flex flex-col gap-3">
           <input
@@ -232,7 +233,7 @@ export function AdminPanel() {
       {/* Membres */}
       <Card
         title="Médecins"
-        icon={<Shield className="size-5 text-slate-500" />}
+        icon={<Shield className="size-4" />}
         count={members.length + roster.length}
       >
         <ul className="flex flex-col gap-2">
@@ -349,18 +350,9 @@ function Card({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-      <div className="mb-3 flex items-center gap-2">
-        {icon}
-        <h2 className="font-semibold">{title}</h2>
-        {count !== undefined && (
-          <span className="ml-auto rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500 dark:bg-slate-800">
-            {count}
-          </span>
-        )}
-      </div>
+    <SectionCard title={title} icon={icon} count={count}>
       {children}
-    </section>
+    </SectionCard>
   );
 }
 
