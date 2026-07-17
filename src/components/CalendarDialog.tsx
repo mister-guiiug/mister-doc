@@ -16,6 +16,7 @@ import {
 } from '../backend/calendar.ts';
 import { useToast } from './Toast.tsx';
 import { Modal } from './Modal.tsx';
+import { SegmentedControl } from './ui/SegmentedControl.tsx';
 import { useConfirm } from './ui/confirmContext.ts';
 
 /**
@@ -101,20 +102,17 @@ export function CalendarDialog({ onClose }: { onClose: () => void }) {
         </p>
       ) : (
         <>
-          <div className="mb-2 grid grid-cols-2 gap-1 rounded-lg bg-slate-100 p-1 text-sm font-medium dark:bg-slate-800">
-            <button
-              onClick={() => setScope('team')}
-              className={`rounded-md py-1.5 transition ${scope === 'team' ? 'bg-white shadow-sm dark:bg-slate-700' : 'text-slate-500'}`}
-            >
-              Toute l'équipe
-            </button>
-            <button
-              onClick={() => setScope('me')}
-              className={`rounded-md py-1.5 transition ${scope === 'me' ? 'bg-white shadow-sm dark:bg-slate-700' : 'text-slate-500'}`}
-            >
-              Mes gardes
-            </button>
-          </div>
+          <SegmentedControl
+            className="mb-2"
+            fullWidth
+            ariaLabel="Portée du calendrier"
+            value={scope}
+            onChange={setScope}
+            options={[
+              { value: 'team', label: "Toute l'équipe" },
+              { value: 'me', label: 'Mes gardes' },
+            ]}
+          />
 
           <label className="mb-3 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
             <input

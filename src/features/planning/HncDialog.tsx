@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
-import { X, Loader2, Clock3, Trash2, Plus } from 'lucide-react';
+import { X, Clock3, Trash2 } from 'lucide-react';
 import { WEEKDAY_LABELS, fromISODate, mondayIndex } from '../../lib/dates.ts';
 import { HNC_MAX_HOURS } from '../../lib/hnc.ts';
 import type { Doctor, HncEntry } from '../../backend/types.ts';
 import { Modal } from '../../components/Modal.tsx';
+import { Button } from '../../components/ui/Button.tsx';
 
 /**
  * Saisie des Heures Non Cliniques d'un jour. Plusieurs médecins possibles ;
@@ -159,24 +160,24 @@ export function HncDialog({
           />
         </label>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && (
+          <p role="alert" className="text-sm text-red-600">
+            {error}
+          </p>
+        )}
 
         <div className="flex gap-2">
-          <button
+          <Button
             type="button"
+            variant="secondary"
+            className="flex-1"
             onClick={onClose}
-            className="flex-1 rounded-lg border border-slate-300 py-2 text-sm font-medium dark:border-slate-600"
           >
             Fermer
-          </button>
-          <button
-            type="submit"
-            disabled={busy}
-            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-sky-600 py-2 text-sm font-semibold text-white disabled:opacity-60"
-          >
-            {busy ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
+          </Button>
+          <Button type="submit" loading={busy} className="flex-1">
             Enregistrer
-          </button>
+          </Button>
         </div>
       </form>
     </Modal>

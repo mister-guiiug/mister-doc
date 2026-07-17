@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Loader2, CalendarOff } from 'lucide-react';
+import { X, CalendarOff } from 'lucide-react';
 import { WEEKDAY_LABELS, fromISODate, mondayIndex } from '../../lib/dates.ts';
 import {
   LEAVE_KINDS,
@@ -8,6 +8,8 @@ import {
 } from '../../lib/leaves.ts';
 import type { Doctor } from '../../backend/types.ts';
 import { Modal } from '../../components/Modal.tsx';
+import { Button } from '../../components/ui/Button.tsx';
+import { SegmentedControl } from '../../components/ui/SegmentedControl.tsx';
 
 export function LeaveDialog({
   date,
@@ -97,22 +99,14 @@ export function LeaveDialog({
           </select>
         </label>
 
-        <div className="mb-3 grid grid-cols-2 gap-1 rounded-lg bg-slate-100 p-1 text-sm font-medium dark:bg-slate-800">
-          {LEAVE_KINDS.map(k => (
-            <button
-              type="button"
-              key={k}
-              onClick={() => setKind(k)}
-              className={`rounded-md py-1.5 transition ${
-                kind === k
-                  ? 'bg-white shadow-sm dark:bg-slate-700'
-                  : 'text-slate-500'
-              }`}
-            >
-              {LEAVE_LABEL[k]}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          className="mb-3"
+          fullWidth
+          ariaLabel="Type d'absence"
+          value={kind}
+          onChange={setKind}
+          options={LEAVE_KINDS.map(k => ({ value: k, label: LEAVE_LABEL[k] }))}
+        />
 
         <div className="mb-3 grid grid-cols-2 gap-2">
           <label className="flex flex-col gap-1 text-sm">
@@ -157,7 +151,11 @@ export function LeaveDialog({
           </label>
         )}
 
-        {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
+        {error && (
+          <p role="alert" className="mb-3 text-sm text-red-600">
+            {error}
+          </p>
+        )}
 
         <p className="mb-3 text-xs text-slate-400">
           Jour cliqué : <span className="capitalize">{dayLabel}</span>. Une
@@ -165,21 +163,17 @@ export function LeaveDialog({
         </p>
 
         <div className="flex gap-2">
-          <button
+          <Button
             type="button"
+            variant="secondary"
+            className="flex-1"
             onClick={onClose}
-            className="flex-1 rounded-lg border border-slate-300 py-2 text-sm font-medium dark:border-slate-600"
           >
             Annuler
-          </button>
-          <button
-            type="submit"
-            disabled={busy}
-            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-violet-600 py-2 text-sm font-semibold text-white disabled:opacity-60"
-          >
-            {busy && <Loader2 className="size-4 animate-spin" />}
+          </Button>
+          <Button type="submit" loading={busy} className="flex-1">
             Poser
-          </button>
+          </Button>
         </div>
       </form>
     </Modal>

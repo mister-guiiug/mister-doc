@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { X, Loader2, Trash2, StickyNote } from 'lucide-react';
+import { X, Trash2, StickyNote } from 'lucide-react';
 import { WEEKDAY_LABELS, fromISODate, mondayIndex } from '../../lib/dates.ts';
 import { Modal } from '../../components/Modal.tsx';
+import { Button } from '../../components/ui/Button.tsx';
 import { useConfirm } from '../../components/ui/confirmContext.ts';
 
 export function NoteDialog({
@@ -78,15 +79,15 @@ export function NoteDialog({
             <Trash2 className="size-4" /> Supprimer
           </button>
         )}
-        <button
+        <Button
           type="button"
-          disabled={busy || !note.trim()}
+          loading={busy}
+          disabled={!note.trim()}
           onClick={() => void run(() => onSave(note.trim()))}
-          className="ml-auto flex items-center justify-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+          className="ml-auto"
         >
-          {busy && <Loader2 className="size-4 animate-spin" />}
           Enregistrer
-        </button>
+        </Button>
       </div>
     </Modal>
   );

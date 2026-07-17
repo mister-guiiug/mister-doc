@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { X, Loader2, Check } from 'lucide-react';
+import { X, Check } from 'lucide-react';
 import { DOCTOR_COLORS } from '../lib/colors.ts';
 import { Modal } from './Modal.tsx';
+import { Button } from './ui/Button.tsx';
 
 /**
  * Dialogue d'édition du nom (et de la couleur) d'un médecin. Réutilisé pour
@@ -93,24 +94,24 @@ export function ProfileDialog({
           </div>
         </div>
 
-        {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
+        {error && (
+          <p role="alert" className="mb-3 text-sm text-red-600">
+            {error}
+          </p>
+        )}
 
         <div className="flex gap-2">
-          <button
+          <Button
             type="button"
+            variant="secondary"
+            className="flex-1"
             onClick={onClose}
-            className="flex-1 rounded-lg border border-slate-300 py-2 text-sm font-medium dark:border-slate-600"
           >
             Annuler
-          </button>
-          <button
-            type="submit"
-            disabled={busy}
-            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-teal-600 py-2 text-sm font-semibold text-white disabled:opacity-60"
-          >
-            {busy && <Loader2 className="size-4 animate-spin" />}
+          </Button>
+          <Button type="submit" loading={busy} className="flex-1">
             Enregistrer
-          </button>
+          </Button>
         </div>
       </form>
     </Modal>

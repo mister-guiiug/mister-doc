@@ -30,6 +30,7 @@ import {
 } from '../../lib/push.ts';
 import { updateMyProfile } from '../../backend/doctors.ts';
 import { CalendarDialog } from '../../components/CalendarDialog.tsx';
+import { SegmentedControl } from '../../components/ui/SegmentedControl.tsx';
 
 /** Carte de section réutilisable. */
 function Section({
@@ -252,28 +253,30 @@ export function ProfilePage() {
         title="Apparence"
         desc="Thème clair ou sombre"
       >
-        <div className="grid grid-cols-2 gap-1 rounded-lg bg-slate-100 p-1 text-sm font-medium dark:bg-slate-800">
-          <button
-            onClick={() => setTheme('light')}
-            className={`flex items-center justify-center gap-1.5 rounded-md py-2 transition ${
-              theme === 'light'
-                ? 'bg-white text-slate-900 shadow-sm'
-                : 'text-slate-500'
-            }`}
-          >
-            <Sun className="size-4" /> Clair
-          </button>
-          <button
-            onClick={() => setTheme('dark')}
-            className={`flex items-center justify-center gap-1.5 rounded-md py-2 transition ${
-              theme === 'dark'
-                ? 'bg-slate-700 text-white shadow-sm'
-                : 'text-slate-500'
-            }`}
-          >
-            <Moon className="size-4" /> Sombre
-          </button>
-        </div>
+        <SegmentedControl
+          fullWidth
+          ariaLabel="Thème clair ou sombre"
+          value={theme}
+          onChange={setTheme}
+          options={[
+            {
+              value: 'light',
+              label: (
+                <span className="flex items-center justify-center gap-1.5">
+                  <Sun className="size-4" /> Clair
+                </span>
+              ),
+            },
+            {
+              value: 'dark',
+              label: (
+                <span className="flex items-center justify-center gap-1.5">
+                  <Moon className="size-4" /> Sombre
+                </span>
+              ),
+            },
+          ]}
+        />
       </Section>
 
       {/* Calendrier */}

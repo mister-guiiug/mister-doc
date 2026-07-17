@@ -28,6 +28,7 @@ import { listShiftsBetween } from '../../backend/planning.ts';
 import { listLeavesBetween } from '../../backend/leaves.ts';
 import { listHncBetween } from '../../backend/hnc.ts';
 import { FullScreenSpinner } from '../../components/Spinner.tsx';
+import { SegmentedControl } from '../../components/ui/SegmentedControl.tsx';
 import {
   exportCountersCsv,
   exportCountersPdf,
@@ -192,29 +193,29 @@ export function AllCounters() {
           <Users className="size-5 text-teal-600" /> Compteurs de l'équipe
         </h1>
 
-        <div className="flex items-center gap-1 rounded-lg bg-slate-100 p-1 text-xs font-medium dark:bg-slate-800">
-          {(['table', 'equity'] as const).map(v => (
-            <button
-              key={v}
-              onClick={() => setView(v)}
-              className={`rounded-md px-2 py-1 transition ${view === v ? 'bg-white shadow-sm dark:bg-slate-700' : 'text-slate-500'}`}
-            >
-              {v === 'table' ? 'Tableau' : 'Équité'}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          size="sm"
+          ariaLabel="Vue tableau ou équité"
+          value={view}
+          onChange={setView}
+          options={[
+            { value: 'table', label: 'Tableau' },
+            { value: 'equity', label: 'Équité' },
+          ]}
+        />
 
-        <div className="ml-auto flex items-center gap-1 rounded-lg bg-slate-100 p-1 text-xs font-medium dark:bg-slate-800">
-          {(['month', 'quadri', 'year'] as Period[]).map(p => (
-            <button
-              key={p}
-              onClick={() => setPeriod(p)}
-              className={`rounded-md px-2 py-1 transition ${period === p ? 'bg-white shadow-sm dark:bg-slate-700' : 'text-slate-500'}`}
-            >
-              {p === 'month' ? 'Mois' : p === 'quadri' ? 'Quadrimestre' : 'Année'}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          className="ml-auto"
+          size="sm"
+          ariaLabel="Période"
+          value={period}
+          onChange={setPeriod}
+          options={[
+            { value: 'month', label: 'Mois' },
+            { value: 'quadri', label: 'Quadrimestre' },
+            { value: 'year', label: 'Année' },
+          ]}
+        />
 
         <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 dark:border-slate-800 dark:bg-slate-900">
           <button
