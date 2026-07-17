@@ -79,7 +79,10 @@ export default defineConfig(({ command }) => {
       __BUILD_ID__: JSON.stringify(buildId),
     },
     build: {
-      sourcemap: true,
+      // Pas de sourcemaps en production : le site est public, inutile de
+      // publier la cartographie du bundle (2,6 Mo de .map) et de faciliter
+      // sa rétro-analyse. Le dev garde les sourcemaps inline d'esbuild.
+      sourcemap: false,
       chunkSizeWarningLimit: 900,
       rollupOptions: {
         output: {

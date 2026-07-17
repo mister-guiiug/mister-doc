@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth.ts';
 import { useToast } from '../../components/Toast.tsx';
-import { fromISODate, monthLabel, weeksOfMonth } from '../../lib/dates.ts';
+import { fromISODate, monthLabel, toISODate, weeksOfMonth } from '../../lib/dates.ts';
 import { useDebouncedCallback } from '../../lib/useDebouncedCallback.ts';
 import { groupBy } from '../../lib/collections.ts';
 import { logError } from '../../lib/logger.ts';
@@ -87,12 +87,32 @@ function frDate(iso: string): string {
   return `${d}/${m}/${y}`;
 }
 
+/** Sérialise un mois affiché pour l'URL (`?m=YYYY-MM`). */
+function monthParam(year: number, month: number): string {
+  return `${year}-${String(month + 1).padStart(2, '0')}`;
+}
+
+/** Lit un paramètre `?m=YYYY-MM` ; renvoie null si absent ou invalide. */
+function parseMonthParam(v: string | null): { year: number; month: number } | null {
+  const match = v && /^(\d{4})-(\d{2})$/.exec(v);
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]) - 1;
+  if (month < 0 || month > 11) return null;
+  return { year, month };
+}
+
 export function PlanningView() {
   const { doctor, isAdmin } = useAuth();
   const toast = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
   const today = new Date();
-  const [year, setYear] = useState(today.getFullYear());
-  const [month, setMonth] = useState(today.getMonth());
+  const todayIso = toISODate(today);
+  const initialMonth =
+    parseMonthParam(searchParams.get('m')) ??
+    { year: today.getFullYear(), month: today.getMonth() };
+  const [year, setYear] = useState(initialMonth.year);
+  const [month, setMonth] = useState(initialMonth.month);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [leaves, setLeaves] = useState<Leave[]>([]);
@@ -123,7 +143,26 @@ export function PlanningView() {
   );
   const dayRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const touchX = useRef<number | null>(null);
-  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Navigue vers un mois en reflétant le choix dans l'URL (`?m=YYYY-MM`) : le
+  // lien devient partageable et le mois est conservé au rechargement.
+  const goToMonth = useCallback(
+    (y: number, mo: number) => {
+      const dt = new Date(y, mo, 1);
+      setYear(dt.getFullYear());
+      setMonth(dt.getMonth());
+      setSearchParams(
+        prev => {
+          const next = new URLSearchParams(prev);
+          next.delete('d');
+          next.set('m', monthParam(dt.getFullYear(), dt.getMonth()));
+          return next;
+        },
+        { replace: true }
+      );
+    },
+    [setSearchParams]
+  );
 
   const loadData = useCallback(async () => {
     setRefreshing(true);
@@ -185,23 +224,54 @@ export function PlanningView() {
   }, []);
 
   // Raccourci depuis une notification (`#/?d=YYYY-MM-DD`) : bascule sur le bon
-  // mois, défile jusqu'au jour, puis nettoie le paramètre.
+  // mois, défile jusqu'au jour, puis remplace `d` par `m` (mois conservé).
   useEffect(() => {
     const d = searchParams.get('d');
     if (!d) return;
     const dt = fromISODate(d);
     if (Number.isNaN(dt.getTime())) {
-      setSearchParams({}, { replace: true });
+      setSearchParams(
+        prev => {
+          const next = new URLSearchParams(prev);
+          next.delete('d');
+          return next;
+        },
+        { replace: true }
+      );
       return;
     }
     setYear(dt.getFullYear());
     setMonth(dt.getMonth());
     const t = setTimeout(() => {
       dayRefs.current[d]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      setSearchParams({}, { replace: true });
+      setSearchParams(
+        prev => {
+          const next = new URLSearchParams(prev);
+          next.delete('d');
+          next.set('m', monthParam(dt.getFullYear(), dt.getMonth()));
+          return next;
+        },
+        { replace: true }
+      );
     }, 350);
     return () => clearTimeout(t);
   }, [searchParams, setSearchParams]);
+
+  // Au premier rendu, reflète le mois courant dans l'URL s'il n'y est pas déjà
+  // (sauf si un raccourci `?d=` pilote le mois) : lien partageable dès l'ouverture.
+  useEffect(() => {
+    if (searchParams.get('m') || searchParams.get('d')) return;
+    setSearchParams(
+      prev => {
+        const next = new URLSearchParams(prev);
+        next.set('m', monthParam(year, month));
+        return next;
+      },
+      { replace: true }
+    );
+    // Montage uniquement : on ne veut pas ré-inscrire `m` à chaque changement.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const weeks = useMemo(() => weeksOfMonth(year, month), [year, month]);
   const doctorsById = useMemo(() => new Map(doctors.map(d => [d.id, d])), [doctors]);
@@ -239,9 +309,7 @@ export function PlanningView() {
   );
 
   function shiftMonth(delta: number) {
-    const dt = new Date(year, month + delta, 1);
-    setYear(dt.getFullYear());
-    setMonth(dt.getMonth());
+    goToMonth(year, month + delta);
   }
 
   function changeView(v: 'list' | 'grid') {
@@ -532,10 +600,7 @@ export function PlanningView() {
           </button>
         </div>
         <button
-          onClick={() => {
-            setYear(today.getFullYear());
-            setMonth(today.getMonth());
-          }}
+          onClick={() => goToMonth(today.getFullYear(), today.getMonth())}
           className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800"
         >
           Auj.
@@ -645,11 +710,13 @@ export function PlanningView() {
             shiftIndex={shiftIndex}
             leavesByDate={leavesByDate}
             notesByDate={notesByDate}
+            issuesByDate={issuesByDate}
             wishesByDate={wishesByDate}
             hncByDate={hncByDate}
             doctorsById={doctorsById}
             selfDoctorId={doctor.id}
             highlightId={highlightId}
+            todayIso={todayIso}
             locked={locked}
             onSlotClick={onSlotClick}
             onAddLeave={onAddLeaveClick}
@@ -671,6 +738,7 @@ export function PlanningView() {
             doctorsById={doctorsById}
             selfDoctorId={doctor.id}
             highlightId={highlightId}
+            todayIso={todayIso}
             locked={locked}
             onSlotClick={onSlotClick}
             onAddLeave={onAddLeaveClick}

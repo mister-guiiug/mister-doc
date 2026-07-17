@@ -69,12 +69,23 @@ function fileName(label: string, ext: string): string {
 
 // ---------------------------------- CSV ----------------------------------
 
+/**
+ * Formate une valeur pour une cellule CSV : échappe les guillemets et neutralise
+ * l'injection de formule tableur (Excel / LibreOffice / Google Sheets). Une
+ * cellule commençant par `=`, `+`, `-`, `@`, une tabulation ou un retour chariot
+ * peut être interprétée comme une formule ; on la préfixe d'une apostrophe pour
+ * forcer un contenu texte (ex. un médecin nommé « =CMD() »).
+ */
+function csvCell(v: XlsxValue): string {
+  let s = String(v);
+  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+  return `"${s.replace(/"/g, '""')}"`;
+}
+
 /** Export CSV (séparateur « ; », BOM UTF-8 pour Excel). */
 export function exportCountersCsv(rows: CounterRow[], label: string): void {
-  const header = COLS.map(c => c.head);
-  const lines = rows.map(r =>
-    COLS.map(c => `"${String(c.val(r)).replace(/"/g, '""')}"`).join(';')
-  );
+  const header = COLS.map(c => csvCell(c.head));
+  const lines = rows.map(r => COLS.map(c => csvCell(c.val(r))).join(';'));
   const csv = '﻿' + [header.join(';'), ...lines].join('\r\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);

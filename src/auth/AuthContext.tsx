@@ -4,6 +4,7 @@ import { getSupabase } from '../lib/supabase.ts';
 import { ensureSelfDoctor } from '../backend/doctors.ts';
 import { getSettings } from '../backend/settings.ts';
 import { setIncludePentecote } from '../lib/dates.ts';
+import { frAuthError } from '../lib/authErrors.ts';
 import type { Doctor } from '../backend/types.ts';
 import { AuthContext } from './useAuth.ts';
 
@@ -75,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email,
       password,
     });
-    return { error: error?.message };
+    return { error: error ? frAuthError(error.message) : undefined };
   }
 
   async function signUp(email: string, password: string, name: string) {
@@ -84,7 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       password,
       options: { data: { full_name: name.trim() } },
     });
-    return { error: error?.message };
+    return { error: error ? frAuthError(error.message) : undefined };
   }
 
   async function signOut() {

@@ -45,6 +45,7 @@ export function MonthGrid({
   doctorsById,
   selfDoctorId,
   highlightId,
+  todayIso,
   locked,
   onSlotClick,
   onAddLeave,
@@ -64,6 +65,7 @@ export function MonthGrid({
   doctorsById: Map<string, Doctor>;
   selfDoctorId: string;
   highlightId: string | null;
+  todayIso: string;
   locked: boolean;
   onSlotClick: (iso: string, shiftType: ShiftType) => void;
   onAddLeave: (iso: string) => void;
@@ -100,6 +102,7 @@ export function MonthGrid({
                 doctorsById={doctorsById}
                 selfDoctorId={selfDoctorId}
                 highlightId={highlightId}
+                isToday={day.iso === todayIso}
                 locked={locked}
                 onSlotClick={onSlotClick}
                 onAddLeave={onAddLeave}
@@ -128,6 +131,7 @@ const DayRow = memo(function DayRow({
   doctorsById,
   selfDoctorId,
   highlightId,
+  isToday,
   locked,
   onSlotClick,
   onAddLeave,
@@ -147,6 +151,7 @@ const DayRow = memo(function DayRow({
   doctorsById: Map<string, Doctor>;
   selfDoctorId: string;
   highlightId: string | null;
+  isToday: boolean;
   locked: boolean;
   onSlotClick: (iso: string, shiftType: ShiftType) => void;
   onAddLeave: (iso: string) => void;
@@ -170,7 +175,10 @@ const DayRow = memo(function DayRow({
       ref={el => {
         dayRefs.current[day.iso] = el;
       }}
+      aria-current={isToday ? 'date' : undefined}
       className={`scroll-mt-20 rounded-xl border p-2.5 ${
+        isToday ? 'ring-2 ring-teal-500 dark:ring-teal-400 ' : ''
+      }${
         day.reduced
           ? 'border-teal-200 bg-teal-50/60 dark:border-teal-900/60 dark:bg-teal-950/20'
           : 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900'
@@ -188,8 +196,13 @@ const DayRow = memo(function DayRow({
             {day.date.getDate()}
           </span>
           <div className="flex min-w-0 flex-col leading-tight">
-            <span className="text-sm font-medium">
+            <span className="flex items-center gap-1.5 text-sm font-medium">
               {WEEKDAY_LABELS[day.weekday]}
+              {isToday && (
+                <span className="rounded bg-teal-600 px-1 py-px text-[9px] font-bold uppercase tracking-wide text-white">
+                  Auj.
+                </span>
+              )}
             </span>
             {day.holiday && (
               <span className="flex items-center gap-1 truncate text-[11px] font-medium text-amber-600">

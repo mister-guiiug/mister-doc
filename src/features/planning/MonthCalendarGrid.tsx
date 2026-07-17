@@ -13,6 +13,7 @@ import {
 import type { MonthDay } from '../../lib/dates.ts';
 import { activeShiftTypes, SHIFT_HOURS, type ShiftType } from '../../lib/shifts.ts';
 import { LEAVE_SHORT } from '../../lib/leaves.ts';
+import type { Issue } from '../../lib/validation.ts';
 import type {
   Doctor,
   DayNote,
@@ -37,11 +38,13 @@ export function MonthCalendarGrid({
   shiftIndex,
   leavesByDate,
   notesByDate,
+  issuesByDate,
   wishesByDate,
   hncByDate,
   doctorsById,
   selfDoctorId,
   highlightId,
+  todayIso,
   locked,
   onSlotClick,
   onAddLeave,
@@ -55,11 +58,13 @@ export function MonthCalendarGrid({
   shiftIndex: Map<string, Shift>;
   leavesByDate: Map<string, Leave[]>;
   notesByDate: Map<string, DayNote>;
+  issuesByDate: Map<string, Issue[]>;
   wishesByDate: Map<string, Wish[]>;
   hncByDate: Map<string, HncEntry[]>;
   doctorsById: Map<string, Doctor>;
   selfDoctorId: string;
   highlightId: string | null;
+  todayIso: string;
   locked: boolean;
   onSlotClick: (iso: string, shiftType: ShiftType) => void;
   onAddLeave: (iso: string) => void;
@@ -106,11 +111,13 @@ export function MonthCalendarGrid({
                 shiftIndex={shiftIndex}
                 leaves={leavesByDate.get(day.iso) ?? EMPTY}
                 note={notesByDate.get(day.iso)}
+                issues={issuesByDate.get(day.iso) ?? EMPTY}
                 wishes={wishesByDate.get(day.iso) ?? EMPTY}
                 hnc={hncByDate.get(day.iso) ?? EMPTY}
                 doctorsById={doctorsById}
                 selfDoctorId={selfDoctorId}
                 highlightId={highlightId}
+                isToday={day.iso === todayIso}
                 locked={locked}
                 onSlotClick={onSlotClick}
                 onAddLeave={onAddLeave}
@@ -138,11 +145,13 @@ const DayCell = memo(function DayCell({
   shiftIndex,
   leaves,
   note,
+  issues,
   wishes,
   hnc,
   doctorsById,
   selfDoctorId,
   highlightId,
+  isToday,
   locked,
   onSlotClick,
   onAddLeave,
@@ -156,11 +165,13 @@ const DayCell = memo(function DayCell({
   shiftIndex: Map<string, Shift>;
   leaves: Leave[];
   note?: DayNote;
+  issues: Issue[];
   wishes: Wish[];
   hnc: HncEntry[];
   doctorsById: Map<string, Doctor>;
   selfDoctorId: string;
   highlightId: string | null;
+  isToday: boolean;
   locked: boolean;
   onSlotClick: (iso: string, shiftType: ShiftType) => void;
   onAddLeave: (iso: string) => void;
@@ -176,13 +187,17 @@ const DayCell = memo(function DayCell({
   const myWish = wishes.find(w => w.doctor_id === selfDoctorId)?.kind;
   const prefers = wishes.filter(w => w.kind === 'prefer').length;
   const avoids = wishes.filter(w => w.kind === 'avoid').length;
+  const hasError = issues.some(i => i.level === 'error');
 
   return (
     <div
       ref={el => {
         dayRefs.current[day.iso] = el;
       }}
+      aria-current={isToday ? 'date' : undefined}
       className={`group/cell scroll-mt-20 flex min-h-24 flex-col gap-1 border-r border-slate-100 p-1.5 last:border-r-0 dark:border-slate-800/60 ${
+        isToday ? 'ring-2 ring-inset ring-teal-500 dark:ring-teal-400 ' : ''
+      }${
         day.reduced
           ? 'bg-teal-50/50 dark:bg-teal-950/20'
           : 'bg-white dark:bg-slate-900'
@@ -192,9 +207,11 @@ const DayCell = memo(function DayCell({
       <div className="flex items-start justify-between">
         <span
           className={`grid size-6 place-items-center rounded-md text-xs font-bold ${
-            day.reduced
-              ? 'bg-teal-600 text-white'
-              : 'text-slate-700 dark:text-slate-200'
+            isToday
+              ? 'bg-teal-600 text-white ring-2 ring-teal-300 dark:ring-teal-600'
+              : day.reduced
+                ? 'bg-teal-600 text-white'
+                : 'text-slate-700 dark:text-slate-200'
           }`}
         >
           {day.date.getDate()}
@@ -205,6 +222,19 @@ const DayCell = memo(function DayCell({
               className="size-3.5 text-amber-500"
               aria-label={day.holidayName ?? 'Férié'}
             />
+          )}
+          {issues.length > 0 && (
+            <span
+              title={issues.map(i => i.message).join('\n')}
+              className={`flex items-center gap-0.5 rounded px-1 text-[10px] font-bold ${
+                hasError
+                  ? 'bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-300'
+                  : 'bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300'
+              }`}
+            >
+              <AlertTriangle className="size-2.5" />
+              {issues.length}
+            </span>
           )}
           {missing > 0 && (
             <span
