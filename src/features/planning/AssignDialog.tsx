@@ -30,6 +30,7 @@ import type {
 } from '../../backend/types.ts';
 import { listSlotHistory } from '../../backend/history.ts';
 import { Modal } from '../../components/Modal.tsx';
+import { useConfirm } from '../../components/ui/confirmContext.ts';
 
 /** Temps relatif court en français (pour l'historique). */
 function frTime(iso: string): string {
@@ -79,6 +80,7 @@ export function AssignDialog({
   const [history, setHistory] = useState<ShiftHistory[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const confirm = useConfirm();
   const isMine = currentShift?.doctor_id === selfDoctorId;
 
   const d = fromISODate(target.iso);
@@ -165,11 +167,13 @@ export function AssignDialog({
         {currentShift && (
           <button
             disabled={busy}
-            onClick={() => {
+            onClick={async () => {
               if (
-                confirm(
-                  `Libérer le créneau ${SHIFT_LABEL[target.shiftType]} du ${dayLabel} ? Le médecin en sera retiré.`
-                )
+                await confirm({
+                  message: `Libérer le créneau ${SHIFT_LABEL[target.shiftType]} du ${dayLabel} ? Le médecin en sera retiré.`,
+                  danger: true,
+                  confirmLabel: 'Libérer',
+                })
               )
                 void run(onClear);
             }}

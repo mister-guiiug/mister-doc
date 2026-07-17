@@ -4,6 +4,7 @@ import { AuthProvider } from './auth/AuthContext.tsx';
 import { AuthGate } from './auth/AuthGate.tsx';
 import { useAuth } from './auth/useAuth.ts';
 import { ToastProvider } from './components/Toast.tsx';
+import { ConfirmProvider } from './components/ui/ConfirmProvider.tsx';
 import { Header } from './components/Header.tsx';
 import { BottomNav } from './components/BottomNav.tsx';
 import { InstallPrompt } from './components/InstallPrompt.tsx';
@@ -41,44 +42,46 @@ function AdminRoute({ children }: { children: ReactNode }) {
 export default function App() {
   return (
     <ToastProvider>
-      <AuthProvider>
-        <AuthGate>
-          <HashRouter>
-            <div className="min-h-dvh bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-              <Header />
-              <main className="pb-24">
-                <Suspense fallback={<FullScreenSpinner label="Chargement…" />}>
-                  <Routes>
-                    <Route path="/" element={<PlanningView />} />
-                    <Route path="/mon-planning" element={<MyPlanningView />} />
-                    <Route path="/echanges" element={<SwapBoard />} />
-                    <Route path="/profil" element={<ProfilePage />} />
-                    <Route
-                      path="/compteurs"
-                      element={
-                        <AdminRoute>
-                          <AllCounters />
-                        </AdminRoute>
-                      }
-                    />
-                    <Route
-                      path="/admin"
-                      element={
-                        <AdminRoute>
-                          <AdminPanel />
-                        </AdminRoute>
-                      }
-                    />
-                    <Route path="*" element={<Navigate to="/" replace />} />
-                  </Routes>
-                </Suspense>
-              </main>
-              <BottomNav />
-            </div>
-          </HashRouter>
-        </AuthGate>
-        <InstallPrompt />
-      </AuthProvider>
+      <ConfirmProvider>
+        <AuthProvider>
+          <AuthGate>
+            <HashRouter>
+              <div className="min-h-dvh bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+                <Header />
+                <main className="pb-24">
+                  <Suspense fallback={<FullScreenSpinner label="Chargement…" />}>
+                    <Routes>
+                      <Route path="/" element={<PlanningView />} />
+                      <Route path="/mon-planning" element={<MyPlanningView />} />
+                      <Route path="/echanges" element={<SwapBoard />} />
+                      <Route path="/profil" element={<ProfilePage />} />
+                      <Route
+                        path="/compteurs"
+                        element={
+                          <AdminRoute>
+                            <AllCounters />
+                          </AdminRoute>
+                        }
+                      />
+                      <Route
+                        path="/admin"
+                        element={
+                          <AdminRoute>
+                            <AdminPanel />
+                          </AdminRoute>
+                        }
+                      />
+                      <Route path="*" element={<Navigate to="/" replace />} />
+                    </Routes>
+                  </Suspense>
+                </main>
+                <BottomNav />
+              </div>
+            </HashRouter>
+          </AuthGate>
+          <InstallPrompt />
+        </AuthProvider>
+      </ConfirmProvider>
     </ToastProvider>
   );
 }

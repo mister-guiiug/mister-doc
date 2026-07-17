@@ -1,6 +1,9 @@
 import { useState } from 'react';
-import { CalendarDays, Loader2 } from 'lucide-react';
+import { CalendarDays } from 'lucide-react';
 import { useAuth } from './useAuth.ts';
+import { Button } from '../components/ui/Button.tsx';
+import { Field } from '../components/ui/Field.tsx';
+import { SegmentedControl } from '../components/ui/SegmentedControl.tsx';
 
 export function LoginPage() {
   const { signIn, signUp } = useAuth();
@@ -36,38 +39,25 @@ export function LoginPage() {
           </p>
         </div>
 
-        <div className="mb-4 grid grid-cols-2 gap-1 rounded-lg bg-slate-100 p-1 text-sm font-medium dark:bg-slate-700/50">
-          <button
-            type="button"
-            onClick={() => setMode('signin')}
-            className={`rounded-md py-1.5 transition ${
-              mode === 'signin'
-                ? 'bg-white shadow-sm dark:bg-slate-800'
-                : 'text-slate-500'
-            }`}
-          >
-            Connexion
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode('signup')}
-            className={`rounded-md py-1.5 transition ${
-              mode === 'signup'
-                ? 'bg-white shadow-sm dark:bg-slate-800'
-                : 'text-slate-500'
-            }`}
-          >
-            Créer un compte
-          </button>
-        </div>
+        <SegmentedControl
+          className="mb-4"
+          fullWidth
+          ariaLabel="Connexion ou création de compte"
+          value={mode}
+          onChange={setMode}
+          options={[
+            { value: 'signin', label: 'Connexion' },
+            { value: 'signup', label: 'Créer un compte' },
+          ]}
+        />
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           {mode === 'signup' && (
             <Field
               label="Nom affiché"
-              value={name}
-              onChange={setName}
               type="text"
+              value={name}
+              onChange={e => setName(e.target.value)}
               placeholder="Dr Dupont"
               required
               autoComplete="name"
@@ -75,18 +65,18 @@ export function LoginPage() {
           )}
           <Field
             label="E-mail"
-            value={email}
-            onChange={setEmail}
             type="email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
             placeholder="prenom.nom@exemple.fr"
             required
             autoComplete="email"
           />
           <Field
             label="Mot de passe"
-            value={password}
-            onChange={setPassword}
             type="password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
             placeholder="••••••••"
             required
             minLength={6}
@@ -94,19 +84,17 @@ export function LoginPage() {
           />
 
           {error && (
-            <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/50 dark:text-red-300">
+            <p
+              role="alert"
+              className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/50 dark:text-red-300"
+            >
               {error}
             </p>
           )}
 
-          <button
-            type="submit"
-            disabled={busy}
-            className="mt-1 flex items-center justify-center gap-2 rounded-lg bg-teal-600 py-2.5 font-semibold text-white transition hover:bg-teal-700 disabled:opacity-60"
-          >
-            {busy && <Loader2 className="size-4 animate-spin" />}
+          <Button type="submit" loading={busy} className="mt-1 w-full py-2.5">
             {mode === 'signin' ? 'Se connecter' : 'Créer mon compte'}
-          </button>
+          </Button>
         </form>
 
         {mode === 'signup' && (
@@ -117,34 +105,5 @@ export function LoginPage() {
         )}
       </div>
     </div>
-  );
-}
-
-function Field(props: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  type: string;
-  placeholder?: string;
-  required?: boolean;
-  minLength?: number;
-  autoComplete?: string;
-}) {
-  return (
-    <label className="flex flex-col gap-1 text-sm">
-      <span className="font-medium text-slate-600 dark:text-slate-300">
-        {props.label}
-      </span>
-      <input
-        className="rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:border-slate-600 dark:bg-slate-900"
-        type={props.type}
-        value={props.value}
-        onChange={e => props.onChange(e.target.value)}
-        placeholder={props.placeholder}
-        required={props.required}
-        minLength={props.minLength}
-        autoComplete={props.autoComplete}
-      />
-    </label>
   );
 }

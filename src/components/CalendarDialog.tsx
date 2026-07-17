@@ -16,6 +16,7 @@ import {
 } from '../backend/calendar.ts';
 import { useToast } from './Toast.tsx';
 import { Modal } from './Modal.tsx';
+import { useConfirm } from './ui/confirmContext.ts';
 
 /**
  * Abonnement au flux iCalendar (.ics) : token PERSONNEL révocable, portée
@@ -23,6 +24,7 @@ import { Modal } from './Modal.tsx';
  */
 export function CalendarDialog({ onClose }: { onClose: () => void }) {
   const toast = useToast();
+  const confirm = useConfirm();
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -53,7 +55,14 @@ export function CalendarDialog({ onClose }: { onClose: () => void }) {
   }
 
   async function regenerate() {
-    if (!confirm('Régénérer le lien ? Les abonnements existants cesseront de fonctionner.'))
+    if (
+      !(await confirm({
+        message:
+          'Régénérer le lien ? Les abonnements existants cesseront de fonctionner.',
+        danger: true,
+        confirmLabel: 'Régénérer',
+      }))
+    )
       return;
     setBusy(true);
     try {

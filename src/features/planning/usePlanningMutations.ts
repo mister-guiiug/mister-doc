@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import type { useToast } from '../../components/Toast.tsx';
+import { useConfirm } from '../../components/ui/confirmContext.ts';
 import type { LeaveKind } from '../../lib/leaves.ts';
 import type { Doctor, Leave, Shift, WishKind } from '../../backend/types.ts';
 import { assignShift, clearShift } from '../../backend/planning.ts';
@@ -48,6 +49,7 @@ export function usePlanningMutations(data: PlanningData, ctx: MutationCtx) {
     loadData,
   } = data;
   const { doctor, year, month, toast } = ctx;
+  const confirm = useConfirm();
 
   const handleAssign = useCallback(
     async (slot: SlotTarget, doctorId: string) => {
@@ -120,9 +122,11 @@ export function usePlanningMutations(data: PlanningData, ctx: MutationCtx) {
     async (leave: Leave) => {
       const doc = doctorsById.get(leave.doctor_id);
       if (
-        !confirm(
-          `Supprimer l'absence de ${doc?.name ?? 'ce médecin'} le ${frDate(leave.work_date)} ?`
-        )
+        !(await confirm({
+          message: `Supprimer l'absence de ${doc?.name ?? 'ce médecin'} le ${frDate(leave.work_date)} ?`,
+          danger: true,
+          confirmLabel: 'Supprimer',
+        }))
       )
         return;
       const prev = leaves;
@@ -134,7 +138,7 @@ export function usePlanningMutations(data: PlanningData, ctx: MutationCtx) {
         toast.error(e instanceof Error ? e.message : 'Erreur');
       }
     },
-    [doctorsById, leaves, setLeaves, toast]
+    [confirm, doctorsById, leaves, setLeaves, toast]
   );
 
   const handleSaveNote = useCallback(
@@ -232,11 +236,13 @@ export function usePlanningMutations(data: PlanningData, ctx: MutationCtx) {
       const entry = hnc.find(h => h.id === id);
       const doc = entry ? doctorsById.get(entry.doctor_id) : undefined;
       if (
-        !confirm(
-          `Supprimer les heures non cliniques${doc ? ` de ${doc.name}` : ''}${
+        !(await confirm({
+          message: `Supprimer les heures non cliniques${doc ? ` de ${doc.name}` : ''}${
             entry ? ` le ${frDate(entry.work_date)}` : ''
-          } ?`
-        )
+          } ?`,
+          danger: true,
+          confirmLabel: 'Supprimer',
+        }))
       )
         return;
       const prev = hnc;
@@ -248,7 +254,7 @@ export function usePlanningMutations(data: PlanningData, ctx: MutationCtx) {
         toast.error(e instanceof Error ? e.message : 'Erreur');
       }
     },
-    [hnc, doctorsById, setHnc, toast]
+    [confirm, hnc, doctorsById, setHnc, toast]
   );
 
   const toggleLock = useCallback(async () => {

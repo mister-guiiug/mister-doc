@@ -9,6 +9,7 @@ import {
   Info,
 } from 'lucide-react';
 import { useToast } from '../../components/Toast.tsx';
+import { useConfirm } from '../../components/ui/confirmContext.ts';
 import type { BackupMeta } from '../../backend/types.ts';
 import {
   adminBackup,
@@ -32,6 +33,7 @@ function download(payload: unknown, name: string) {
 
 export function BackupCard() {
   const toast = useToast();
+  const confirm = useConfirm();
   const [backups, setBackups] = useState<BackupMeta[]>([]);
   const [busy, setBusy] = useState(false);
   const [pending, setPending] = useState<File | null>(null);
@@ -60,11 +62,14 @@ export function BackupCard() {
   async function handleImport(mode: 'merge' | 'replace') {
     if (!pending) return;
     if (
-      !confirm(
-        mode === 'replace'
-          ? 'Remplacer TOUT le planning (gardes, absences, notes) par ce fichier ? Action irréversible.'
-          : 'Fusionner ce fichier avec le planning actuel ?'
-      )
+      !(await confirm({
+        message:
+          mode === 'replace'
+            ? 'Remplacer TOUT le planning (gardes, absences, notes) par ce fichier ? Action irréversible.'
+            : 'Fusionner ce fichier avec le planning actuel ?',
+        danger: mode === 'replace',
+        confirmLabel: mode === 'replace' ? 'Remplacer' : 'Fusionner',
+      }))
     )
       return;
     setBusy(true);
@@ -82,7 +87,13 @@ export function BackupCard() {
   }
 
   async function restoreSnapshot(id: string) {
-    if (!confirm('Restaurer cette sauvegarde ? Le planning actuel sera remplacé.'))
+    if (
+      !(await confirm({
+        message: 'Restaurer cette sauvegarde ? Le planning actuel sera remplacé.',
+        danger: true,
+        confirmLabel: 'Restaurer',
+      }))
+    )
       return;
     setBusy(true);
     try {

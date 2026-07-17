@@ -25,6 +25,7 @@ import { getSettings, setSettings as saveSettings } from '../../backend/settings
 import { setIncludePentecote } from '../../lib/dates.ts';
 import { FullScreenSpinner } from '../../components/Spinner.tsx';
 import { ProfileDialog } from '../../components/ProfileDialog.tsx';
+import { useConfirm } from '../../components/ui/confirmContext.ts';
 import { BackupCard } from './BackupCard.tsx';
 import { DOCTOR_COLORS, DEFAULT_DOCTOR_COLOR } from '../../lib/colors.ts';
 
@@ -32,6 +33,7 @@ const COLORS = DOCTOR_COLORS;
 
 export function AdminPanel() {
   const { doctor: self, refreshDoctor } = useAuth();
+  const confirm = useConfirm();
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -163,11 +165,13 @@ export function AdminPanel() {
                 </button>
                 <button
                   disabled={busyId === d.id}
-                  onClick={() => {
+                  onClick={async () => {
                     if (
-                      confirm(
-                        `Rejeter la demande de ${d.name}${d.email ? ` (${d.email})` : ''} ? Le compte sera supprimé.`
-                      )
+                      await confirm({
+                        message: `Rejeter la demande de ${d.name}${d.email ? ` (${d.email})` : ''} ? Le compte sera supprimé.`,
+                        danger: true,
+                        confirmLabel: 'Rejeter',
+                      })
                     )
                       void act(d.id, () => adminRejectDoctor(d.id));
                   }}
@@ -293,8 +297,14 @@ export function AdminPanel() {
                 {!hasAccount && (
                   <button
                     disabled={busyId === d.id}
-                    onClick={() => {
-                      if (confirm(`Supprimer « ${d.name} » du roster ?`))
+                    onClick={async () => {
+                      if (
+                        await confirm({
+                          message: `Supprimer « ${d.name} » du roster ?`,
+                          danger: true,
+                          confirmLabel: 'Supprimer',
+                        })
+                      )
                         void act(d.id, () => adminDeleteDoctor(d.id));
                     }}
                     title="Supprimer du roster"

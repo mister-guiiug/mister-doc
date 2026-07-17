@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { Clock, LogOut, KeyRound, Loader2, Trash2 } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth.ts';
 import { claimAdmin, deleteMyAccount } from '../../backend/doctors.ts';
+import { useConfirm } from '../../components/ui/confirmContext.ts';
 
 export function PendingScreen() {
   const { doctor, signOut, refreshDoctor } = useAuth();
+  const confirm = useConfirm();
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -13,9 +15,12 @@ export function PendingScreen() {
 
   async function handleDelete() {
     if (
-      !confirm(
-        'Supprimer définitivement votre demande d’accès ? Vous pourrez vous réinscrire avec la même adresse.'
-      )
+      !(await confirm({
+        message:
+          'Supprimer définitivement votre demande d’accès ? Vous pourrez vous réinscrire avec la même adresse.',
+        danger: true,
+        confirmLabel: 'Supprimer',
+      }))
     )
       return;
     setError(null);

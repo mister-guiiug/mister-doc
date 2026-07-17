@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { X, Loader2, Trash2, StickyNote } from 'lucide-react';
 import { WEEKDAY_LABELS, fromISODate, mondayIndex } from '../../lib/dates.ts';
 import { Modal } from '../../components/Modal.tsx';
+import { useConfirm } from '../../components/ui/confirmContext.ts';
 
 export function NoteDialog({
   date,
@@ -18,6 +19,7 @@ export function NoteDialog({
 }) {
   const [note, setNote] = useState(initialNote);
   const [busy, setBusy] = useState(false);
+  const confirm = useConfirm();
 
   const d = fromISODate(date);
   const dayLabel = `${WEEKDAY_LABELS[mondayIndex(d)]} ${d.getDate()}`;
@@ -61,8 +63,15 @@ export function NoteDialog({
           <button
             type="button"
             disabled={busy}
-            onClick={() => {
-              if (confirm(`Supprimer la note du ${dayLabel} ?`)) void run(onDelete);
+            onClick={async () => {
+              if (
+                await confirm({
+                  message: `Supprimer la note du ${dayLabel} ?`,
+                  danger: true,
+                  confirmLabel: 'Supprimer',
+                })
+              )
+                void run(onDelete);
             }}
             className="flex items-center gap-1 rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 dark:border-red-900/60 dark:hover:bg-red-950/30"
           >
