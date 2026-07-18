@@ -160,8 +160,6 @@ bouton afficherait alors une erreur. À faire **avant** d'annoncer la fonctionna
 
 Réglages du **tableau de bord Supabase** (Authentication → Policies / Settings) :
 
-- **Protection des mots de passe compromis (HIBP)** : nécessite le **plan Pro**
-  (renvoyait `402` en plan gratuit).
 - **Captcha** au login/inscription : nécessite un **compte tiers** (hCaptcha /
   Cloudflare Turnstile) et sa clé, à renseigner côté Supabase Auth.
 - Confirmation d'e-mail : actuellement `mailer_autoconfirm = true` (désactivée) —
