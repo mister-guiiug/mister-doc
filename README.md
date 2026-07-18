@@ -110,7 +110,7 @@ Scripts utiles : `npm run build`, `npm run preview`, `npm run test`,
 
 Le schéma versionné est découpé en migrations dans
 [`supabase/migrations/`](supabase/migrations/), à appliquer **dans l'ordre**
-(`0001` → `0010`) via le **SQL Editor** du tableau de bord Supabase :
+(`0001` → `0014`) via le **SQL Editor** du tableau de bord Supabase :
 
 | Migration | Contenu |
 | --------- | ------- |
@@ -123,6 +123,10 @@ Le schéma versionné est découpé en migrations dans
 | `0008_self_service` | suppression de sa demande en attente |
 | `0009_hnc` | **Heures Non Cliniques** (table `hnc_hours`, migration des ex-`S3`) |
 | `0010_admin_reject` | rejet admin d'une demande en attente |
+| `0011_shift_history` | historique des changements par créneau |
+| `0012_notif_improvements` | améliorations des notifications |
+| `0013_push_subscriptions` | abonnements Web Push |
+| `0014_calendar_rate_limit` | **rate-limit** de l'Edge Function calendrier (table `edge_rate_limit` + RPC `edge_rate_limit_hit`) |
 
 Après `0001`, renseignez le code de bootstrap :
 
@@ -150,6 +154,14 @@ approuvés récupèrent le token via la RPC `calendar_token()`.
 Déploiement de la fonction : `supabase functions deploy calendar --no-verify-jwt`
 (ou via l'API Management). Définir ensuite le token :
 `update public.app_config set calendar_token = 'SECRET' where id = 1;`
+
+**Rate-limiting** (défense en profondeur — le flux est public et lit via
+`service_role`) : la fonction borne le débit **par IP** avant toute requête en base
+(migration `0014`, RPC atomique `edge_rate_limit_hit`). Défauts : `60` requêtes par
+`60` s, largement au-dessus du rafraîchissement des agendas ; réglables via les
+variables d'environnement de la fonction `CALENDAR_RATE_MAX` / `CALENDAR_RATE_WINDOW`.
+Au-delà : réponse `429` avec `Retry-After`. En cas d'échec de la RPC, on **laisse
+passer** (fail-open) pour ne jamais casser un abonnement légitime.
 
 ## Déploiement (GitHub Pages)
 

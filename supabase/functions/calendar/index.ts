@@ -33,12 +33,52 @@ const CORS = {
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
+// Rate-limit par IP (défense en profondeur : brute-force de token, DoS, scraping).
+// Réglable par variables d'environnement de la fonction, défauts généreux pour ne
+// pas gêner les clients calendrier (qui rafraîchissent au plus quelques fois/heure).
+const RATE_MAX = Number(Deno.env.get('CALENDAR_RATE_MAX') ?? '60');
+const RATE_WINDOW = Number(Deno.env.get('CALENDAR_RATE_WINDOW') ?? '60');
+
 async function rest<T>(path: string): Promise<T> {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
     headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` },
   });
   if (!res.ok) throw new Error(`REST ${path}: ${res.status}`);
   return (await res.json()) as T;
+}
+
+/**
+ * Compteur de débit en fenêtre fixe côté base (RPC atomique `edge_rate_limit_hit`).
+ * Renvoie `true` si la requête est autorisée. **Fail-open** : toute erreur de la RPC
+ * autorise la requête, pour ne jamais casser un abonnement calendrier légitime sur
+ * un simple hoquet de la base.
+ */
+async function rateAllow(key: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/edge_rate_limit_hit`, {
+      method: 'POST',
+      headers: {
+        apikey: SERVICE_KEY,
+        Authorization: `Bearer ${SERVICE_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        p_key: key,
+        p_max: RATE_MAX,
+        p_window_seconds: RATE_WINDOW,
+      }),
+    });
+    if (!res.ok) return true; // fail-open
+    return (await res.json()) === true;
+  } catch {
+    return true; // fail-open
+  }
+}
+
+/** IP cliente d'origine (1re valeur de `x-forwarded-for`), sinon repli global. */
+function clientIp(req: Request): string {
+  const xff = req.headers.get('x-forwarded-for') ?? '';
+  return xff.split(',')[0].trim() || 'unknown';
 }
 
 const esc = (s: string) =>
@@ -127,6 +167,15 @@ Deno.serve(async (req: Request) => {
     const wantMine = url.searchParams.get('scope') === 'me';
 
     if (!token) return new Response('Token requis.', { status: 401, headers: CORS });
+
+    // Rate-limit par IP AVANT toute validation : borne le coût d'un brute-force de
+    // token (chaque tentative interrogerait sinon la base) et le scraping du flux.
+    if (!(await rateAllow(`calendar:${clientIp(req)}`))) {
+      return new Response('Trop de requêtes. Réessayez dans quelques instants.', {
+        status: 429,
+        headers: { ...CORS, 'Retry-After': String(RATE_WINDOW) },
+      });
+    }
 
     // 1) token par médecin ?
     const owner = await rest<{ id: string }[]>(
