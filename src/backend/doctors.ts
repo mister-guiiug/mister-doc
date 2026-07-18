@@ -50,7 +50,10 @@ export async function claimAdmin(code: string): Promise<Doctor> {
 export async function listDoctors(): Promise<Doctor[]> {
   const { data, error } = await getSupabase()
     .from('doctors')
-    .select('*')
+    // Colonnes EXPLICITES : jamais `calendar_token` (lien d'abonnement secret).
+    // La migration 0015 en interdit la lecture aux clients au niveau des privilèges ;
+    // un `select('*')` échouerait donc (permission refusée sur la colonne).
+    .select('id,auth_id,name,email,color,is_admin,approved,created_at')
     .order('name');
   if (error) throw new Error(error.message);
   return (data ?? []) as Doctor[];
