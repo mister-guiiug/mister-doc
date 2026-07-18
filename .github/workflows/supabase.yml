@@ -51,9 +51,18 @@ jobs:
       - uses: actions/checkout@v4
 
       # --- 1) Edge Functions AVANT les migrations (0018 en dépend) ---------------
+      # setup-cli installe le CLI via npm → exige Node 20+. ubuntu-latest en fournit
+      # un, mais on l'épingle pour éviter toute surprise d'image.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          # Version FIXE (publiée sur npm). `latest` fait résoudre la version via
+          # l'API GitHub NON authentifiée → « rate limit exceeded » sur l'IP
+          # partagée des runners (constaté). Une version épinglée évite cet appel.
+          version: 2.109.1
 
       - name: Déployer les Edge Functions (calendar + push)
         env:
