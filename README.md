@@ -110,7 +110,7 @@ Scripts utiles : `npm run build`, `npm run preview`, `npm run test`,
 
 Le schéma versionné est découpé en migrations dans
 [`supabase/migrations/`](supabase/migrations/), à appliquer **dans l'ordre**
-(`0001` → `0017`) via le **SQL Editor** du tableau de bord Supabase :
+(`0001` → `0018`) via le **SQL Editor** du tableau de bord Supabase :
 
 | Migration | Contenu |
 | --------- | ------- |
@@ -130,6 +130,7 @@ Le schéma versionné est découpé en migrations dans
 | `0015_calendar_token_privacy` | **confidentialité** du token calendrier (privilège colonne : `calendar_token` illisible par les autres médecins) |
 | `0016_extend_month_lock` | verrou de mois **étendu** aux HNC / notes / vœux (triggers `assert_month_unlocked`) |
 | `0017_audit_log` | **journal d'audit** admin (table `audit_log` + triggers sur `doctors` / `locked_months`) |
+| `0018_calendar_token_hash` | tokens calendrier **hashés au repos** (SHA-256 ; plus de token en clair en base ; lien montré une seule fois) |
 
 Après `0001`, renseignez le code de bootstrap :
 
@@ -157,6 +158,13 @@ approuvés récupèrent le token via la RPC `calendar_token()`.
 Déploiement de la fonction : `supabase functions deploy calendar --no-verify-jwt`
 (ou via l'API Management). Définir ensuite le token :
 `update public.app_config set calendar_token = 'SECRET' where id = 1;`
+
+**Tokens hashés au repos** (migration `0018`) : la base ne stocke plus que le
+**SHA-256** des tokens (`calendar_token_hash`) — un dump ne révèle aucun lien
+utilisable. La fonction hache le token reçu et compare au hash (repli sur le clair
+le temps de la transition). Conséquence : un lien n'est **montré qu'une fois**, à
+la génération/régénération (il n'est plus ré-affichable). ⚠️ Déployer la fonction
+**avant** d'appliquer `0018` (qui efface le clair).
 
 **Rate-limiting** (défense en profondeur — le flux est public et lit via
 `service_role`) : la fonction borne le débit **par IP** avant toute requête en base

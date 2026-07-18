@@ -8,26 +8,34 @@ import {
   Download,
   Rss,
   RotateCcw,
+  ShieldAlert,
 } from 'lucide-react';
 import {
   calendarFeedUrl,
+  calendarTokenStatus,
   getMyCalendarToken,
   rotateCalendarToken,
 } from '../backend/calendar.ts';
 import { useToast } from './Toast.tsx';
 import { Modal } from './Modal.tsx';
+import { Button } from './ui/Button.tsx';
 import { SegmentedControl } from './ui/SegmentedControl.tsx';
 import { useConfirm } from './ui/confirmContext.ts';
 
 /**
- * Abonnement au flux iCalendar (.ics) : token PERSONNEL révocable, portée
- * équipe/perso, événements journée entière ou horodatés.
+ * Abonnement au flux iCalendar (.ics). Le token est HASHÉ au repos (migration
+ * 0018) : il n'est donc plus ré-affichable et n'apparaît qu'UNE fois, à la
+ * génération/régénération. Compatible avec l'ancien schéma (mode « legacy » tant
+ * que la RPC `calendar_token_status` n'existe pas encore).
  */
 export function CalendarDialog({ onClose }: { onClose: () => void }) {
   const toast = useToast();
   const confirm = useConfirm();
+  const [mode, setMode] = useState<'loading' | 'legacy' | 'hashed'>('loading');
+  // `token` : source des URLs. Legacy → token persistant ; hashé → token fraîchement
+  // généré (montré une fois), sinon null.
   const [token, setToken] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [hasToken, setHasToken] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [scope, setScope] = useState<'team' | 'me'>('team');
   const [timed, setTimed] = useState(false);
@@ -35,10 +43,29 @@ export function CalendarDialog({ onClose }: { onClose: () => void }) {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    getMyCalendarToken()
-      .then(setToken)
-      .catch(e => setError(e instanceof Error ? e.message : 'Erreur'))
-      .finally(() => setLoading(false));
+    let alive = true;
+    void calendarTokenStatus().then(status => {
+      if (!alive) return;
+      if (status === null) {
+        // Base non migrée : repli sur le comportement historique (token en clair).
+        getMyCalendarToken()
+          .then(t => {
+            if (alive) {
+              setToken(t);
+              setMode('legacy');
+            }
+          })
+          .catch(e => {
+            if (alive) setError(e instanceof Error ? e.message : 'Erreur');
+          });
+      } else {
+        setHasToken(status);
+        setMode('hashed');
+      }
+    });
+    return () => {
+      alive = false;
+    };
   }, []);
 
   const url = token ? calendarFeedUrl(token, { scope, timed }) : '';
@@ -55,8 +82,10 @@ export function CalendarDialog({ onClose }: { onClose: () => void }) {
     }
   }
 
-  async function regenerate() {
+  // Génère (ou régénère, avec confirmation) le lien et l'affiche une fois.
+  async function generate(regenerate: boolean) {
     if (
+      regenerate &&
       !(await confirm({
         message:
           'Régénérer le lien ? Les abonnements existants cesseront de fonctionner.',
@@ -67,7 +96,9 @@ export function CalendarDialog({ onClose }: { onClose: () => void }) {
       return;
     setBusy(true);
     try {
-      setToken(await rotateCalendarToken());
+      const t = await rotateCalendarToken();
+      setToken(t);
+      setHasToken(true);
       toast.success('Nouveau lien généré.');
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Erreur');
@@ -75,6 +106,9 @@ export function CalendarDialog({ onClose }: { onClose: () => void }) {
       setBusy(false);
     }
   }
+
+  // Le bloc URL est visible en legacy, ou en hashé juste après génération.
+  const showFeed = mode === 'legacy' || (mode === 'hashed' && token !== null);
 
   return (
     <Modal onClose={onClose} className="max-w-md rounded-t-2xl p-5 sm:rounded-2xl">
@@ -92,7 +126,7 @@ export function CalendarDialog({ onClose }: { onClose: () => void }) {
         </button>
       </div>
 
-      {loading ? (
+      {mode === 'loading' ? (
         <div className="grid place-items-center py-8 text-slate-400">
           <Loader2 className="size-6 animate-spin" />
         </div>
@@ -100,8 +134,18 @@ export function CalendarDialog({ onClose }: { onClose: () => void }) {
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">
           {error}
         </p>
-      ) : (
+      ) : showFeed ? (
         <>
+          {mode === 'hashed' && (
+            <p className="mb-3 flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
+              <ShieldAlert className="mt-0.5 size-4 shrink-0" />
+              <span>
+                Copiez ce lien <strong>maintenant</strong> : pour votre sécurité,
+                il ne sera plus affiché ensuite.
+              </span>
+            </p>
+          )}
+
           <SegmentedControl
             className="mb-2"
             fullWidth
@@ -164,24 +208,49 @@ export function CalendarDialog({ onClose }: { onClose: () => void }) {
             </a>
           </div>
 
-          <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 dark:border-slate-800">
-            <p className="text-xs text-slate-400">
-              Lien personnel secret. Mise à jour auto ≈ 1×/h.
-            </p>
-            <button
-              onClick={() => void regenerate()}
-              disabled={busy}
-              className="flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-red-600 disabled:opacity-50"
-            >
-              {busy ? (
-                <Loader2 className="size-3.5 animate-spin" />
-              ) : (
-                <RotateCcw className="size-3.5" />
-              )}
-              Régénérer
-            </button>
-          </div>
+          {mode === 'legacy' && (
+            <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 dark:border-slate-800">
+              <p className="text-xs text-slate-400">
+                Lien personnel secret. Mise à jour auto ≈ 1×/h.
+              </p>
+              <button
+                onClick={() => void generate(true)}
+                disabled={busy}
+                className="flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-red-600 disabled:opacity-50"
+              >
+                {busy ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <RotateCcw className="size-3.5" />
+                )}
+                Régénérer
+              </button>
+            </div>
+          )}
         </>
+      ) : (
+        // Hashé, aucun token affiché : proposer de générer / régénérer.
+        <div className="flex flex-col gap-3">
+          <p className="text-sm text-slate-600 dark:text-slate-300">
+            {hasToken
+              ? "Un lien d'abonnement personnel est déjà actif. Pour votre sécurité, il n'est plus affiché ici."
+              : 'Générez votre lien personnel d’abonnement au planning (gardes, congés, formations).'}
+          </p>
+          <Button
+            className="w-full py-2.5"
+            loading={busy}
+            onClick={() => void generate(hasToken)}
+          >
+            {!busy && <CalendarPlus className="size-4" />}
+            {hasToken ? 'Régénérer le lien' : 'Générer mon lien'}
+          </Button>
+          {hasToken && (
+            <p className="text-xs text-slate-400">
+              Régénérer crée un nouveau lien et invalide l'ancien (les abonnements
+              en place cesseront de fonctionner).
+            </p>
+          )}
+        </div>
       )}
     </Modal>
   );

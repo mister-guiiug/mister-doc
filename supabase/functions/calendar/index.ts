@@ -47,6 +47,25 @@ async function rest<T>(path: string): Promise<T> {
   return (await res.json()) as T;
 }
 
+/** Comme `rest`, mais renvoie null sur erreur (ex. colonne absente avant migration). */
+async function restSafe<T>(path: string): Promise<T | null> {
+  try {
+    return await rest<T>(path);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * SHA-256 hexadécimal (minuscule) de la chaîne UTF-8. IDENTIQUE à
+ * `encode(digest(token,'sha256'),'hex')` de pgcrypto → le hash calculé ici
+ * correspond à celui stocké en base (colonnes `calendar_token_hash`).
+ */
+async function sha256hex(s: string): Promise<string> {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 /**
  * Compteur de débit en fenêtre fixe côté base (RPC atomique `edge_rate_limit_hit`).
  * Renvoie `true` si la requête est autorisée. **Fail-open** : toute erreur de la RPC
@@ -177,19 +196,42 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // 1) token par médecin ?
-    const owner = await rest<{ id: string }[]>(
-      `doctors?calendar_token=eq.${encodeURIComponent(token)}&select=id`
-    );
+    // Le token est stocké HASHÉ au repos (SHA-256). On compare par hash ; on
+    // conserve un repli sur le token en clair le temps de la transition (avant la
+    // migration qui remplace les colonnes en clair par leur hash).
+    const tokenHash = await sha256hex(token);
+
+    // 1) token par médecin ? (hash d'abord ; `restSafe` tolère la colonne absente)
+    let owner =
+      (await restSafe<{ id: string }[]>(
+        `doctors?calendar_token_hash=eq.${tokenHash}&select=id`
+      )) ?? [];
+    if (owner.length === 0) {
+      owner = await rest<{ id: string }[]>(
+        `doctors?calendar_token=eq.${encodeURIComponent(token)}&select=id`
+      );
+    }
     let scopedDoctorId: string | null = null;
     if (owner.length > 0) {
       if (wantMine) scopedDoctorId = owner[0].id;
     } else {
       // 2) ancien token partagé (équipe) ?
-      const cfg = await rest<{ calendar_token: string | null }[]>(
-        'app_config?id=eq.1&select=calendar_token'
-      );
-      if (!cfg[0]?.calendar_token || token !== cfg[0].calendar_token) {
+      const cfg =
+        (await restSafe<
+          { calendar_token: string | null; calendar_token_hash: string | null }[]
+        >('app_config?id=eq.1&select=calendar_token,calendar_token_hash')) ??
+        (await rest<{ calendar_token: string | null }[]>(
+          'app_config?id=eq.1&select=calendar_token'
+        ));
+      const c = cfg[0] as {
+        calendar_token: string | null;
+        calendar_token_hash?: string | null;
+      };
+      const ok =
+        c &&
+        ((c.calendar_token_hash && c.calendar_token_hash === tokenHash) ||
+          (c.calendar_token && c.calendar_token === token));
+      if (!ok) {
         return new Response('Token invalide.', { status: 401, headers: CORS });
       }
     }

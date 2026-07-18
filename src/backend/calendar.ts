@@ -1,7 +1,21 @@
 import { getSupabase } from '../lib/supabase.ts';
 import { env } from '../lib/env.ts';
 
-/** Token calendrier personnel (créé à la volée), réservé aux approuvés. */
+/**
+ * Le compte a-t-il déjà un token calendrier ? (monde « hashé au repos » : le token
+ * n'est jamais ré-affichable, seul son statut l'est.) Renvoie `null` si la RPC
+ * n'existe pas encore (base non migrée) → l'appelant retombe en mode legacy.
+ */
+export async function calendarTokenStatus(): Promise<boolean | null> {
+  const { data, error } = await getSupabase().rpc('calendar_token_status');
+  if (error) return null;
+  return Boolean(data);
+}
+
+/**
+ * (Legacy, avant migration 0018) Token en clair, créé à la volée. Utilisé
+ * uniquement en repli quand `calendar_token_status` n'existe pas encore.
+ */
 export async function getMyCalendarToken(): Promise<string> {
   const { data, error } = await getSupabase().rpc('my_calendar_token');
   if (error) throw new Error(error.message);
