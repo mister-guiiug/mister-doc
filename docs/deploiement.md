@@ -16,8 +16,10 @@ documentée en repli.
 | --- | --- |
 | Front (GitHub Pages) | ✅ à jour, en prod — <https://mister-guiiug.github.io/mister-doc/> |
 | Variables Actions `VITE_SUPABASE_*` | ✅ déjà posées |
-| Schéma de base | appliqué jusqu'à `0013` — **migrations `0014` → `0021` à appliquer** |
-| Edge Function `calendar` | **à redéployer** (nouvelle version : rate-limit + lookup par hash) |
+| Secrets CI (`SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_URL`) | ✅ posés (déploiement Supabase automatisé) |
+| Schéma de base | ✅ migrations `0014`→`0021` **appliquées** (via CI, 2026-07-18) |
+| Edge Functions `calendar` / `push` | ✅ **déployées** (rate-limit + lookup par hash) |
+| Passkeys (connexion par empreinte) | ✅ activées côté dashboard (RP ID `mister-guiiug.github.io`) |
 
 Le front est **rétro-compatible** : il fonctionne avant comme après ces migrations
 (double-mode calendrier, génération de codes non bloquante, etc.). On peut donc
@@ -172,7 +174,8 @@ Réglage du **tableau de bord Supabase** (Authentication → Settings) :
 
 ## Sécurité — à ne pas oublier
 
-- **Révoquer / tourner le token Management `sbp_…`** utilisé pour le provisionnement
-  initial, s'il ne l'a pas déjà été.
+- ✅ **Token Management `sbp_…` de provisionnement révoqué** (2026-07-18). Le
+  déploiement CI utilise un **PAT dédié** dans le secret `SUPABASE_ACCESS_TOKEN`
+  (révocable / rotable indépendamment).
 - Ne jamais committer la clé `service_role` ni un token `sbp_…` (le `.env` est
   ignoré par git).
