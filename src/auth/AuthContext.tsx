@@ -3,6 +3,11 @@ import type { Session } from '@supabase/supabase-js';
 import { getSupabase } from '../lib/supabase.ts';
 import { ensureSelfDoctor } from '../backend/doctors.ts';
 import { getSettings } from '../backend/settings.ts';
+import {
+  challengeTotp,
+  getAssuranceLevel,
+  mfaChallengeNeeded,
+} from '../backend/mfa.ts';
 import { setIncludePentecote } from '../lib/dates.ts';
 import { frAuthError } from '../lib/authErrors.ts';
 import { idbGet, idbSet } from '../lib/idbCache.ts';
@@ -25,6 +30,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [doctor, setDoctor] = useState<Doctor | null>(null);
   const [loading, setLoading] = useState(true);
   const [previewMember, setPreviewMember] = useState(false);
+  // La session est authentifiée (mot de passe) mais un facteur TOTP vérifié
+  // exige encore l'étape à 6 chiffres avant d'accéder à l'application (aal1→aal2).
+  const [mfaRequired, setMfaRequired] = useState(false);
 
   const refreshDoctor = useCallback(async () => {
     const sb = getSupabase();
@@ -52,6 +60,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async function hydrate(s: Session | null) {
       setSession(s);
       if (s) {
+        // Défi TOTP éventuel : lecture locale de l'assurance (claim `aal` +
+        // facteurs de la session). Best-effort → hors-ligne on ne bloque pas.
+        try {
+          setMfaRequired(mfaChallengeNeeded(await getAssuranceLevel()));
+        } catch {
+          setMfaRequired(false);
+        }
         const key = `self-doctor:${s.user.id}`;
         try {
           const name =
@@ -67,6 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setDoctor((await idbGet<Doctor>(key)) ?? null);
         }
       } else {
+        setMfaRequired(false);
         setDoctor(null);
       }
       setLoading(false);
@@ -101,6 +117,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await getSupabase().auth.signOut();
   }
 
+  /** Étape TOTP au login : élève la session en aal2 avec le code à 6 chiffres. */
+  async function verifyMfa(code: string) {
+    try {
+      await challengeTotp(code);
+      // Session élevée : on lève le défi tout de suite (l'événement
+      // MFA_CHALLENGE_VERIFIED relancera aussi `hydrate` par sécurité).
+      setMfaRequired(false);
+      return {};
+    } catch (e) {
+      return { error: e instanceof Error ? e.message : frAuthError(null) };
+    }
+  }
+
   const isAdmin = !!doctor?.is_admin && !previewMember;
 
   return (
@@ -111,10 +140,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         isAdmin,
         previewMember,
+        mfaRequired,
         togglePreviewMember: () => setPreviewMember(v => !v),
         signIn,
         signUp,
         signOut,
+        verifyMfa,
         refreshDoctor,
       }}
     >

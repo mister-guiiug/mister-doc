@@ -25,7 +25,20 @@ export function frAuthError(message: string | undefined | null): string {
     m.includes('password is too short') ||
     m.includes('weak password')
   )
-    return 'Le mot de passe doit contenir au moins 6 caractères.';
+    return 'Le mot de passe doit contenir au moins 8 caractères.';
+  // MFA / double authentification (code TOTP à 6 chiffres).
+  if (
+    m.includes('invalid totp') ||
+    m.includes('invalid code') ||
+    m.includes('code is invalid') ||
+    (m.includes('totp') && m.includes('invalid')) ||
+    (m.includes('mfa') && (m.includes('invalid') || m.includes('fail')))
+  )
+    return 'Code à 6 chiffres incorrect ou expiré. Réessayez avec le code affiché dans votre application.';
+  if (m.includes('factor') && (m.includes('already') || m.includes('exists')))
+    return 'Un facteur d’authentification existe déjà. Rechargez la page.';
+  if (m.includes('aal2') || m.includes('assurance level'))
+    return 'Vérification en deux étapes requise pour cette action.';
   if (
     m.includes('unable to validate email') ||
     m.includes('invalid email') ||

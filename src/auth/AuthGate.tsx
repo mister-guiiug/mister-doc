@@ -2,18 +2,21 @@ import type { ReactNode } from 'react';
 import { LogOut } from 'lucide-react';
 import { useAuth } from './useAuth.ts';
 import { LoginPage } from './LoginPage.tsx';
+import { MfaChallenge } from './MfaChallenge.tsx';
 import { FullScreenSpinner } from '../components/Spinner.tsx';
 import { PendingScreen } from '../features/pending/PendingScreen.tsx';
 
 /**
- * Contrôle d'accès : chargement → connexion → (fiche médecin) → attente
- * d'approbation → application.
+ * Contrôle d'accès : chargement → connexion → (défi 2FA) → (fiche médecin) →
+ * attente d'approbation → application.
  */
 export function AuthGate({ children }: { children: ReactNode }) {
-  const { loading, session, doctor, signOut } = useAuth();
+  const { loading, session, doctor, signOut, mfaRequired } = useAuth();
 
   if (loading) return <FullScreenSpinner label="Chargement…" />;
   if (!session) return <LoginPage />;
+  // 2FA activée : bloquer l'accès tant que l'étape TOTP n'est pas franchie.
+  if (mfaRequired) return <MfaChallenge />;
 
   if (!doctor) {
     return (

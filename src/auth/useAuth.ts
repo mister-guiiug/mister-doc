@@ -15,6 +15,11 @@ export interface AuthValue {
   isAdmin: boolean;
   /** Vrai si un admin a activé l'aperçu « comme un médecin non-admin ». */
   previewMember: boolean;
+  /**
+   * Vrai si la session est authentifiée par mot de passe mais qu'un facteur TOTP
+   * vérifié impose encore l'étape à 6 chiffres (aal1→aal2) avant l'accès à l'app.
+   */
+  mfaRequired: boolean;
   /** Bascule l'aperçu médecin (sans effet si le compte n'est pas admin). */
   togglePreviewMember: () => void;
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
@@ -24,6 +29,8 @@ export interface AuthValue {
     name: string
   ) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
+  /** Valide le code TOTP à 6 chiffres au login (élève la session en aal2). */
+  verifyMfa: (code: string) => Promise<{ error?: string }>;
   /** Recharge la fiche du médecin connecté (après approbation, profil, admin…). */
   refreshDoctor: () => Promise<void>;
 }

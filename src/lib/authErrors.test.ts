@@ -17,9 +17,14 @@ describe('frAuthError', () => {
   });
 
   it('traduit un mot de passe trop court', () => {
-    expect(frAuthError('Password should be at least 6 characters')).toMatch(
-      /6 caractères/
+    expect(frAuthError('Password should be at least 8 characters')).toMatch(
+      /8 caractères/
     );
+  });
+
+  it('traduit un code TOTP invalide (MFA)', () => {
+    expect(frAuthError('Invalid TOTP code entered')).toMatch(/6 chiffres/);
+    expect(frAuthError('MFA verification failed')).toMatch(/6 chiffres/);
   });
 
   it('traduit une limitation de débit', () => {

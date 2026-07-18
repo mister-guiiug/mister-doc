@@ -32,6 +32,7 @@ import { CalendarDialog } from '../../components/CalendarDialog.tsx';
 import { Button } from '../../components/ui/Button.tsx';
 import { SectionCard } from '../../components/ui/SectionCard.tsx';
 import { SegmentedControl } from '../../components/ui/SegmentedControl.tsx';
+import { TwoFactorCard } from './TwoFactorCard.tsx';
 
 /** Carte de section réutilisable (alias local du `SectionCard` du design system). */
 function Section({
@@ -269,6 +270,9 @@ export function ProfilePage() {
           ]}
         />
       </Section>
+
+      {/* Sécurité — double authentification (2FA) */}
+      <TwoFactorCard />
 
       {/* Calendrier */}
       <Section

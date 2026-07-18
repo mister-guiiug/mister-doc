@@ -41,18 +41,21 @@ const SHIFT = {
   updated_at: '',
 };
 
-async function seedSession(page: Page) {
+async function seedSession(page: Page, mfa: boolean) {
   await page.addInitScript(
-    ({ ref, uid }) => {
+    ({ ref, uid, mfa }) => {
       const exp = Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 365;
       const b64 = (o: unknown) =>
         btoa(JSON.stringify(o)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+      // `aal1` = mot de passe seulement ; combiné à un facteur TOTP vérifié dans
+      // `user.factors`, `getAuthenticatorAssuranceLevel()` renvoie next=aal2 → défi.
       const jwt = `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({
         sub: uid,
         role: 'authenticated',
         aud: 'authenticated',
         exp,
         email: 'e2e@test.fr',
+        ...(mfa ? { aal: 'aal1' } : {}),
       })}.sig`;
       const session = {
         access_token: jwt,
@@ -68,16 +71,31 @@ async function seedSession(page: Page) {
           app_metadata: { provider: 'email' },
           user_metadata: { full_name: 'Dr E2E' },
           created_at: '2026-01-01T00:00:00Z',
+          factors: mfa
+            ? [
+                {
+                  id: 'factor-totp-1',
+                  factor_type: 'totp',
+                  status: 'verified',
+                  friendly_name: 'e2e',
+                  created_at: '2026-01-01T00:00:00Z',
+                  updated_at: '2026-01-01T00:00:00Z',
+                },
+              ]
+            : [],
         },
       };
       localStorage.setItem(`sb-${ref}-auth-token`, JSON.stringify(session));
     },
-    { ref: REF, uid: USER_ID }
+    { ref: REF, uid: USER_ID, mfa }
   );
 }
 
-export async function setupAuthenticated(page: Page) {
-  await seedSession(page);
+export async function setupAuthenticated(
+  page: Page,
+  opts: { mfa?: boolean } = {}
+) {
+  await seedSession(page, opts.mfa ?? false);
 
   // Realtime : ne jamais atteindre le vrai serveur (on n'appelle pas connect).
   await page.routeWebSocket(/supabase\.co/, () => {
@@ -87,6 +105,11 @@ export async function setupAuthenticated(page: Page) {
   // Drapeau partagé lu par la route (les handlers tournent côté Node) : bascule
   // fiable en « hors-ligne » sans dépendre de la précédence des routes.
   const state = { offline: false };
+
+  // Facteurs MFA renvoyés par `GET /auth/v1/user` (source de `listFactors()`).
+  const factors = opts.mfa
+    ? [{ id: 'factor-totp-1', factor_type: 'totp', status: 'verified' }]
+    : [];
 
   await page.route(/supabase\.co\/(rest|auth)\/v1\//, route => {
     const url = route.request().url();
@@ -114,6 +137,17 @@ export async function setupAuthenticated(page: Page) {
         body: JSON.stringify(body),
       });
 
+    // `getUser()` (source de `listFactors()` / carte 2FA du profil).
+    if (url.includes('/auth/v1/user'))
+      return json({
+        id: USER_ID,
+        aud: 'authenticated',
+        role: 'authenticated',
+        email: 'e2e@test.fr',
+        app_metadata: { provider: 'email' },
+        user_metadata: { full_name: 'Dr E2E' },
+        factors,
+      });
     if (url.includes('/rpc/ensure_self_doctor')) return json(SELF);
     if (url.includes('/rpc/get_settings')) return json({ pentecote_ferie: true });
     if (url.includes('/rest/v1/doctors')) return json([SELF, MARTIN]);

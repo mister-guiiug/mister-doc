@@ -33,6 +33,13 @@ test.describe('Page de connexion', () => {
     await expect(
       page.getByRole('button', { name: 'Créer mon compte' })
     ).toBeVisible();
+
+    // Le mot de passe exige 8 caractères (aligné sur `password_min_length=8`).
+    await expect(page.getByLabel('Mot de passe')).toHaveAttribute(
+      'minlength',
+      '8'
+    );
+    await expect(page.getByText('8 caractères minimum.')).toBeVisible();
   });
 
   test('les champs sont associés à leur label (a11y du composant Field)', async ({
