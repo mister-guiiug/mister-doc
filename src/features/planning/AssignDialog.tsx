@@ -29,19 +29,10 @@ import type {
   WishKind,
 } from '../../backend/types.ts';
 import { listSlotHistory } from '../../backend/history.ts';
+import { timeAgo } from '../../lib/relativeTime.ts';
 import { Modal } from '../../components/Modal.tsx';
 import { Button } from '../../components/ui/Button.tsx';
 import { useConfirm } from '../../components/ui/confirmContext.ts';
-
-/** Temps relatif court en français (pour l'historique). */
-function frTime(iso: string): string {
-  const diff = (Date.now() - new Date(iso).getTime()) / 1000;
-  if (diff < 60) return "à l'instant";
-  if (diff < 3600) return `il y a ${Math.floor(diff / 60)} min`;
-  if (diff < 86400) return `il y a ${Math.floor(diff / 3600)} h`;
-  if (diff < 7 * 86400) return `il y a ${Math.floor(diff / 86400)} j`;
-  return new Date(iso).toLocaleDateString('fr-FR');
-}
 
 export interface SlotTarget {
   iso: string;
@@ -312,7 +303,7 @@ export function AssignDialog({
                       )}
                     </span>
                     <span className="shrink-0 text-slate-400">
-                      {frTime(h.changed_at)}
+                      {timeAgo(h.changed_at)}
                     </span>
                   </li>
                 ))}

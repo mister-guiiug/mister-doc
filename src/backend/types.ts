@@ -12,6 +12,18 @@ export interface Doctor {
   created_at: string;
 }
 
+/** Entrée du journal d'audit (actions sensibles) — cf. migration 0017. */
+export interface AuditEntry {
+  id: number;
+  at: string;
+  actor_id: string | null;
+  actor_name: string | null;
+  action: string;
+  target_id: string | null;
+  target_name: string | null;
+  details: Record<string, unknown> | null;
+}
+
 export interface Shift {
   id: string;
   work_date: string; // YYYY-MM-DD

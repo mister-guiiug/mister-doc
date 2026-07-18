@@ -40,6 +40,28 @@ const SHIFT = {
   created_at: '',
   updated_at: '',
 };
+const AUDIT = [
+  {
+    id: 2,
+    at: '2026-07-16T09:00:00Z',
+    actor_id: 'doc-self',
+    actor_name: 'DR E2E',
+    action: 'month.lock',
+    target_id: null,
+    target_name: null,
+    details: { year: 2026, month: 6 },
+  },
+  {
+    id: 1,
+    at: '2026-07-15T08:00:00Z',
+    actor_id: 'doc-self',
+    actor_name: 'DR E2E',
+    action: 'doctor.approve',
+    target_id: 'doc-martin',
+    target_name: 'MARTIN',
+    details: null,
+  },
+];
 
 async function seedSession(page: Page, mfa: boolean) {
   await page.addInitScript(
@@ -169,6 +191,7 @@ export async function setupAuthenticated(
     if (url.includes('/rest/v1/wishes')) return json([]);
     if (url.includes('/rest/v1/hnc_hours')) return json([]);
     if (url.includes('/rest/v1/locked_months')) return json(locks);
+    if (url.includes('/rest/v1/audit_log')) return json(AUDIT);
     return json([]);
   });
 

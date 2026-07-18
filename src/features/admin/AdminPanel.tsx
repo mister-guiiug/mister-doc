@@ -30,6 +30,7 @@ import { EmptyState } from '../../components/ui/EmptyState.tsx';
 import { SectionCard } from '../../components/ui/SectionCard.tsx';
 import { useConfirm } from '../../components/ui/confirmContext.ts';
 import { BackupCard } from './BackupCard.tsx';
+import { AuditLogCard } from './AuditLogCard.tsx';
 import { DOCTOR_COLORS, DEFAULT_DOCTOR_COLOR } from '../../lib/colors.ts';
 
 const COLORS = DOCTOR_COLORS;
@@ -320,6 +321,8 @@ export function AdminPanel() {
           })}
         </ul>
       </Card>
+
+      <AuditLogCard />
 
       {editDoc && (
         <ProfileDialog
