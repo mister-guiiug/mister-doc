@@ -103,6 +103,14 @@ jobs:
             echo "::error::Secret SUPABASE_DB_URL manquant."
             exit 1
           fi
+          # Garde : refuser la connexion DIRECTE (db.<ref>.supabase.co), en IPv6 donc
+          # injoignable par le runner. Exiger le Session pooler (*.pooler.supabase.com,
+          # IPv4). Message clair plutôt qu'un « Network is unreachable » cryptique.
+          db_host=$(printf '%s' "$SUPABASE_DB_URL" | sed -E 's#^[a-zA-Z]+://[^@]*@([^:/?]+).*#\1#')
+          if printf '%s' "$db_host" | grep -Eq '^db\.[a-z0-9]+\.supabase\.co$'; then
+            echo "::error::SUPABASE_DB_URL pointe vers la connexion DIRECTE ($db_host), en IPv6 et injoignable par le runner GitHub. Utilisez l'URI du « Session pooler » : hôte *.pooler.supabase.com, utilisateur postgres.<ref>, port 5432."
+            exit 1
+          fi
           echo "Migrations appliquées (une seule transaction, tout ou rien) :"
           printf '  - %s\n' "${files[@]}"
           args=()
