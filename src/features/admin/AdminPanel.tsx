@@ -10,6 +10,7 @@ import {
   Loader2,
   Pencil,
   Settings,
+  KeyRound,
 } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth.ts';
 import type { AppSettings, Doctor } from '../../backend/types.ts';
@@ -17,6 +18,7 @@ import {
   adminAddRoster,
   adminDeleteDoctor,
   adminRejectDoctor,
+  adminResetMfa,
   adminSetDoctor,
   adminUpdateDoctor,
   anonymizeDoctor,
@@ -291,6 +293,27 @@ export function AdminPanel() {
                     ) : (
                       <Shield className="size-4" />
                     )}
+                  </button>
+                )}
+
+                {hasAccount && !isSelf && (
+                  <button
+                    disabled={busyId === d.id}
+                    onClick={async () => {
+                      if (
+                        await confirm({
+                          title: `Réinitialiser la 2FA de « ${d.name} » ?`,
+                          message:
+                            'Supprime sa double authentification (authentificateur perdu). Il pourra se reconnecter avec son seul mot de passe, puis la réactiver.',
+                          confirmLabel: 'Réinitialiser',
+                        })
+                      )
+                        void act(d.id, () => adminResetMfa(d.id));
+                    }}
+                    title="Réinitialiser la 2FA (authentificateur perdu)"
+                    className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
+                  >
+                    <KeyRound className="size-4" />
                   </button>
                 )}
 

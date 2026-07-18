@@ -24,6 +24,7 @@ const ACTIONS: Record<string, string> = {
   'doctor.grant_admin': 'a promu administrateur',
   'doctor.revoke_admin': 'a retiré les droits admin de',
   'doctor.remove': 'a supprimé',
+  'mfa.reset': 'a réinitialisé la 2FA de',
   'month.lock': 'a verrouillé',
   'month.unlock': 'a déverrouillé',
 };

@@ -80,9 +80,14 @@ export function MfaChallenge() {
           </Button>
         </form>
 
+        <p className="mt-4 text-center text-xs text-slate-400">
+          Authentificateur perdu ? Demandez à un administrateur de réinitialiser
+          votre double authentification, puis reconnectez-vous.
+        </p>
+
         <button
           onClick={() => void signOut()}
-          className="mx-auto mt-4 flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+          className="mx-auto mt-3 flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
         >
           <LogOut className="size-3.5" /> Se déconnecter
         </button>

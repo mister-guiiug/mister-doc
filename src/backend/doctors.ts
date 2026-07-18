@@ -48,6 +48,16 @@ export async function anonymizeDoctor(id: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
+/**
+ * Réinitialise la double authentification d'un médecin (admin) : supprime ses
+ * facteurs TOTP. Récupération après perte de l'authentificateur — le médecin se
+ * reconnecte ensuite avec son seul mot de passe.
+ */
+export async function adminResetMfa(id: string): Promise<void> {
+  const { error } = await getSupabase().rpc('admin_reset_mfa', { p_id: id });
+  if (error) throw new Error(error.message);
+}
+
 /** Devenir le premier admin via le code de bootstrap. */
 export async function claimAdmin(code: string): Promise<Doctor> {
   const { data, error } = await getSupabase().rpc('claim_admin', {

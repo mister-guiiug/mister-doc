@@ -21,6 +21,7 @@ describe('auditActionLabel', () => {
     expect(auditActionLabel('doctor.approve')).toBe('a approuvé');
     expect(auditActionLabel('doctor.grant_admin')).toBe('a promu administrateur');
     expect(auditActionLabel('month.lock')).toBe('a verrouillé');
+    expect(auditActionLabel('mfa.reset')).toBe('a réinitialisé la 2FA de');
   });
 
   it('repli sur le code brut pour une action inconnue', () => {
