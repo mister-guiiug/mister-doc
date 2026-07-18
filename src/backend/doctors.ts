@@ -37,6 +37,17 @@ export async function deleteMyAccount(): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
+/**
+ * Effacement RGPD (art. 17) d'un compte APPROUVÉ par anonymisation : efface
+ * l'identité (nom, e-mail, compte d'auth, tokens) et les données personnelles
+ * (vœux, notifications, push) ; les gardes passées restent au planning sous une
+ * identité anonymisée. Appelable par le médecin lui-même ou par un admin.
+ */
+export async function anonymizeDoctor(id: string): Promise<void> {
+  const { error } = await getSupabase().rpc('anonymize_doctor', { p_id: id });
+  if (error) throw new Error(error.message);
+}
+
 /** Devenir le premier admin via le code de bootstrap. */
 export async function claimAdmin(code: string): Promise<Doctor> {
   const { data, error } = await getSupabase().rpc('claim_admin', {

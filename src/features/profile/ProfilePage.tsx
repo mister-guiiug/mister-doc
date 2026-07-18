@@ -16,6 +16,7 @@ import {
   BellRing,
   FileText,
   Download,
+  UserX,
 } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth.ts';
 import { useToast } from '../../components/Toast.tsx';
@@ -29,11 +30,12 @@ import {
   pushConfigured,
   pushDenied,
 } from '../../lib/push.ts';
-import { updateMyProfile } from '../../backend/doctors.ts';
+import { anonymizeDoctor, updateMyProfile } from '../../backend/doctors.ts';
 import { CalendarDialog } from '../../components/CalendarDialog.tsx';
 import { Button } from '../../components/ui/Button.tsx';
 import { SectionCard } from '../../components/ui/SectionCard.tsx';
 import { SegmentedControl } from '../../components/ui/SegmentedControl.tsx';
+import { useConfirm } from '../../components/ui/confirmContext.ts';
 import { TwoFactorCard } from './TwoFactorCard.tsx';
 import { PrivacyDialog } from '../legal/PrivacyPolicy.tsx';
 import { exportMyData, downloadMyData } from '../../backend/gdpr.ts';
@@ -61,6 +63,7 @@ export function ProfilePage() {
   const { doctor, isAdmin, signOut, refreshDoctor } = useAuth();
   const { theme, setTheme } = useTheme();
   const toast = useToast();
+  const confirm = useConfirm();
   const [name, setName] = useState(doctor?.name ?? '');
   const [color, setColor] = useState(doctor?.color ?? DOCTOR_COLORS[0]);
   const [saving, setSaving] = useState(false);
@@ -168,6 +171,25 @@ export function ProfilePage() {
       toast.success('Lien copié.');
     } catch {
       toast.error('Copie impossible — sélectionnez le lien manuellement.');
+    }
+  }
+
+  // Effacement RGPD (droit à l'effacement) : anonymise le compte puis déconnecte.
+  async function handleDeleteAccount() {
+    if (!doctor) return;
+    const ok = await confirm({
+      title: 'Supprimer votre compte ?',
+      message:
+        "Votre identité (nom, e-mail, connexion) sera définitivement effacée. Vos gardes passées restent au planning sous une identité anonymisée. Action irréversible : vous serez déconnecté(e).",
+      danger: true,
+      confirmLabel: 'Supprimer mon compte',
+    });
+    if (!ok) return;
+    try {
+      await anonymizeDoctor(doctor.id);
+      await signOut();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Suppression impossible.');
     }
   }
 
@@ -388,6 +410,17 @@ export function ProfilePage() {
           >
             {!exporting && <Download className="size-4" />} Télécharger mes données
           </Button>
+          <Button
+            variant="dangerGhost"
+            className="w-full py-2.5"
+            onClick={() => void handleDeleteAccount()}
+          >
+            <UserX className="size-4" /> Supprimer mon compte
+          </Button>
+          <p className="text-xs text-slate-400">
+            Suppression = anonymisation : votre identité est effacée ; vos gardes
+            passées restent au planning sans votre nom.
+          </p>
         </div>
       </Section>
 

@@ -19,6 +19,7 @@ import {
   adminRejectDoctor,
   adminSetDoctor,
   adminUpdateDoctor,
+  anonymizeDoctor,
   listDoctors,
 } from '../../backend/doctors.ts';
 import { getSettings, setSettings as saveSettings } from '../../backend/settings.ts';
@@ -289,6 +290,32 @@ export function AdminPanel() {
                       <ShieldOff className="size-4" />
                     ) : (
                       <Shield className="size-4" />
+                    )}
+                  </button>
+                )}
+
+                {hasAccount && !isSelf && (
+                  <button
+                    disabled={busyId === d.id}
+                    onClick={async () => {
+                      if (
+                        await confirm({
+                          title: `Anonymiser « ${d.name} » ?`,
+                          message:
+                            "L'identité (nom, e-mail, connexion) sera définitivement effacée. Les gardes passées restent au planning sous une identité anonymisée. Irréversible.",
+                          danger: true,
+                          confirmLabel: 'Anonymiser',
+                        })
+                      )
+                        void act(d.id, () => anonymizeDoctor(d.id));
+                    }}
+                    title="Anonymiser / supprimer le compte (RGPD)"
+                    className="rounded-lg p-1.5 text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
+                  >
+                    {busyId === d.id ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <UserX className="size-4" />
                     )}
                   </button>
                 )}

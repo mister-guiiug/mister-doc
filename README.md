@@ -96,8 +96,10 @@ avant connexion (page de login) et depuis le profil — c'est un **modèle** don
 mentions légales `[À compléter]` (responsable du traitement, base légale, durées,
 contact) doivent être renseignées avant mise en service. Chaque médecin peut
 **exporter ses données** (droit d'accès / portabilité, art. 15/20) en JSON depuis
-son profil. Effacement : un compte en attente se supprime lui-même ; pour un compte
-approuvé, contacter un administrateur (suppression ou anonymisation).
+son profil. **Effacement** (droit à l'oubli, art. 17) : un compte en attente se
+supprime lui-même ; un compte **approuvé** peut **s'anonymiser** depuis son profil
+(ou via un admin) — l'identité (nom, e-mail, connexion) est effacée tandis que les
+gardes passées restent au planning sous une identité anonyme (intégrité préservée).
 
 ## Développement local
 
@@ -118,7 +120,7 @@ Scripts utiles : `npm run build`, `npm run preview`, `npm run test`,
 
 Le schéma versionné est découpé en migrations dans
 [`supabase/migrations/`](supabase/migrations/), à appliquer **dans l'ordre**
-(`0001` → `0018`) via le **SQL Editor** du tableau de bord Supabase :
+(`0001` → `0019`) via le **SQL Editor** du tableau de bord Supabase :
 
 | Migration | Contenu |
 | --------- | ------- |
@@ -139,6 +141,7 @@ Le schéma versionné est découpé en migrations dans
 | `0016_extend_month_lock` | verrou de mois **étendu** aux HNC / notes / vœux (triggers `assert_month_unlocked`) |
 | `0017_audit_log` | **journal d'audit** admin (table `audit_log` + triggers sur `doctors` / `locked_months`) |
 | `0018_calendar_token_hash` | tokens calendrier **hashés au repos** (SHA-256 ; plus de token en clair en base ; lien montré une seule fois) |
+| `0019_anonymize_doctor` | **effacement RGPD** des comptes approuvés par **anonymisation** (RPC `anonymize_doctor`, self-service ou admin) |
 
 Après `0001`, renseignez le code de bootstrap :
 
