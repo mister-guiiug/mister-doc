@@ -1,0 +1,22 @@
+# Configuration Supabase CLI — utilisée UNIQUEMENT pour déployer les Edge
+# Functions en CI (voir .github/workflows/supabase.yml). Elle déclare le réglage
+# `verify_jwt` PAR fonction (impossible à exprimer avec le seul drapeau global
+# `--no-verify-jwt`, qui s'appliquerait à toutes les fonctions à la fois).
+#
+# ⚠️ La BASE (migrations) n'est PAS gérée par le CLI : le projet a été provisionné
+# en SQL brut via l'API Management, donc l'historique `schema_migrations` du CLI
+# est VIERGE. La CI applique les migrations via psql (0014→…, cf. le workflow).
+# Ne lancez donc JAMAIS `supabase db push` / `supabase db reset` avec ce fichier :
+# le CLI, ne voyant aucune migration appliquée, tenterait de rejouer 0001→0013
+# (dont la suppression destructive des lignes S3 de 0009) sur la base RÉELLE.
+project_id = "lgbuytinzukaxrqjwxme"
+
+# Les deux fonctions sont « publiques » au sens JWT (pas d'auth utilisateur) :
+#   - calendar : flux .ics public, protégé par un token secret dans l'URL ;
+#   - push     : appelée par un webhook base de données, protégée par un
+#                WEBHOOK_SECRET vérifié à temps constant (fail-closed).
+[functions.calendar]
+verify_jwt = false
+
+[functions.push]
+verify_jwt = false

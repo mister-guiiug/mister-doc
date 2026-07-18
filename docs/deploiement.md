@@ -2,8 +2,13 @@
 
 Guide pour mettre la base et l'Edge Function à jour avec les évolutions récentes.
 Le **front est déjà en production** (déployé automatiquement sur GitHub Pages à
-chaque push sur `main`) : **rien à faire côté front**. Restent des changements
-**Supabase** à appliquer à la main.
+chaque push sur `main`) : **rien à faire côté front**.
+
+Le **Supabase** (Edge Functions + migrations) se déploie désormais **par la CI/CD**
+(workflow [`.github/workflows/supabase.yml`](../.github/workflows/supabase.yml)) —
+voir [« Déploiement automatisé »](#déploiement-automatisé-cicd--recommandé) ci-dessous.
+La [procédure manuelle](#procédure-manuelle-repli--première-mise-en-service) reste
+documentée en repli.
 
 ## État
 
@@ -18,7 +23,51 @@ Le front est **rétro-compatible** : il fonctionne avant comme après ces migrat
 (double-mode calendrier, génération de codes non bloquante, etc.). On peut donc
 déployer la base tranquillement, sans fenêtre de coupure.
 
-## Procédure — 2 étapes, dans cet ordre
+## Déploiement automatisé (CI/CD) — recommandé
+
+Le workflow **[`supabase.yml`](../.github/workflows/supabase.yml)** déploie la base
+et les Edge Functions. Il se déclenche **automatiquement quand un fichier
+`supabase/**` change sur `main`** (un push qui ne touche que le front ne redéploie
+donc pas la base) et **manuellement** via l'onglet **Actions → Déploiement Supabase
+→ Run workflow**.
+
+Ce qu'il fait, dans l'ordre (le même job, séquentiel) :
+
+1. **Déploie les Edge Functions** `calendar` + `push` (`supabase functions deploy
+   --use-api`, sans Docker). Le `verify_jwt = false` de chaque fonction est
+   déclaré dans [`supabase/config.toml`](../supabase/config.toml).
+2. **Applique les migrations** de préfixe **≥ 0014** via `psql`, **en une seule
+   transaction atomique** (tout ou rien). Les migrations `0001`→`0013`, posées hors
+   CLI (dont la suppression destructive S3 de `0009`), ne sont **jamais** rejouées.
+
+L'ordre fonction-puis-migrations est **garanti par construction** — il résout la
+contrainte de `0018` (cf. encadré plus bas). Les migrations étant **idempotentes**,
+chaque exécution est sûre à rejouer.
+
+### Secrets à créer (une fois)
+
+Dépôt GitHub → **Settings → Secrets and variables → Actions → New repository secret** :
+
+| Secret | Où le trouver | Rôle |
+| --- | --- | --- |
+| `SUPABASE_ACCESS_TOKEN` | Supabase → **Account → Access Tokens → Generate new token** | Déployer les Edge Functions. **Créer un token dédié CI** — ne pas réutiliser le token de provisionnement `sbp_…` (qui, lui, reste à révoquer). |
+| `SUPABASE_DB_URL` | Dashboard → **Project Settings → Database → Connection string → onglet « Session pooler »** (format URI) | Connexion `psql` pour les migrations. Remplacer `[YOUR-PASSWORD]` par le mot de passe de la base. Utiliser le **Session pooler** (IPv4, port 5432), pas le Transaction pooler. |
+
+> La **ref de projet** (`lgbuytinzukaxrqjwxme`) est publique (déjà dans l'URL de
+> l'app) : elle est en clair dans le workflow, pas besoin de secret.
+
+Une fois les deux secrets créés, tout push modifiant `supabase/**` (ou un « Run
+workflow » manuel) déclenche le déploiement. Vérifier le résultat dans l'onglet
+**Actions**, puis dérouler les [vérifications post-déploiement](#vérifications-après-déploiement).
+
+> ⚠️ Tant que les secrets ne sont pas posés, le workflow **échoue** (auth Supabase
+> / connexion base manquantes) sans toucher la prod — pose-les **avant** de compter
+> sur lui.
+
+## Procédure manuelle (repli / première mise en service)
+
+> Utile pour la toute première application, un rejeu ciblé, ou si l'on préfère
+> piloter à la main. Sinon, préférer la [CI/CD](#déploiement-automatisé-cicd--recommandé).
 
 ### 1) Redéployer l'Edge Function `calendar` **en premier**
 

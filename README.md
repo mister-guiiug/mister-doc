@@ -119,10 +119,12 @@ Scripts utiles : `npm run build`, `npm run preview`, `npm run test`,
 ## Base de données Supabase
 
 Le schéma versionné est découpé en migrations dans
-[`supabase/migrations/`](supabase/migrations/), à appliquer **dans l'ordre**
-(`0001` → `0021`) via le **SQL Editor** du tableau de bord Supabase. Pour mettre à
-jour une instance existante (edge function + migrations), voir le récapitulatif de
-déploiement : [`docs/deploiement.md`](docs/deploiement.md).
+[`supabase/migrations/`](supabase/migrations/), appliquées **dans l'ordre**
+(`0001` → `0021`). Pour une instance existante, le déploiement (Edge Functions +
+migrations `≥ 0014`) est **automatisé par la CI** — workflow
+[`.github/workflows/supabase.yml`](.github/workflows/supabase.yml), déclenché sur
+tout changement `supabase/**` sur `main`. Détails, secrets requis et procédure
+manuelle de repli : [`docs/deploiement.md`](docs/deploiement.md).
 
 | Migration | Contenu |
 | --------- | ------- |
@@ -170,8 +172,10 @@ bouton **Calendrier** de l'en-tête affiche l'URL d'abonnement (équipe ou
 personnelle) avec liens webcal / Google Agenda / téléchargement. Les médecins
 approuvés récupèrent le token via la RPC `calendar_token()`.
 
-Déploiement de la fonction : `supabase functions deploy calendar --no-verify-jwt`
-(ou via l'API Management). Définir ensuite le token :
+Déploiement de la fonction : automatisé par la CI (workflow
+[`supabase.yml`](.github/workflows/supabase.yml), `verify_jwt` déclaré dans
+[`supabase/config.toml`](supabase/config.toml)) ; en manuel :
+`supabase functions deploy calendar --no-verify-jwt`. Définir ensuite le token :
 `update public.app_config set calendar_token = 'SECRET' where id = 1;`
 
 **Tokens hashés au repos** (migration `0018`) : la base ne stocke plus que le
