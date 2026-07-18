@@ -120,7 +120,9 @@ Scripts utiles : `npm run build`, `npm run preview`, `npm run test`,
 
 Le schéma versionné est découpé en migrations dans
 [`supabase/migrations/`](supabase/migrations/), à appliquer **dans l'ordre**
-(`0001` → `0021`) via le **SQL Editor** du tableau de bord Supabase :
+(`0001` → `0021`) via le **SQL Editor** du tableau de bord Supabase. Pour mettre à
+jour une instance existante (edge function + migrations), voir le récapitulatif de
+déploiement : [`docs/deploiement.md`](docs/deploiement.md).
 
 | Migration | Contenu |
 | --------- | ------- |
