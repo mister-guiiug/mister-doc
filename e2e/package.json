@@ -1,0 +1,13 @@
+{
+  "name": "mister-doc-e2e",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Tests E2E Playwright, ISOLÉS du package.json/lockfile de l'app : les installer ici n'altère pas le lockfile racine (dont npm ci dépend, cf. deps optionnelles Linux). Lancer via `npm run test:e2e` à la racine.",
+  "scripts": {
+    "test": "playwright test",
+    "install:browser": "playwright install chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.0"
+  }
+}

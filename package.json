@@ -15,6 +15,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:e2e": "npm --prefix e2e test",
     "type-check": "tsc -b",
     "icons": "node scripts/generate-pwa-icons.mjs"
   },

@@ -1,0 +1,36 @@
+name: Tests E2E (Playwright)
+
+# Isolé du workflow de déploiement : n'installe pas Playwright dans le lockfile
+# de l'app (les deps E2E vivent dans e2e/). Ne bloque pas le déploiement.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    env:
+      # Les requêtes Supabase sont mockées ; ces valeurs servent seulement à
+      # passer la validation d'environnement (env.ts) et à faire correspondre la
+      # clé de session (ref du projet).
+      VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Dépendances de l'app
+        run: npm ci --no-audit --no-fund
+      - name: Dépendances E2E (isolées)
+        run: npm --prefix e2e install --no-audit --no-fund
+      - name: Navigateur Playwright
+        run: npm --prefix e2e exec -- playwright install --with-deps chromium
+      - name: Lancer les tests E2E
+        run: npm --prefix e2e test
