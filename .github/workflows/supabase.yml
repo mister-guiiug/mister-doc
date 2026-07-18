@@ -51,16 +51,16 @@ jobs:
       # doivent JAMAIS être rejouées sur la base réelle.
       MIN_MIGRATION: '14'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # --- 1) Edge Functions AVANT les migrations (0018 en dépend) ---------------
       # setup-cli installe le CLI via npm → exige Node 20+. ubuntu-latest en fournit
       # un, mais on l'épingle pour éviter toute surprise d'image.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
 
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         with:
           # Version FIXE (publiée sur npm). `latest` fait résoudre la version via
           # l'API GitHub NON authentifiée → « rate limit exceeded » sur l'IP
