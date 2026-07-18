@@ -12,13 +12,7 @@ test.describe('Planning authentifié (Supabase mocké)', () => {
     await expect(page.getByRole('button', { name: /MARTIN/ })).toBeVisible();
   });
 
-  // FIXME : le bandeau hors-ligne ne remonte pas de façon déterministe sous ce
-  // harnais mocké (le repli cache de `loadData` s'exécute mais l'assertion du
-  // bandeau reste flaky ici). La fonctionnalité est vérifiée fonctionnellement
-  // par ailleurs (round-trip idbCache). Scénario conservé pour reprise ultérieure.
-  test.fixme('bascule en mode hors-ligne quand le réseau tombe', async ({
-    page,
-  }) => {
+  test('bascule en mode hors-ligne quand le réseau tombe', async ({ page }) => {
     const { goOffline } = await setupAuthenticated(page);
     await page.goto('/#/?m=2026-07');
     // Chargé en ligne : les données sont mises en cache (IndexedDB).
@@ -26,7 +20,7 @@ test.describe('Planning authentifié (Supabase mocké)', () => {
     await waitForMonthCache(page); // s'assurer que le cliché est bien écrit
 
     // Le réseau tombe ; un rafraîchissement doit basculer en mode hors-ligne
-    // (bandeau) tout en gardant les données affichées (cache).
+    // (bandeau) tout en gardant les données affichées (depuis le cache).
     goOffline();
     await page.getByRole('button', { name: 'Rafraîchir' }).click();
 

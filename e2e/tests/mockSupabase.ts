@@ -90,9 +90,23 @@ export async function setupAuthenticated(page: Page) {
 
   await page.route(/supabase\.co\/(rest|auth)\/v1\//, route => {
     const url = route.request().url();
-    // Hors-ligne : seules les requêtes de données (/rest/, dont les RPC) échouent.
-    // On laisse /auth/ répondre pour ne pas bloquer l'initialisation de la session.
-    if (state.offline && url.includes('/rest/v1/')) return route.abort();
+    // Hors-ligne : seules les requêtes de données (/rest/, dont les RPC) échouent ;
+    // on laisse /auth/ répondre pour ne pas bloquer l'initialisation de la session.
+    // On renvoie une ERREUR SERVEUR plutôt qu'un `route.abort()`. Deux pièges évités :
+    //  1. un abort de transport n'est PAS relayé proprement au client supabase-js
+    //     sous interception Playwright (le fetch ne rejette jamais → le client boucle) ;
+    //  2. postgrest-js retente automatiquement (backoff) les erreurs réseau ET les
+    //     statuts 503/520 sur les GET — le `catch` ne s'exécuterait donc qu'après
+    //     ~7 s d'attente, rendant le test lent et fragile.
+    // Un statut NON retryable (500) est converti en `error` par postgrest dès la
+    // 1re tentative → `listMonth*` throw → le `catch` de `loadData` s'exécute
+    // immédiatement : exactement la branche empruntée lors d'une coupure réseau.
+    if (state.offline && url.includes('/rest/v1/'))
+      return route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({ message: 'offline (mock e2e)' }),
+      });
     const json = (body: unknown) =>
       route.fulfill({
         status: 200,
@@ -112,7 +126,7 @@ export async function setupAuthenticated(page: Page) {
     return json([]);
   });
 
-  /** Coupe le réseau Supabase : les requêtes échouent (test hors-ligne). */
+  /** Coupe le réseau de données : les requêtes `/rest/` échouent (test hors-ligne). */
   return {
     goOffline() {
       state.offline = true;
