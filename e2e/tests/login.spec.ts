@@ -50,4 +50,17 @@ test.describe('Page de connexion', () => {
     await expect(page.getByLabel('E-mail')).toBeVisible();
     await expect(page.getByLabel('Mot de passe')).toBeVisible();
   });
+
+  test('la politique de confidentialité est accessible avant connexion', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    await page
+      .getByRole('button', { name: 'Politique de confidentialité' })
+      .click();
+    await expect(
+      page.getByRole('heading', { name: 'Politique de confidentialité' })
+    ).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Vos droits' })).toBeVisible();
+  });
 });

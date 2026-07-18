@@ -14,6 +14,8 @@ import {
   Share2,
   Copy,
   BellRing,
+  FileText,
+  Download,
 } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth.ts';
 import { useToast } from '../../components/Toast.tsx';
@@ -33,6 +35,8 @@ import { Button } from '../../components/ui/Button.tsx';
 import { SectionCard } from '../../components/ui/SectionCard.tsx';
 import { SegmentedControl } from '../../components/ui/SegmentedControl.tsx';
 import { TwoFactorCard } from './TwoFactorCard.tsx';
+import { PrivacyDialog } from '../legal/PrivacyPolicy.tsx';
+import { exportMyData, downloadMyData } from '../../backend/gdpr.ts';
 
 /** Carte de section réutilisable (alias local du `SectionCard` du design system). */
 function Section({
@@ -62,6 +66,8 @@ export function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [calendar, setCalendar] = useState(false);
+  const [privacy, setPrivacy] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [copied, setCopied] = useState(false);
   const pushOn = pushConfigured();
   const [push, setPush] = useState<'loading' | 'on' | 'off' | 'denied' | 'busy'>(
@@ -162,6 +168,20 @@ export function ProfilePage() {
       toast.success('Lien copié.');
     } catch {
       toast.error('Copie impossible — sélectionnez le lien manuellement.');
+    }
+  }
+
+  // Export RGPD (droit d'accès / portabilité) : télécharge mes données en JSON.
+  async function handleExport() {
+    if (!doctor) return;
+    setExporting(true);
+    try {
+      downloadMyData(await exportMyData(doctor));
+      toast.success('Vos données ont été téléchargées.');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Export impossible.');
+    } finally {
+      setExporting(false);
     }
   }
 
@@ -346,6 +366,31 @@ export function ProfilePage() {
         </Section>
       )}
 
+      {/* Confidentialité & données (RGPD) */}
+      <Section
+        icon={<ShieldCheck className="size-4" />}
+        title="Confidentialité & mes données"
+        desc="Politique de confidentialité et export de vos données (RGPD)"
+      >
+        <div className="flex flex-col gap-2">
+          <Button
+            variant="secondary"
+            className="w-full py-2.5"
+            onClick={() => setPrivacy(true)}
+          >
+            <FileText className="size-4" /> Politique de confidentialité
+          </Button>
+          <Button
+            variant="secondary"
+            className="w-full py-2.5"
+            loading={exporting}
+            onClick={() => void handleExport()}
+          >
+            {!exporting && <Download className="size-4" />} Télécharger mes données
+          </Button>
+        </div>
+      </Section>
+
       {/* Application */}
       <Section
         icon={<Info className="size-4" />}
@@ -381,6 +426,7 @@ export function ProfilePage() {
       </Button>
 
       {calendar && <CalendarDialog onClose={() => setCalendar(false)} />}
+      {privacy && <PrivacyDialog onClose={() => setPrivacy(false)} />}
     </div>
   );
 }

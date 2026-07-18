@@ -91,6 +91,14 @@ Le dépôt est **public** et la clé `anon` Supabase est présente dans le bundl
 Ne committez **jamais** la clé `service_role` ni un token `sbp_…` (Management
 API). Le fichier `.env` est ignoré par git.
 
+**Confidentialité (RGPD)** : une **politique de confidentialité** est accessible
+avant connexion (page de login) et depuis le profil — c'est un **modèle** dont les
+mentions légales `[À compléter]` (responsable du traitement, base légale, durées,
+contact) doivent être renseignées avant mise en service. Chaque médecin peut
+**exporter ses données** (droit d'accès / portabilité, art. 15/20) en JSON depuis
+son profil. Effacement : un compte en attente se supprime lui-même ; pour un compte
+approuvé, contacter un administrateur (suppression ou anonymisation).
+
 ## Développement local
 
 ```bash

@@ -4,6 +4,7 @@ import { useAuth } from './useAuth.ts';
 import { Button } from '../components/ui/Button.tsx';
 import { Field } from '../components/ui/Field.tsx';
 import { SegmentedControl } from '../components/ui/SegmentedControl.tsx';
+import { PrivacyDialog } from '../features/legal/PrivacyPolicy.tsx';
 
 export function LoginPage() {
   const { signIn, signUp } = useAuth();
@@ -13,6 +14,7 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [privacy, setPrivacy] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -108,7 +110,19 @@ export function LoginPage() {
             administrateur.
           </p>
         )}
+
+        <p className="mt-4 text-center text-xs text-slate-400">
+          <button
+            type="button"
+            onClick={() => setPrivacy(true)}
+            className="underline hover:text-slate-600 dark:hover:text-slate-300"
+          >
+            Politique de confidentialité
+          </button>
+        </p>
       </div>
+
+      {privacy && <PrivacyDialog onClose={() => setPrivacy(false)} />}
     </div>
   );
 }
