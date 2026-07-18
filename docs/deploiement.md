@@ -158,10 +158,8 @@ bouton afficherait alors une erreur. À faire **avant** d'annoncer la fonctionna
 
 ## Configuration externe (hors code, optionnel)
 
-Réglages du **tableau de bord Supabase** (Authentication → Policies / Settings) :
+Réglage du **tableau de bord Supabase** (Authentication → Settings) :
 
-- **Captcha** au login/inscription : nécessite un **compte tiers** (hCaptcha /
-  Cloudflare Turnstile) et sa clé, à renseigner côté Supabase Auth.
 - Confirmation d'e-mail : actuellement `mailer_autoconfirm = true` (désactivée) —
   à réévaluer selon le besoin.
 
