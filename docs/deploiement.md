@@ -51,8 +51,7 @@ Dépôt GitHub → **Settings → Secrets and variables → Actions → New repo
 | Secret | Où le trouver | Rôle |
 | --- | --- | --- |
 | `SUPABASE_ACCESS_TOKEN` | Supabase → **Account → Access Tokens → Generate new token** (valeur `sbp_…`) | Déployer les Edge Functions. **Créer un token dédié CI** — ne pas réutiliser le token de provisionnement `sbp_…` (qui, lui, reste à révoquer). |
-| `SUPABASE_DB_HOST` | Dashboard → **Project Settings → Database → onglet « Session pooler »**, champ **Host** (ex. `aws-0-eu-west-3.pooler.supabase.com`) | Hôte `psql` des migrations. **Session pooler** (IPv4, port 5432), PAS la connexion directe `db.<ref>.supabase.co` (IPv6, injoignable depuis un runner GitHub). |
-| `SUPABASE_DB_PASSWORD` | Mot de passe de la base (Dashboard → Database → *Reset database password* si oublié) | Passé à `psql` via `PGPASSWORD`, **tel quel, sans encodage** — les caractères spéciaux (`£ ( ] + ~ …`) ne posent aucun problème (contrairement à une URI `postgres://`). |
+| `SUPABASE_DB_URL` | Dashboard → **Project Settings → Database → onglet « Session pooler »** (format URI) | Connexion `psql` des migrations. **Session pooler** (IPv4, port 5432), PAS la connexion directe `db.<ref>.supabase.co` (IPv6, injoignable depuis un runner GitHub). ⚠️ Le mot de passe doit être **URL-encodé** s'il contient des caractères spéciaux (`£ ( ] + / @ : …`) — le plus sûr : un mot de passe **alphanumérique** (Dashboard → Database → *Reset database password*). |
 
 > La **ref de projet** (`lgbuytinzukaxrqjwxme`) est publique (déjà dans l'URL de
 > l'app) : elle est en clair dans le workflow, pas besoin de secret.

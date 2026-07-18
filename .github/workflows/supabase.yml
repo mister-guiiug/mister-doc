@@ -16,13 +16,13 @@ name: Déploiement Supabase (Edge Functions + migrations)
 #                          (Account → Access Tokens → Generate new token).
 #                          NE PAS réutiliser le token de provisionnement `sbp_…`
 #                          (celui-ci reste à révoquer).
-#   SUPABASE_DB_HOST       Hôte du « Session pooler » (IPv4), ex.
-#                          aws-0-eu-west-3.pooler.supabase.com. Dashboard → Project
-#                          Settings → Database → onglet « Session pooler » (le champ
-#                          Host). PAS la connexion directe db.<ref>.supabase.co (IPv6).
-#   SUPABASE_DB_PASSWORD   Mot de passe de la base, TEL QUEL (sans encodage) : il
-#                          passe par PGPASSWORD, jamais par une URI — donc les
-#                          caractères spéciaux (£ ( ] + ~ …) ne posent aucun problème.
+#   SUPABASE_DB_URL        URI de connexion « Session pooler » (IPv4). Dashboard →
+#                          Project Settings → Database → onglet « Session pooler »,
+#                          format URI. ⚠️ Le mot de passe DOIT être URL-encodé s'il
+#                          contient des caractères spéciaux (£ ( ] + / @ : …), sinon
+#                          libpq découpe mal l'URI. Le plus sûr : un mot de passe
+#                          alphanumérique. PAS la connexion directe db.<ref>.supabase.co
+#                          (IPv6, injoignable depuis un runner GitHub).
 
 on:
   push:
@@ -82,17 +82,13 @@ jobs:
         run: psql --version || { sudo apt-get update && sudo apt-get install -y postgresql-client; }
 
       - name: Appliquer les migrations Supabase (psql, tout ou rien)
-        # Connexion par variables libpq PG* (AUCUNE URI) : le mot de passe passe par
-        # PGPASSWORD tel quel — pas d'encodage, même avec des caractères spéciaux
-        # (£ ( ] + ~ …) qui casseraient une URI postgres://. Session pooler = IPv4,
-        # joignable depuis le runner (la connexion directe db.<ref> est IPv6-only).
         env:
-          PGHOST: ${{ secrets.SUPABASE_DB_HOST }}
-          PGPORT: '5432'
-          PGDATABASE: postgres
-          PGUSER: postgres.lgbuytinzukaxrqjwxme   # user du Session pooler = postgres.<ref>
-          PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-          PGSSLMODE: require                        # Supabase exige TLS
+          # URI « Session pooler » (IPv4). ⚠️ Le mot de passe doit être URL-encodé
+          # s'il a des caractères spéciaux (£ ( ] + / @ : …), sinon libpq découpe mal
+          # l'URI (« could not translate host name »). Le plus sûr : mot de passe
+          # alphanumérique (Dashboard → Database → Reset database password).
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          PGSSLMODE: require   # Supabase exige TLS
         run: |
           set -euo pipefail
           cd supabase/migrations
@@ -103,11 +99,13 @@ jobs:
             echo "Aucune migration >= $MIN_MIGRATION à appliquer."
             exit 0
           fi
+          if [ -z "${SUPABASE_DB_URL:-}" ]; then
+            echo "::error::Secret SUPABASE_DB_URL manquant."
+            exit 1
+          fi
           echo "Migrations appliquées (une seule transaction, tout ou rien) :"
           printf '  - %s\n' "${files[@]}"
           args=()
           for f in "${files[@]}"; do args+=(-f "$f"); done
-          # Connexion tirée de l'environnement PG* ci-dessus (ni URI ni mot de passe
-          # en clair sur la ligne de commande).
-          psql --single-transaction -v ON_ERROR_STOP=1 "${args[@]}"
+          psql "$SUPABASE_DB_URL" --single-transaction -v ON_ERROR_STOP=1 "${args[@]}"
           echo "✅ Migrations appliquées."
