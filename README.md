@@ -110,7 +110,7 @@ Scripts utiles : `npm run build`, `npm run preview`, `npm run test`,
 
 Le schéma versionné est découpé en migrations dans
 [`supabase/migrations/`](supabase/migrations/), à appliquer **dans l'ordre**
-(`0001` → `0015`) via le **SQL Editor** du tableau de bord Supabase :
+(`0001` → `0016`) via le **SQL Editor** du tableau de bord Supabase :
 
 | Migration | Contenu |
 | --------- | ------- |
@@ -128,6 +128,7 @@ Le schéma versionné est découpé en migrations dans
 | `0013_push_subscriptions` | abonnements Web Push |
 | `0014_calendar_rate_limit` | **rate-limit** de l'Edge Function calendrier (table `edge_rate_limit` + RPC `edge_rate_limit_hit`) |
 | `0015_calendar_token_privacy` | **confidentialité** du token calendrier (privilège colonne : `calendar_token` illisible par les autres médecins) |
+| `0016_extend_month_lock` | verrou de mois **étendu** aux HNC / notes / vœux (triggers `assert_month_unlocked`) |
 
 Après `0001`, renseignez le code de bootstrap :
 

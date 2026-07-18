@@ -93,7 +93,7 @@ async function seedSession(page: Page, mfa: boolean) {
 
 export async function setupAuthenticated(
   page: Page,
-  opts: { mfa?: boolean } = {}
+  opts: { mfa?: boolean; locked?: boolean } = {}
 ) {
   await seedSession(page, opts.mfa ?? false);
 
@@ -109,6 +109,18 @@ export async function setupAuthenticated(
   // Facteurs MFA renvoyés par `GET /auth/v1/user` (source de `listFactors()`).
   const factors = opts.mfa
     ? [{ id: 'factor-totp-1', factor_type: 'totp', status: 'verified' }]
+    : [];
+
+  // Mois verrouillé (juillet 2026 = année 2026, mois 6 en index JS 0-based).
+  const locks = opts.locked
+    ? [
+        {
+          year: 2026,
+          month: 6,
+          locked_by: 'doc-self',
+          locked_at: '2026-07-01T00:00:00Z',
+        },
+      ]
     : [];
 
   await page.route(/supabase\.co\/(rest|auth)\/v1\//, route => {
@@ -156,7 +168,7 @@ export async function setupAuthenticated(
     if (url.includes('/rest/v1/day_notes')) return json([]);
     if (url.includes('/rest/v1/wishes')) return json([]);
     if (url.includes('/rest/v1/hnc_hours')) return json([]);
-    if (url.includes('/rest/v1/locked_months')) return json([]);
+    if (url.includes('/rest/v1/locked_months')) return json(locks);
     return json([]);
   });
 

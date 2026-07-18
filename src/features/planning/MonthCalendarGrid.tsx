@@ -315,9 +315,12 @@ const DayCell = memo(function DayCell({
         )}
         {myWish && (
           <button
-            onClick={() => onCycleWish(day.iso)}
-            title="Mon vœu (clic pour changer)"
-            className={myWish === 'prefer' ? 'text-emerald-500' : 'text-rose-500'}
+            onClick={() => !locked && onCycleWish(day.iso)}
+            disabled={locked}
+            title={locked ? 'Mois verrouillé' : 'Mon vœu (clic pour changer)'}
+            className={`disabled:cursor-default ${
+              myWish === 'prefer' ? 'text-emerald-500' : 'text-rose-500'
+            }`}
           >
             {myWish === 'prefer' ? (
               <ThumbsUp className="size-3.5" />

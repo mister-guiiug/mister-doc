@@ -321,31 +321,39 @@ const DayRow = memo(function DayRow({
           </button>
         )}
 
-        <button
-          onClick={() => onCycleWish(day.iso)}
-          title="Mon vœu : dispo / indispo (clic pour changer)"
-          className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium transition ${
-            myWish === 'prefer'
-              ? 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
-              : myWish === 'avoid'
-                ? 'border-rose-300 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-300'
-                : 'border-dashed border-slate-300 text-slate-500 dark:border-slate-600'
-          }`}
-        >
-          {myWish === 'prefer' ? (
-            <>
-              <ThumbsUp className="size-3" /> Dispo
-            </>
-          ) : myWish === 'avoid' ? (
-            <>
-              <ThumbsDown className="size-3" /> Indispo
-            </>
-          ) : (
-            <>
-              <Heart className="size-3" /> Vœu
-            </>
-          )}
-        </button>
+        {/* Vœu : lecture seule sur un mois verrouillé (masqué si aucun vœu). */}
+        {(myWish || !locked) && (
+          <button
+            onClick={() => !locked && onCycleWish(day.iso)}
+            disabled={locked}
+            title={
+              locked
+                ? 'Mois verrouillé'
+                : 'Mon vœu : dispo / indispo (clic pour changer)'
+            }
+            className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium transition disabled:cursor-default ${
+              myWish === 'prefer'
+                ? 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
+                : myWish === 'avoid'
+                  ? 'border-rose-300 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-300'
+                  : 'border-dashed border-slate-300 text-slate-500 dark:border-slate-600'
+            }`}
+          >
+            {myWish === 'prefer' ? (
+              <>
+                <ThumbsUp className="size-3" /> Dispo
+              </>
+            ) : myWish === 'avoid' ? (
+              <>
+                <ThumbsDown className="size-3" /> Indispo
+              </>
+            ) : (
+              <>
+                <Heart className="size-3" /> Vœu
+              </>
+            )}
+          </button>
+        )}
 
         {(prefers.length > 0 || avoids.length > 0) && (
           <span className="flex items-center gap-1.5 text-[11px] text-slate-400">
