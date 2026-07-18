@@ -120,7 +120,7 @@ Scripts utiles : `npm run build`, `npm run preview`, `npm run test`,
 
 Le schéma versionné est découpé en migrations dans
 [`supabase/migrations/`](supabase/migrations/), à appliquer **dans l'ordre**
-(`0001` → `0020`) via le **SQL Editor** du tableau de bord Supabase :
+(`0001` → `0021`) via le **SQL Editor** du tableau de bord Supabase :
 
 | Migration | Contenu |
 | --------- | ------- |
@@ -143,6 +143,7 @@ Le schéma versionné est découpé en migrations dans
 | `0018_calendar_token_hash` | tokens calendrier **hashés au repos** (SHA-256 ; plus de token en clair en base ; lien montré une seule fois) |
 | `0019_anonymize_doctor` | **effacement RGPD** des comptes approuvés par **anonymisation** (RPC `anonymize_doctor`, self-service ou admin) |
 | `0020_admin_reset_mfa` | **récupération 2FA** : un admin réinitialise la double authentification d'un médecin (RPC `admin_reset_mfa`) |
+| `0021_mfa_recovery_codes` | **codes de secours 2FA** self-service (table `mfa_recovery_codes` hashés + RPC `generate_`/`use_mfa_recovery_code`) |
 
 Après `0001`, renseignez le code de bootstrap :
 

@@ -20,6 +20,17 @@ test.describe('Double authentification (2FA)', () => {
     ).toBeVisible();
     // …et le planning reste inaccessible tant que le défi n'est pas franchi.
     await expect(page.getByText('Juillet 2026', { exact: true })).toHaveCount(0);
+
+    // Voie de récupération : bascule vers le code de secours.
+    await page
+      .getByRole('button', { name: /Utiliser un code de secours/ })
+      .click();
+    await expect(
+      page.getByRole('heading', { name: 'Code de secours' })
+    ).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: 'Récupérer mon accès' })
+    ).toBeVisible();
   });
 
   test('sans facteur vérifié, aucun défi (opt-in) : le planning s’affiche', async ({

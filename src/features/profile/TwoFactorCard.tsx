@@ -1,5 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import { ShieldCheck, ShieldAlert, Check, X } from 'lucide-react';
+import {
+  ShieldCheck,
+  ShieldAlert,
+  Check,
+  X,
+  KeyRound,
+  Copy,
+  Download,
+} from 'lucide-react';
 import { useToast } from '../../components/Toast.tsx';
 import { useConfirm } from '../../components/ui/confirmContext.ts';
 import { Button } from '../../components/ui/Button.tsx';
@@ -9,6 +17,7 @@ import {
   confirmTotpEnrollment,
   disableTotp,
   enrollTotp,
+  generateRecoveryCodes,
   verifiedTotpFactorId,
   type TotpEnrollment,
 } from '../../backend/mfa.ts';
@@ -28,6 +37,8 @@ export function TwoFactorCard() {
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  // Codes de secours fraîchement générés (affichés UNE fois, jamais réaffichables).
+  const [codes, setCodes] = useState<string[] | null>(null);
   // Évite un setState après démontage (les appels réseau sont asynchrones).
   const alive = useRef(true);
   useEffect(() => {
@@ -74,6 +85,13 @@ export function TwoFactorCard() {
       setCode('');
       toast.success('Double authentification activée.');
       await refresh();
+      // Génère les codes de secours dans la foulée (non bloquant si indisponible).
+      try {
+        const c = await generateRecoveryCodes();
+        if (alive.current) setCodes(c);
+      } catch {
+        /* la 2FA est active ; les codes pourront être générés plus tard */
+      }
     } catch (e) {
       if (alive.current) {
         setErr(e instanceof Error ? e.message : 'Erreur');
@@ -90,6 +108,43 @@ export function TwoFactorCard() {
     setCode('');
     setErr(null);
     if (pending) void cancelTotpEnrollment(pending.factorId);
+  }
+
+  async function makeCodes() {
+    setBusy(true);
+    try {
+      const c = await generateRecoveryCodes();
+      if (alive.current) setCodes(c);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erreur');
+    } finally {
+      if (alive.current) setBusy(false);
+    }
+  }
+
+  function copyCodes() {
+    void navigator.clipboard
+      .writeText((codes ?? []).join('\n'))
+      .then(() => toast.success('Codes copiés.'))
+      .catch(() => toast.error('Copie impossible.'));
+  }
+
+  function downloadCodes() {
+    const blob = new Blob(
+      [
+        'Codes de secours mister-doc (double authentification).\n' +
+          'Chacun ne fonctionne qu’une seule fois. Conservez-les en lieu sûr.\n\n' +
+          (codes ?? []).join('\n') +
+          '\n',
+      ],
+      { type: 'text/plain' }
+    );
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'codes-secours-mister-doc.txt';
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   async function disable() {
@@ -129,13 +184,54 @@ export function TwoFactorCard() {
         </p>
       )}
 
+      {/* Codes de secours fraîchement générés (affichés une seule fois) */}
+      {codes && (
+        <div className="flex flex-col gap-3">
+          <p className="flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
+            <KeyRound className="mt-0.5 size-4 shrink-0" />
+            <span>
+              Conservez ces <strong>codes de secours</strong> en lieu sûr. Chacun ne
+              fonctionne qu'<strong>une seule fois</strong> et permet de récupérer
+              l'accès si vous perdez votre authentificateur. Ils ne seront plus
+              affichés.
+            </span>
+          </p>
+          <ul className="grid grid-cols-2 gap-1.5 rounded-lg bg-slate-50 p-3 font-mono text-sm dark:bg-slate-800">
+            {codes.map(c => (
+              <li key={c} className="text-center tracking-wider">
+                {c}
+              </li>
+            ))}
+          </ul>
+          <div className="flex gap-2">
+            <Button variant="secondary" className="flex-1" onClick={copyCodes}>
+              <Copy className="size-4" /> Copier
+            </Button>
+            <Button variant="secondary" className="flex-1" onClick={downloadCodes}>
+              <Download className="size-4" /> Télécharger
+            </Button>
+          </div>
+          <Button className="w-full py-2.5" onClick={() => setCodes(null)}>
+            <Check className="size-4" /> J'ai enregistré mes codes
+          </Button>
+        </div>
+      )}
+
       {/* Activée */}
-      {status === 'on' && !enroll && (
+      {status === 'on' && !enroll && !codes && (
         <div className="flex flex-col gap-3">
           <p className="flex items-center gap-2 rounded-lg bg-teal-50 px-3 py-2 text-sm font-medium text-teal-700 dark:bg-teal-950/40 dark:text-teal-300">
             <ShieldCheck className="size-4 shrink-0" /> Activée — un code vous sera
             demandé à chaque connexion.
           </p>
+          <Button
+            variant="secondary"
+            className="w-full py-2.5"
+            loading={busy}
+            onClick={() => void makeCodes()}
+          >
+            <KeyRound className="size-4" /> Régénérer les codes de secours
+          </Button>
           <Button
             variant="dangerGhost"
             className="w-full py-2.5"

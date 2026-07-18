@@ -123,3 +123,27 @@ export async function challengeTotp(code: string): Promise<void> {
   });
   if (error) throw new Error(frAuthError(error.message));
 }
+
+/**
+ * (Re)génère des codes de secours à usage unique et les renvoie EN CLAIR une seule
+ * fois (à afficher/enregistrer). Invalide les anciens. Seul leur hash est stocké.
+ */
+export async function generateRecoveryCodes(): Promise<string[]> {
+  const { data, error } = await getSupabase().rpc(
+    'generate_mfa_recovery_codes'
+  );
+  if (error) throw new Error(frAuthError(error.message));
+  return (data as string[] | null) ?? [];
+}
+
+/**
+ * Récupération : consomme un code de secours et retire les facteurs TOTP. Renvoie
+ * `true` si le code est accepté (l'accès n'exige alors plus l'étape à 6 chiffres).
+ */
+export async function redeemRecoveryCode(code: string): Promise<boolean> {
+  const { data, error } = await getSupabase().rpc('use_mfa_recovery_code', {
+    p_code: code,
+  });
+  if (error) throw new Error(frAuthError(error.message));
+  return data === true;
+}

@@ -1,25 +1,35 @@
 import { useState } from 'react';
-import { ShieldCheck, LogOut } from 'lucide-react';
+import { ShieldCheck, LogOut, KeyRound } from 'lucide-react';
 import { useAuth } from './useAuth.ts';
 import { Button } from '../components/ui/Button.tsx';
 
 /**
- * Étape de vérification en deux étapes au login. S'affiche uniquement pour les
- * comptes ayant activé la 2FA (facteur TOTP vérifié, session encore aal1). Une
- * échappatoire « Se déconnecter » évite tout blocage définitif.
+ * Étape de vérification en deux étapes au login (comptes ayant activé la 2FA,
+ * session encore aal1). Deux voies : le code TOTP à 6 chiffres, ou un CODE DE
+ * SECOURS (récupération si l'authentificateur est perdu). Échappatoire déconnexion.
  */
 export function MfaChallenge() {
-  const { verifyMfa, signOut } = useAuth();
+  const { verifyMfa, recoverMfa, signOut } = useAuth();
+  const [mode, setMode] = useState<'totp' | 'recovery'>('totp');
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  const isTotp = mode === 'totp';
+  const ready = isTotp ? code.trim().length >= 6 : code.trim().length >= 8;
+
+  function switchMode(next: 'totp' | 'recovery') {
+    setMode(next);
+    setCode('');
+    setError(null);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (code.trim().length < 6) return;
+    if (!ready) return;
     setError(null);
     setBusy(true);
-    const res = await verifyMfa(code);
+    const res = isTotp ? await verifyMfa(code) : await recoverMfa(code);
     setBusy(false);
     if (res.error) {
       setError(res.error);
@@ -32,33 +42,50 @@ export function MfaChallenge() {
       <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white/80 p-6 shadow-lg backdrop-blur dark:border-slate-700 dark:bg-slate-800/80">
         <div className="mb-6 flex flex-col items-center gap-2 text-center">
           <div className="grid size-12 place-items-center rounded-xl bg-teal-600 text-white">
-            <ShieldCheck className="size-6" />
+            {isTotp ? (
+              <ShieldCheck className="size-6" />
+            ) : (
+              <KeyRound className="size-6" />
+            )}
           </div>
-          <h1 className="text-xl font-bold">Vérification en deux étapes</h1>
+          <h1 className="text-xl font-bold">
+            {isTotp ? 'Vérification en deux étapes' : 'Code de secours'}
+          </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            Saisissez le code à 6 chiffres affiché dans votre application
-            d'authentification.
+            {isTotp
+              ? "Saisissez le code à 6 chiffres affiché dans votre application d'authentification."
+              : "Saisissez l'un de vos codes de secours à usage unique. Votre double authentification sera désactivée."}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium text-slate-600 dark:text-slate-300">
-              Code à 6 chiffres
+              {isTotp ? 'Code à 6 chiffres' : 'Code de secours'}
             </span>
-            <input
-              value={code}
-              onChange={e =>
-                setCode(e.target.value.replace(/\D/g, '').slice(0, 6))
-              }
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              pattern="\d{6}"
-              placeholder="123456"
-              autoFocus
-              aria-invalid={error ? true : undefined}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-center text-lg tracking-[0.4em] tabular-nums outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:border-slate-600 dark:bg-slate-900"
-            />
+            {isTotp ? (
+              <input
+                value={code}
+                onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                pattern="\d{6}"
+                placeholder="123456"
+                autoFocus
+                aria-invalid={error ? true : undefined}
+                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-center text-lg tracking-[0.4em] tabular-nums outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:border-slate-600 dark:bg-slate-900"
+              />
+            ) : (
+              <input
+                value={code}
+                onChange={e => setCode(e.target.value.slice(0, 12))}
+                autoComplete="one-time-code"
+                placeholder="xxxx-xxxx"
+                autoFocus
+                aria-invalid={error ? true : undefined}
+                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-center text-lg tracking-[0.2em] outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:border-slate-600 dark:bg-slate-900"
+              />
+            )}
           </label>
 
           {error && (
@@ -73,17 +100,32 @@ export function MfaChallenge() {
           <Button
             type="submit"
             loading={busy}
-            disabled={code.trim().length < 6}
+            disabled={!ready}
             className="mt-1 w-full py-2.5"
           >
-            Vérifier
+            {isTotp ? 'Vérifier' : 'Récupérer mon accès'}
           </Button>
         </form>
 
-        <p className="mt-4 text-center text-xs text-slate-400">
-          Authentificateur perdu ? Demandez à un administrateur de réinitialiser
-          votre double authentification, puis reconnectez-vous.
-        </p>
+        <div className="mt-4 text-center text-xs text-slate-400">
+          {isTotp ? (
+            <button
+              type="button"
+              onClick={() => switchMode('recovery')}
+              className="underline hover:text-slate-600 dark:hover:text-slate-200"
+            >
+              Authentificateur perdu ? Utiliser un code de secours
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => switchMode('totp')}
+              className="underline hover:text-slate-600 dark:hover:text-slate-200"
+            >
+              Revenir au code à 6 chiffres
+            </button>
+          )}
+        </div>
 
         <button
           onClick={() => void signOut()}

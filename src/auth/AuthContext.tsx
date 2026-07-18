@@ -7,6 +7,7 @@ import {
   challengeTotp,
   getAssuranceLevel,
   mfaChallengeNeeded,
+  redeemRecoveryCode,
 } from '../backend/mfa.ts';
 import { setIncludePentecote } from '../lib/dates.ts';
 import { frAuthError } from '../lib/authErrors.ts';
@@ -130,6 +131,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  /** Récupération : un code de secours retire la 2FA (perte d'authentificateur). */
+  async function recoverMfa(code: string) {
+    try {
+      if (!(await redeemRecoveryCode(code))) {
+        return { error: 'Code de secours invalide ou déjà utilisé.' };
+      }
+      // Le facteur TOTP a été retiré : rafraîchir la session pour que
+      // `user.factors` (lu localement par l'assurance) reflète sa suppression.
+      await getSupabase().auth.refreshSession();
+      setMfaRequired(false);
+      return {};
+    } catch (e) {
+      return { error: e instanceof Error ? e.message : frAuthError(null) };
+    }
+  }
+
   const isAdmin = !!doctor?.is_admin && !previewMember;
 
   return (
@@ -146,6 +163,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signUp,
         signOut,
         verifyMfa,
+        recoverMfa,
         refreshDoctor,
       }}
     >

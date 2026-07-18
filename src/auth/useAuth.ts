@@ -31,6 +31,8 @@ export interface AuthValue {
   signOut: () => Promise<void>;
   /** Valide le code TOTP à 6 chiffres au login (élève la session en aal2). */
   verifyMfa: (code: string) => Promise<{ error?: string }>;
+  /** Récupération : consomme un code de secours et retire la 2FA (perte du TOTP). */
+  recoverMfa: (code: string) => Promise<{ error?: string }>;
   /** Recharge la fiche du médecin connecté (après approbation, profil, admin…). */
   refreshDoctor: () => Promise<void>;
 }
