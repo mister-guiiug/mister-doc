@@ -19,9 +19,10 @@ test.describe('Page de connexion', () => {
     ).toBeVisible();
 
     // Mode connexion : pas de champ « Nom affiché », bouton « Se connecter ».
+    // `exact` : distinguer du bouton « Se connecter avec l'empreinte » (passkey).
     await expect(page.getByLabel('Nom affiché')).toHaveCount(0);
     await expect(
-      page.getByRole('button', { name: 'Se connecter' })
+      page.getByRole('button', { name: 'Se connecter', exact: true })
     ).toBeVisible();
 
     // Bascule vers l'inscription via le SegmentedControl (design system).
