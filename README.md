@@ -88,6 +88,12 @@ Le dépôt est **public** et la clé `anon` Supabase est présente dans le bundl
 - toutes les écritures sensibles (approbation, rôles, roster) passent par des
   fonctions Postgres `SECURITY DEFINER`.
 
+**Connexion** : mot de passe (principal), avec deux options **opt-in** par médecin
+depuis le profil — **double authentification** TOTP (code à 6 chiffres + codes de
+secours) et **connexion par empreinte** / Face ID / Windows Hello (**passkeys**
+WebAuthn natives de Supabase Auth, beta). Les passkeys exigent une activation côté
+dashboard Supabase (RP ID + origine) — voir [`docs/deploiement.md`](docs/deploiement.md).
+
 Ne committez **jamais** la clé `service_role` ni un token `sbp_…` (Management
 API). Le fichier `.env` est ignoré par git.
 

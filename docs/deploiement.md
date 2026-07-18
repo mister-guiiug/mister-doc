@@ -137,6 +137,25 @@ numérotation.
 7. **2FA** — activer la 2FA génère des codes de secours ; un code permet de récupérer
    l'accès depuis l'écran de défi ; un admin peut réinitialiser la 2FA d'un médecin.
 
+## Connexion par empreinte (passkeys) — **config dashboard OBLIGATOIRE**
+
+Le front expose la connexion par empreinte / Face ID / Windows Hello (passkeys
+WebAuthn : bouton au login + carte « Connexion par empreinte » dans le profil).
+C'est **inopérant tant que les passkeys ne sont pas activées côté Supabase** — le
+bouton afficherait alors une erreur. À faire **avant** d'annoncer la fonctionnalité :
+
+1. Dashboard → **Authentication → Passkeys** → **activer**.
+2. Renseigner le *relying party* :
+   - **Display name** : `mister-doc`
+   - **RP ID** : `mister-guiiug.github.io`
+   - **Origins** : `https://mister-guiiug.github.io`
+3. (Si passage à un **domaine personnalisé** un jour : changer RP ID + origine →
+   les passkeys existantes, liées à l'ancien domaine, devront être réenregistrées.)
+
+> API passkeys Supabase en **beta** (peut évoluer). C'est **additif** : le mot de
+> passe reste le moyen de connexion principal, la passkey est opt-in par appareil.
+> Aucune migration base : les passkeys sont gérées par Supabase Auth.
+
 ## Configuration externe (hors code, optionnel)
 
 Réglages du **tableau de bord Supabase** (Authentication → Policies / Settings) :

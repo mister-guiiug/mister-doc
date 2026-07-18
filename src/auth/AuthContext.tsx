@@ -9,6 +9,7 @@ import {
   mfaChallengeNeeded,
   redeemRecoveryCode,
 } from '../backend/mfa.ts';
+import { signInWithPasskey as passkeySignIn } from '../backend/passkey.ts';
 import { setIncludePentecote } from '../lib/dates.ts';
 import { frAuthError } from '../lib/authErrors.ts';
 import { idbGet, idbSet } from '../lib/idbCache.ts';
@@ -118,6 +119,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await getSupabase().auth.signOut();
   }
 
+  /**
+   * Connexion par passkey (empreinte / Face ID). La cérémonie WebAuthn établit la
+   * session ; `onAuthStateChange` (ci-dessus) relance `hydrate` → fiche médecin +
+   * éventuel défi TOTP. On ne fait donc que remonter une erreur éventuelle.
+   */
+  async function signInWithPasskey() {
+    try {
+      await passkeySignIn();
+      return {};
+    } catch (e) {
+      return { error: e instanceof Error ? e.message : frAuthError(null) };
+    }
+  }
+
   /** Étape TOTP au login : élève la session en aal2 avec le code à 6 chiffres. */
   async function verifyMfa(code: string) {
     try {
@@ -162,6 +177,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signIn,
         signUp,
         signOut,
+        signInWithPasskey,
         verifyMfa,
         recoverMfa,
         refreshDoctor,

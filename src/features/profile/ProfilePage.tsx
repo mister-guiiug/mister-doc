@@ -37,6 +37,7 @@ import { SectionCard } from '../../components/ui/SectionCard.tsx';
 import { SegmentedControl } from '../../components/ui/SegmentedControl.tsx';
 import { useConfirm } from '../../components/ui/confirmContext.ts';
 import { TwoFactorCard } from './TwoFactorCard.tsx';
+import { PasskeyCard } from './PasskeyCard.tsx';
 import { PrivacyDialog } from '../legal/PrivacyPolicy.tsx';
 import { exportMyData, downloadMyData } from '../../backend/gdpr.ts';
 
@@ -315,6 +316,9 @@ export function ProfilePage() {
 
       {/* Sécurité — double authentification (2FA) */}
       <TwoFactorCard />
+
+      {/* Sécurité — connexion par empreinte (passkeys / WebAuthn) */}
+      <PasskeyCard />
 
       {/* Calendrier */}
       <Section

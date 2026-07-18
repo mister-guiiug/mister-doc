@@ -29,6 +29,8 @@ export interface AuthValue {
     name: string
   ) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
+  /** Connexion passwordless par passkey (empreinte / Face ID / Windows Hello). */
+  signInWithPasskey: () => Promise<{ error?: string }>;
   /** Valide le code TOTP à 6 chiffres au login (élève la session en aal2). */
   verifyMfa: (code: string) => Promise<{ error?: string }>;
   /** Récupération : consomme un code de secours et retire la 2FA (perte du TOTP). */

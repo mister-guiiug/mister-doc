@@ -1,20 +1,24 @@
 import { useState } from 'react';
-import { CalendarDays } from 'lucide-react';
+import { CalendarDays, Fingerprint } from 'lucide-react';
 import { useAuth } from './useAuth.ts';
 import { Button } from '../components/ui/Button.tsx';
 import { Field } from '../components/ui/Field.tsx';
 import { SegmentedControl } from '../components/ui/SegmentedControl.tsx';
 import { PrivacyDialog } from '../features/legal/PrivacyPolicy.tsx';
+import { passkeysSupported } from '../backend/passkey.ts';
 
 export function LoginPage() {
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, signInWithPasskey } = useAuth();
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [pkBusy, setPkBusy] = useState(false);
   const [privacy, setPrivacy] = useState(false);
+  // Proposé seulement si le navigateur expose WebAuthn (sinon on masque).
+  const canPasskey = passkeysSupported();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -25,6 +29,14 @@ export function LoginPage() {
         ? await signIn(email.trim(), password)
         : await signUp(email.trim(), password, name);
     setBusy(false);
+    if (res.error) setError(res.error);
+  }
+
+  async function handlePasskey() {
+    setError(null);
+    setPkBusy(true);
+    const res = await signInWithPasskey();
+    setPkBusy(false);
     if (res.error) setError(res.error);
   }
 
@@ -103,6 +115,26 @@ export function LoginPage() {
             {mode === 'signin' ? 'Se connecter' : 'Créer mon compte'}
           </Button>
         </form>
+
+        {mode === 'signin' && canPasskey && (
+          <>
+            <div className="my-4 flex items-center gap-3 text-xs text-slate-400">
+              <span className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
+              ou
+              <span className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
+            </div>
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full py-2.5"
+              loading={pkBusy}
+              onClick={() => void handlePasskey()}
+            >
+              {!pkBusy && <Fingerprint className="size-4" />}
+              Se connecter avec l'empreinte
+            </Button>
+          </>
+        )}
 
         {mode === 'signup' && (
           <p className="mt-4 text-center text-xs text-slate-500 dark:text-slate-400">

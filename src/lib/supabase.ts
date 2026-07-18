@@ -7,11 +7,20 @@ let client: SupabaseClient | null = null;
  * Client Supabase créé paresseusement. La clé anon est publique (sûre dans un
  * bundle) : la sécurité repose entièrement sur les policies RLS côté serveur.
  * `flowType: 'pkce'` pour un flux d'authentification robuste.
+ *
+ * `experimental.passkey` active les passkeys / WebAuthn (`signInWithPasskey`,
+ * `registerPasskey`, `auth.passkey.*`) — connexion par empreinte / Face ID /
+ * Windows Hello. API Supabase en **beta** ; sans ce drapeau, ces méthodes lèvent.
  */
 export function getSupabase(): SupabaseClient {
   if (client) return client;
   client = createClient(env.VITE_SUPABASE_URL, env.VITE_SUPABASE_ANON_KEY, {
-    auth: { persistSession: true, autoRefreshToken: true, flowType: 'pkce' },
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      flowType: 'pkce',
+      experimental: { passkey: true },
+    },
   });
   return client;
 }
