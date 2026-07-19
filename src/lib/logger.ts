@@ -8,3 +8,8 @@ export function logError(context: string, error: unknown): void {
   const detail = error instanceof Error ? error.message : String(error);
   console.error(`[mister-doc] ${context}: ${detail}`, error);
 }
+
+/** Avertissement non bloquant (ex. limite de mise en page dépassée). */
+export function logWarn(context: string, message: string): void {
+  console.warn(`[mister-doc] ${context}: ${message}`);
+}

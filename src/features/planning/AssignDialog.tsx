@@ -15,7 +15,7 @@ import {
   ChevronUp,
 } from 'lucide-react';
 import { WEEKDAY_LABELS, fromISODate, mondayIndex } from '../../lib/dates.ts';
-import { SHIFT_LABEL, SHIFT_HOURS, type ShiftType } from '../../lib/shifts.ts';
+import { shiftLabel, shiftHours, type ShiftType } from '../../lib/shifts.ts';
 import {
   doctorsOnLeave,
   doctorsWorking,
@@ -104,7 +104,7 @@ export function AssignDialog({
   const hoursByDoctor = useMemo(() => {
     const m = new Map<string, number>();
     for (const s of monthShifts)
-      m.set(s.doctor_id, (m.get(s.doctor_id) ?? 0) + (SHIFT_HOURS[s.shift_type] ?? 0));
+      m.set(s.doctor_id, (m.get(s.doctor_id) ?? 0) + shiftHours(s.shift_type));
     return m;
   }, [monthShifts]);
 
@@ -135,7 +135,7 @@ export function AssignDialog({
       <div className="flex items-center justify-between border-b border-slate-100 p-4 dark:border-slate-800">
         <div>
           <h3 className="font-semibold">
-            {SHIFT_LABEL[target.shiftType]} · {SHIFT_HOURS[target.shiftType]} h
+            {shiftLabel(target.shiftType)} · {shiftHours(target.shiftType)} h
           </h3>
           <p className="text-sm capitalize text-slate-500">{dayLabel}</p>
         </div>
@@ -164,7 +164,7 @@ export function AssignDialog({
             onClick={async () => {
               if (
                 await confirm({
-                  message: `Libérer le créneau ${SHIFT_LABEL[target.shiftType]} du ${dayLabel} ? Le médecin en sera retiré.`,
+                  message: `Libérer le créneau ${shiftLabel(target.shiftType)} du ${dayLabel} ? Le médecin en sera retiré.`,
                   danger: true,
                   confirmLabel: 'Libérer',
                 })

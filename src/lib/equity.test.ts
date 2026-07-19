@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, afterEach } from 'vitest';
 import { computeEquity, type EquityShift } from './equity.ts';
+import { setShiftTypes, DEFAULT_SHIFT_TYPES, type ShiftTypeDef } from './shifts.ts';
 
 const doctors = [
   { id: 'a', name: 'Alice' },
@@ -54,5 +55,35 @@ describe('computeEquity', () => {
       holidays: 0,
       totalHours: 0,
     });
+  });
+});
+
+describe('computeEquity avec plusieurs types « nuit »', () => {
+  afterEach(() => setShiftTypes(DEFAULT_SHIFT_TYPES));
+
+  function def(over: Partial<ShiftTypeDef>): ShiftTypeDef {
+    return {
+      code: 'X', label: 'X', hours: 8, clinical: true, isNight: false,
+      weekend: true, sortOrder: 0, startTime: null, endTime: null,
+      endDayOffset: 0, color: null, active: true, ...over,
+    };
+  }
+
+  it('cumule les nuits de tous les types marqués is_night', () => {
+    setShiftTypes([
+      def({ code: 'S1N', hours: 15, isNight: true, sortOrder: 0 }),
+      def({ code: 'S2N', hours: 12, isNight: true, sortOrder: 1 }), // 2e type de nuit
+      def({ code: 'S1J', hours: 10, isNight: false, sortOrder: 2 }),
+    ]);
+    const { rows } = computeEquity(
+      [{ id: 'a', name: 'Alice' }],
+      [
+        { doctor_id: 'a', work_date: '2026-01-05', shift_type: 'S1N' },
+        { doctor_id: 'a', work_date: '2026-01-06', shift_type: 'S2N' },
+        { doctor_id: 'a', work_date: '2026-01-07', shift_type: 'S1J' },
+      ]
+    );
+    expect(rows[0].nights).toBe(2); // S1N + S2N
+    expect(rows[0].totalHours).toBe(37); // 15 + 12 + 10
   });
 });

@@ -9,50 +9,123 @@ import {
 } from './dates.ts';
 
 /**
- * Créneaux de garde CLINIQUES et leur base horaire (donnée par le métier) :
- *   S1J = 10 h (jour), S1N = 15 h (nuit), S2J = 8 h.
- * (« S3 » est conservé dans le type pour la compatibilité, mais n'est plus un
- * créneau clinique : ce sont désormais des Heures Non Cliniques — cf. lib/hnc.ts.)
+ * Types de créneaux (gardes) — désormais CONFIGURABLES (cf. table `shift_types`
+ * + migration 0022). Le code n'impose plus la liste : elle est chargée au login
+ * via {@link setShiftTypes}. Par défaut ({@link DEFAULT_SHIFT_TYPES}) le
+ * comportement est identique à l'historique : S1J 10 h / S1N 15 h (nuit) /
+ * S2J 8 h, plus S3 (heures non cliniques) conservé mais inactif.
+ *
+ * `ShiftType` est un simple `string` : la validité vient de la base (FK) et de
+ * la config, plus d'une union figée à la compilation.
  */
-export const SHIFT_TYPES = ['S1J', 'S1N', 'S2J', 'S3'] as const;
-export type ShiftType = (typeof SHIFT_TYPES)[number];
+export type ShiftType = string;
 
-/** Créneaux cliniques réellement affectables (occupant unique, à couvrir). */
-export const CLINICAL_SHIFT_TYPES: readonly ShiftType[] = ['S1J', 'S1N', 'S2J'];
-
-export const SHIFT_HOURS: Record<ShiftType, number> = {
-  S1J: 10,
-  S1N: 15,
-  S2J: 8,
-  S3: 8,
-};
-
-export const SHIFT_LABEL: Record<ShiftType, string> = {
-  S1J: 'S1 Jour',
-  S1N: 'S1 Nuit',
-  S2J: 'S2 Jour',
-  S3: 'Heures non cliniques',
-};
-
-/** Créneau « principal » présent tous les jours. */
-export const PRIMARY_SHIFT: ShiftType = 'S1J';
-
-/** Créneaux cliniques actifs le week-end et les jours fériés (couverture réduite). */
-export const WEEKEND_SHIFT_TYPES: readonly ShiftType[] = ['S1J', 'S1N'];
-
-export function isShiftType(v: string): v is ShiftType {
-  return (SHIFT_TYPES as readonly string[]).includes(v);
+/** Définition d'un type de créneau (miroir front de `public.shift_types`). */
+export interface ShiftTypeDef {
+  code: ShiftType;
+  label: string;
+  /** Base horaire (compteurs, heures WE/totales, équité, .ics). */
+  hours: number;
+  /** Vrai ⇒ créneau à couvrir (colonne du planning). */
+  clinical: boolean;
+  /** Vrai ⇒ repos de sécurité le lendemain + compté comme « nuit ». */
+  isNight: boolean;
+  /** Vrai ⇒ requis aussi le samedi/dimanche/férié (sinon semaine seule). */
+  weekend: boolean;
+  /** Ordre d'affichage (colonnes de grille, PDF, dialogues). */
+  sortOrder: number;
+  /** Horaires pour le flux .ics (facultatifs). */
+  startTime: string | null;
+  endTime: string | null;
+  /** 1 = le créneau se termine le lendemain (nuit). */
+  endDayOffset: number;
+  color: string | null;
+  active: boolean;
 }
 
 /**
- * Créneaux cliniques à couvrir pour une date donnée : S1J/S1N/S2J en semaine,
- * seulement S1J/S1N le samedi, le dimanche et les jours fériés. (Les heures non
- * cliniques ne font pas partie de la couverture et se saisissent tous les jours.)
+ * Configuration par défaut = comportement historique exact. Sert de repli tant
+ * que la config n'est pas chargée depuis la base, et de valeur de référence des
+ * tests. Doit rester alignée avec le seed de la migration 0022.
  */
-export function activeShiftTypes(date: Date): readonly ShiftType[] {
-  return isSatSun(date) || isHoliday(date)
-    ? WEEKEND_SHIFT_TYPES
-    : CLINICAL_SHIFT_TYPES;
+export const DEFAULT_SHIFT_TYPES: readonly ShiftTypeDef[] = [
+  { code: 'S1J', label: 'S1 Jour', hours: 10, clinical: true, isNight: false, weekend: true, sortOrder: 0, startTime: '08:00', endTime: '18:00', endDayOffset: 0, color: null, active: true },
+  { code: 'S1N', label: 'S1 Nuit', hours: 15, clinical: true, isNight: true, weekend: true, sortOrder: 1, startTime: '18:00', endTime: '09:00', endDayOffset: 1, color: null, active: true },
+  { code: 'S2J', label: 'S2 Jour', hours: 8, clinical: true, isNight: false, weekend: false, sortOrder: 2, startTime: '08:00', endTime: '16:00', endDayOffset: 0, color: null, active: true },
+  { code: 'S3', label: 'Heures non cliniques', hours: 8, clinical: false, isNight: false, weekend: false, sortOrder: 3, startTime: null, endTime: null, endDayOffset: 0, color: null, active: false },
+];
+
+// ---------------------------- État de module ----------------------------
+// Petit registre mutable rafraîchi une fois au login (cohérent avec
+// `setIncludePentecote` de dates.ts). Les vues abonnées à `shift_types`
+// (Realtime) peuvent le rafraîchir à chaud.
+
+let current: ShiftTypeDef[] = sortDefs(DEFAULT_SHIFT_TYPES);
+let byCode: Map<ShiftType, ShiftTypeDef> = index(current);
+
+function sortDefs(defs: readonly ShiftTypeDef[]): ShiftTypeDef[] {
+  return [...defs].sort((a, b) => a.sortOrder - b.sortOrder || a.code.localeCompare(b.code));
+}
+function index(defs: ShiftTypeDef[]): Map<ShiftType, ShiftTypeDef> {
+  return new Map(defs.map(d => [d.code, d]));
+}
+
+/**
+ * Remplace la configuration des types de créneaux (au login, ou sur événement
+ * Realtime). Une liste vide est ignorée (on conserve les défauts) pour ne
+ * jamais rendre le planning inutilisable sur une base incomplète.
+ */
+export function setShiftTypes(defs: readonly ShiftTypeDef[]): void {
+  if (!defs || defs.length === 0) return;
+  current = sortDefs(defs);
+  byCode = index(current);
+}
+
+/** Configuration courante, triée par ordre d'affichage. */
+export function getShiftTypes(): readonly ShiftTypeDef[] {
+  return current;
+}
+
+/** Définition d'un code (ou `undefined` si inconnu). */
+export function shiftDef(code: ShiftType): ShiftTypeDef | undefined {
+  return byCode.get(code);
+}
+
+/** Libellé lisible d'un créneau (repli sur le code si inconnu). */
+export function shiftLabel(code: ShiftType): string {
+  return byCode.get(code)?.label ?? code;
+}
+
+/** Base horaire d'un créneau (0 si inconnu). */
+export function shiftHours(code: ShiftType): number {
+  return byCode.get(code)?.hours ?? 0;
+}
+
+/** Vrai si le créneau est une garde de NUIT (repos de sécurité, compteur nuits). */
+export function isNightShift(code: ShiftType): boolean {
+  return byCode.get(code)?.isNight ?? false;
+}
+
+/** Codes cliniques actifs, dans l'ordre d'affichage. */
+export function clinicalShiftTypes(): ShiftType[] {
+  return current.filter(d => d.active && d.clinical).map(d => d.code);
+}
+
+export function isShiftType(v: string): boolean {
+  return byCode.has(v);
+}
+
+/**
+ * Créneaux cliniques à couvrir pour une date donnée : tous les cliniques actifs
+ * en semaine ; seulement ceux marqués « week-end » le samedi, le dimanche et les
+ * jours fériés (couverture réduite). Les heures non cliniques (S3) ne font pas
+ * partie de la couverture.
+ */
+export function activeShiftTypes(date: Date): ShiftType[] {
+  const reduced = isSatSun(date) || isHoliday(date);
+  return current
+    .filter(d => d.active && d.clinical && (reduced ? d.weekend : true))
+    .map(d => d.code);
 }
 
 /** Une affectation minimale nécessaire au calcul des compteurs. */
@@ -86,7 +159,7 @@ export function computeCounters(shifts: CountableShift[]): DoctorCounters {
 
   for (const s of shifts) {
     const d = fromISODate(s.work_date);
-    const h = SHIFT_HOURS[s.shift_type] ?? 0;
+    const h = shiftHours(s.shift_type);
     totalHours += h;
     if (isVsd(d)) weekendHours += h;
     if (isFriday(d)) fri.add(s.work_date);

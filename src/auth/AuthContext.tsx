@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { getSupabase } from '../lib/supabase.ts';
+import { getSupabase, subscribeTable } from '../lib/supabase.ts';
 import { ensureSelfDoctor } from '../backend/doctors.ts';
 import { getSettings } from '../backend/settings.ts';
+import { listShiftTypes } from '../backend/shiftTypes.ts';
+import { setShiftTypes } from '../lib/shifts.ts';
 import {
   challengeTotp,
   getAssuranceLevel,
@@ -16,12 +18,21 @@ import { idbGet, idbSet } from '../lib/idbCache.ts';
 import type { Doctor } from '../backend/types.ts';
 import { AuthContext } from './useAuth.ts';
 
-/** Charge les réglages et configure les jours fériés (best-effort). */
+/**
+ * Charge les réglages (jours fériés) et la configuration des types de créneaux
+ * (`shift_types`) au login. Best-effort et indépendants : sur base incomplète ou
+ * hors-ligne, chacun conserve ses défauts.
+ */
 async function applySettings(approved: boolean) {
   if (!approved) return;
   try {
     const s = await getSettings();
     setIncludePentecote(s.pentecote_ferie !== false);
+  } catch {
+    /* défauts conservés */
+  }
+  try {
+    setShiftTypes(await listShiftTypes());
   } catch {
     /* défauts conservés */
   }
@@ -35,6 +46,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // La session est authentifiée (mot de passe) mais un facteur TOTP vérifié
   // exige encore l'étape à 6 chiffres avant d'accéder à l'application (aal1→aal2).
   const [mfaRequired, setMfaRequired] = useState(false);
+  // Incrémenté quand la config des créneaux change (Realtime) → re-render global
+  // pour refléter libellés/heures/colonnes sans recharger la page.
+  const [, bumpConfig] = useState(0);
 
   const refreshDoctor = useCallback(async () => {
     const sb = getSupabase();
@@ -96,6 +110,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     return () => sub.subscription.unsubscribe();
   }, []);
+
+  // Rafraîchit la config des créneaux quand un admin la modifie (Realtime).
+  const approved = !!doctor?.approved;
+  useEffect(() => {
+    if (!approved) return;
+    return subscribeTable('shift_types', () => {
+      listShiftTypes()
+        .then(t => {
+          setShiftTypes(t);
+          bumpConfig(v => v + 1);
+        })
+        .catch(() => {});
+    });
+  }, [approved]);
 
   async function signIn(email: string, password: string) {
     const { error } = await getSupabase().auth.signInWithPassword({

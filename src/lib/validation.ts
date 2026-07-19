@@ -1,8 +1,9 @@
 import { fromISODate, toISODate } from './dates.ts';
+import { isNightShift } from './shifts.ts';
 
 /**
  * Détection des situations à risque dans le planning :
- *  - repos de sécurité : un médecin de garde le lendemain d'une garde de NUIT (S1N) ;
+ *  - repos de sécurité : un médecin de garde le lendemain d'une garde de NUIT ;
  *  - conflit : un médecin en garde ET en absence le même jour ;
  *  - cumul : un médecin sur plusieurs créneaux le même jour.
  */
@@ -44,12 +45,12 @@ export function computeIssues(
 
   // Index gardes par jour et par (jour|médecin).
   const byDay = new Map<string, ShiftLike[]>();
-  const nightByDoctorDate = new Set<string>(); // `${doctor}|${date}` a une S1N
+  const nightByDoctorDate = new Set<string>(); // `${doctor}|${date}` a une garde de nuit
   for (const s of shifts) {
     const arr = byDay.get(s.work_date);
     if (arr) arr.push(s);
     else byDay.set(s.work_date, [s]);
-    if (s.shift_type === 'S1N') nightByDoctorDate.add(`${s.doctor_id}|${s.work_date}`);
+    if (isNightShift(s.shift_type)) nightByDoctorDate.add(`${s.doctor_id}|${s.work_date}`);
   }
   const leaveByDoctorDate = new Set(leaves.map(l => `${l.doctor_id}|${l.work_date}`));
 
@@ -103,6 +104,6 @@ export function violatesRest(
 ): boolean {
   const prev = prevISO(iso);
   return shifts.some(
-    s => s.doctor_id === doctorId && s.work_date === prev && s.shift_type === 'S1N'
+    s => s.doctor_id === doctorId && s.work_date === prev && isNightShift(s.shift_type)
   );
 }

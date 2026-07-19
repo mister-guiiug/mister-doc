@@ -16,7 +16,7 @@ import {
   WEEKDAY_LABELS,
   type MonthDay,
 } from '../../lib/dates.ts';
-import { SHIFT_LABEL, SHIFT_HOURS } from '../../lib/shifts.ts';
+import { shiftLabel, shiftHours, isNightShift } from '../../lib/shifts.ts';
 import { LEAVE_LABEL } from '../../lib/leaves.ts';
 import { logError } from '../../lib/logger.ts';
 import { useDebouncedCallback } from '../../lib/useDebouncedCallback.ts';
@@ -196,16 +196,16 @@ function DayCard({ item }: { item: DayItem }) {
         {shifts.map(s => (
           <Badge
             key={s.id}
-            tone={s.shift_type === 'S1N' ? 'indigo' : 'teal'}
+            tone={isNightShift(s.shift_type) ? 'indigo' : 'teal'}
             icon={
-              s.shift_type === 'S1N' ? (
+              isNightShift(s.shift_type) ? (
                 <Moon className="size-3" />
               ) : (
                 <Sun className="size-3" />
               )
             }
           >
-            {SHIFT_LABEL[s.shift_type]} · {SHIFT_HOURS[s.shift_type]} h
+            {shiftLabel(s.shift_type)} · {shiftHours(s.shift_type)} h
           </Badge>
         ))}
         {leaves.map(l => (

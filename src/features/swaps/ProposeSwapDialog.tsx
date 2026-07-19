@@ -7,7 +7,7 @@ import {
   toISODate,
   WEEKDAY_LABELS,
 } from '../../lib/dates.ts';
-import { SHIFT_LABEL, type ShiftType } from '../../lib/shifts.ts';
+import { shiftLabel, type ShiftType } from '../../lib/shifts.ts';
 import { logError } from '../../lib/logger.ts';
 import { listShiftsBetween } from '../../backend/planning.ts';
 import type { Doctor, Shift } from '../../backend/types.ts';
@@ -157,7 +157,7 @@ export function ProposeSwapDialog({
                   }`}
                 >
                   <span className="capitalize">{dayLabel(s.work_date)}</span>
-                  <span className="font-medium">{SHIFT_LABEL[s.shift_type]}</span>
+                  <span className="font-medium">{shiftLabel(s.shift_type)}</span>
                 </button>
               );
             })}
