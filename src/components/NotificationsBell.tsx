@@ -16,6 +16,8 @@ import {
   Clock,
   Lock,
   LockOpen,
+  AlarmClock,
+  Moon,
 } from 'lucide-react';
 import {
   deleteNotification,
@@ -53,6 +55,10 @@ function iconFor(type: string) {
       return <CheckCircle2 className="size-4 text-teal-600" />;
     case 'swap_declined':
       return <XCircle className="size-4 text-red-500" />;
+    case 'shift_reminder':
+      return <AlarmClock className="size-4 text-teal-600" />;
+    case 'night_reminder':
+      return <Moon className="size-4 text-indigo-500" />;
     case 'month_locked':
       return <Lock className="size-4 text-slate-500" />;
     case 'month_unlocked':
