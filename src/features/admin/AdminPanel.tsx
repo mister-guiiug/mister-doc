@@ -11,6 +11,7 @@ import {
   Pencil,
   Settings,
   KeyRound,
+  AlarmClock,
 } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth.ts';
 import type { AppSettings, Doctor } from '../../backend/types.ts';
@@ -25,6 +26,7 @@ import {
   listDoctors,
 } from '../../backend/doctors.ts';
 import { getSettings, setSettings as saveSettings } from '../../backend/settings.ts';
+import { sendReminders } from '../../backend/reminders.ts';
 import { setIncludePentecote } from '../../lib/dates.ts';
 import { FullScreenSpinner } from '../../components/Spinner.tsx';
 import { ProfileDialog } from '../../components/ProfileDialog.tsx';
@@ -50,6 +52,8 @@ export function AdminPanel() {
   const [newColor, setNewColor] = useState<string>(DEFAULT_DOCTOR_COLOR);
   const [editDoc, setEditDoc] = useState<Doctor | null>(null);
   const [settings, setSettings] = useState<AppSettings>({});
+  const [reminderBusy, setReminderBusy] = useState(false);
+  const [reminderMsg, setReminderMsg] = useState<string | null>(null);
 
   useEffect(() => {
     getSettings().then(setSettings).catch(() => {});
@@ -63,6 +67,23 @@ export function AdminPanel() {
       await saveSettings(next);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur');
+    }
+  }
+
+  async function handleReminders() {
+    setReminderBusy(true);
+    setReminderMsg(null);
+    try {
+      const n = await sendReminders();
+      setReminderMsg(
+        n > 0
+          ? `${n} rappel(s) envoyé(s).`
+          : 'Aucun rappel à envoyer (déjà faits ou aucune garde concernée).'
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur');
+    } finally {
+      setReminderBusy(false);
     }
   }
 
@@ -135,6 +156,28 @@ export function AdminPanel() {
             </span>
           </span>
         </label>
+
+        <div className="mt-3 flex items-start justify-between gap-3 border-t border-slate-100 pt-3 dark:border-slate-800">
+          <span className="text-sm">
+            <span className="font-medium">Rappels de garde</span>
+            <span className="block text-xs text-slate-400">
+              Envoyés automatiquement chaque soir (push « garde demain » / « nuit ce
+              soir »). Ce bouton les déclenche maintenant (test ou rattrapage).
+            </span>
+          </span>
+          <Button
+            size="sm"
+            variant="secondary"
+            loading={reminderBusy}
+            onClick={() => void handleReminders()}
+          >
+            {!reminderBusy && <AlarmClock className="size-4" />}
+            Envoyer
+          </Button>
+        </div>
+        {reminderMsg && (
+          <p className="mt-1 text-xs text-teal-600 dark:text-teal-400">{reminderMsg}</p>
+        )}
       </Card>
 
       <ShiftTypesCard />
