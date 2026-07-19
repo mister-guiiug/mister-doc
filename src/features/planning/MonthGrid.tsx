@@ -12,7 +12,7 @@ import {
   Clock3,
 } from 'lucide-react';
 import { WEEKDAY_LABELS } from '../../lib/dates.ts';
-import { SHIFT_LABEL, SHIFT_HOURS, activeShiftTypes } from '../../lib/shifts.ts';
+import { shiftLabel, shiftHours, activeShiftTypes } from '../../lib/shifts.ts';
 import { LEAVE_SHORT } from '../../lib/leaves.ts';
 import type { Wish } from '../../backend/types.ts';
 import type { PlanningGridProps, DayProps } from './gridTypes.ts';
@@ -184,12 +184,12 @@ const DayRow = memo(function DayRow({
                       : 'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800'
                     : 'border-dashed border-slate-300 bg-transparent dark:border-slate-700'
                 } ${locked ? '' : 'hover:border-teal-400'}`}
-                title={`${SHIFT_LABEL[type]} · ${SHIFT_HOURS[type]} h`}
+                title={`${shiftLabel(type)} · ${shiftHours(type)} h`}
               >
                 <span className="flex w-full items-center justify-between text-[10px] font-semibold uppercase text-slate-400">
                   {type}
                   <span className="font-normal normal-case">
-                    {SHIFT_HOURS[type]}h
+                    {shiftHours(type)}h
                   </span>
                 </span>
                 {doctor ? (

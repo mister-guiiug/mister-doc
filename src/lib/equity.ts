@@ -1,5 +1,5 @@
 import { fromISODate, isSatSun, isHoliday } from './dates.ts';
-import { SHIFT_HOURS, type ShiftType } from './shifts.ts';
+import { shiftHours, isNightShift, type ShiftType } from './shifts.ts';
 
 /**
  * Équité de répartition des gardes : compare la « charge pénible » de chaque
@@ -33,7 +33,7 @@ export const EQUITY_METRICS: {
   short: string;
 }[] = [
   { key: 'weekendDays', label: 'Jours de week-end', short: 'WE' },
-  { key: 'nights', label: 'Nuits (S1N)', short: 'Nuits' },
+  { key: 'nights', label: 'Nuits', short: 'Nuits' },
   { key: 'holidays', label: 'Jours fériés', short: 'Fériés' },
   { key: 'totalHours', label: 'Heures cliniques', short: 'Heures' },
 ];
@@ -44,7 +44,7 @@ export interface EquityRow {
   color?: string;
   /** Jours DISTINCTS de garde tombant un samedi/dimanche. */
   weekendDays: number;
-  /** Nombre de gardes de nuit (S1N). */
+  /** Nombre de gardes de nuit (types marqués « nuit »). */
   nights: number;
   /** Jours DISTINCTS de garde tombant un jour férié. */
   holidays: number;
@@ -84,8 +84,8 @@ export function computeEquity(
     let totalHours = 0;
     for (const s of mine) {
       const date = fromISODate(s.work_date);
-      totalHours += SHIFT_HOURS[s.shift_type] ?? 0;
-      if (s.shift_type === 'S1N') nights += 1;
+      totalHours += shiftHours(s.shift_type);
+      if (isNightShift(s.shift_type)) nights += 1;
       if (isSatSun(date)) weekendDates.add(s.work_date);
       if (isHoliday(date)) holidayDates.add(s.work_date);
     }

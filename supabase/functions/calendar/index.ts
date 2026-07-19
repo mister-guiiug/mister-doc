@@ -9,20 +9,76 @@
 //   ?token=DOCTOR_TOKEN&scope=me → uniquement ce médecin
 //   ?token=...&timed=1          → événements horodatés (sinon journée entière)
 
-const SHIFT_LABEL: Record<string, string> = {
+// Défauts historiques : servent de REPLI si la table `shift_types` est absente,
+// vide, ou ne connaît pas un code (base incomplète). La source de vérité est la
+// table (types de créneaux configurables) — chargée et mise en cache ci-dessous.
+const DEFAULT_LABEL: Record<string, string> = {
   S1J: 'S1 Jour',
   S1N: 'S1 Nuit',
   S2J: 'S2 Jour',
   S3: 'S3',
 };
-const SHIFT_HOURS: Record<string, number> = { S1J: 10, S1N: 15, S2J: 8, S3: 8 };
+const DEFAULT_HOURS: Record<string, number> = { S1J: 10, S1N: 15, S2J: 8, S3: 8 };
 // [début, fin, décalage de jour de la fin]
-const SHIFT_TIMES: Record<string, [string, string, number]> = {
+const DEFAULT_TIMES: Record<string, [string, string, number]> = {
   S1J: ['080000', '180000', 0],
   S1N: ['180000', '090000', 1],
   S2J: ['080000', '160000', 0],
   S3: ['080000', '160000', 0],
 };
+
+interface ShiftTypeRow {
+  code: string;
+  label: string;
+  hours: number | string;
+  start_time: string | null;
+  end_time: string | null;
+  end_day_offset: number;
+}
+
+interface ShiftMaps {
+  label: Record<string, string>;
+  hours: Record<string, number>;
+  times: Record<string, [string, string, number]>;
+}
+
+/** « 18:00:00 » → « 180000 » (format des horaires iCalendar sans séparateur). */
+function icsTime(t: string | null): string | null {
+  if (!t) return null;
+  return t.replace(/:/g, '').slice(0, 6).padEnd(6, '0');
+}
+
+// Cache mémoire (process) court : évite une requête `shift_types` par appel .ics.
+let mapsCache: { at: number; maps: ShiftMaps } | null = null;
+const MAPS_TTL_MS = 300_000;
+
+/**
+ * Construit les maps libellé/heures/horaires depuis `shift_types` (repli sur les
+ * défauts historiques). Résultat mis en cache `MAPS_TTL_MS`.
+ */
+async function loadMaps(): Promise<ShiftMaps> {
+  if (mapsCache && Date.now() - mapsCache.at < MAPS_TTL_MS) return mapsCache.maps;
+  const maps: ShiftMaps = {
+    label: { ...DEFAULT_LABEL },
+    hours: { ...DEFAULT_HOURS },
+    times: { ...DEFAULT_TIMES },
+  };
+  const rows = await restSafe<ShiftTypeRow[]>(
+    'shift_types?select=code,label,hours,start_time,end_time,end_day_offset'
+  );
+  if (rows) {
+    for (const r of rows) {
+      maps.label[r.code] = r.label;
+      maps.hours[r.code] = Number(r.hours);
+      const start = icsTime(r.start_time);
+      const end = icsTime(r.end_time);
+      if (start && end) maps.times[r.code] = [start, end, r.end_day_offset === 1 ? 1 : 0];
+      else delete maps.times[r.code]; // pas d'horaire → événement journée entière
+    }
+  }
+  mapsCache = { at: Date.now(), maps };
+  return maps;
+}
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -137,9 +193,10 @@ function timed(
   start: string,
   type: string,
   summary: string,
-  cat: string
+  cat: string,
+  times: Record<string, [string, string, number]>
 ) {
-  const t = SHIFT_TIMES[type];
+  const t = times[type];
   if (!t) return allDay(uid, start, summary, cat);
   const startDT = `${dateOnly(start)}T${t[0]}`;
   const endDate = t[2] === 1 ? nextDay(start) : dateOnly(start);
@@ -248,16 +305,17 @@ Deno.serve(async (req: Request) => {
         : rest<Note[]>('day_notes?select=work_date,note'),
     ]);
     const nameById = new Map(doctors.map(d => [d.id, d.name]));
+    const maps = await loadMaps();
 
     const events: string[] = [];
     for (const s of shifts) {
       const who = nameById.get(s.doctor_id) ?? '?';
-      const label = SHIFT_LABEL[s.shift_type] ?? s.shift_type;
-      const h = SHIFT_HOURS[s.shift_type] ?? 0;
+      const label = maps.label[s.shift_type] ?? s.shift_type;
+      const h = maps.hours[s.shift_type] ?? 0;
       const summary = `${label} · ${who} (${h}h)`;
       events.push(
         wantTimed
-          ? timed(`shift-${s.id}`, s.work_date, s.shift_type, summary, label)
+          ? timed(`shift-${s.id}`, s.work_date, s.shift_type, summary, label, maps.times)
           : allDay(`shift-${s.id}`, s.work_date, summary, label)
       );
     }

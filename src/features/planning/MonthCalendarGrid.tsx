@@ -11,7 +11,7 @@ import {
   Clock3,
 } from 'lucide-react';
 import type { MonthDay } from '../../lib/dates.ts';
-import { activeShiftTypes, SHIFT_HOURS } from '../../lib/shifts.ts';
+import { activeShiftTypes, shiftHours } from '../../lib/shifts.ts';
 import { LEAVE_SHORT } from '../../lib/leaves.ts';
 import type { PlanningGridProps, DayProps } from './gridTypes.ts';
 
@@ -211,7 +211,7 @@ const DayCell = memo(function DayCell({
               key={type}
               disabled={locked}
               onClick={() => onSlotClick(day.iso, type)}
-              title={`${type} · ${SHIFT_HOURS[type]} h`}
+              title={`${type} · ${shiftHours(type)} h`}
               className={`flex items-center gap-1 rounded border px-1 py-0.5 text-left text-[11px] transition disabled:cursor-default ${
                 dim(shift?.doctor_id) ? 'opacity-30' : ''
               } ${

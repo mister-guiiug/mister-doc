@@ -5,7 +5,7 @@ import { useToast } from '../../components/Toast.tsx';
 import { Button } from '../../components/ui/Button.tsx';
 import { EmptyState } from '../../components/ui/EmptyState.tsx';
 import { fromISODate, WEEKDAY_LABELS, mondayIndex } from '../../lib/dates.ts';
-import { SHIFT_LABEL, type ShiftType } from '../../lib/shifts.ts';
+import { shiftLabel, type ShiftType } from '../../lib/shifts.ts';
 import { logError } from '../../lib/logger.ts';
 import type { Doctor, SwapRequest } from '../../backend/types.ts';
 import { listDoctors } from '../../backend/doctors.ts';
@@ -132,7 +132,7 @@ export function SwapBoard() {
     <li className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium">
-          {SHIFT_LABEL[s.shift_type]} · <span className="capitalize">{dayLabel(s.work_date)}</span>
+          {shiftLabel(s.shift_type)} · <span className="capitalize">{dayLabel(s.work_date)}</span>
           <span className="ml-1 font-normal text-slate-400">
             · {relativeDay(s.work_date)}
           </span>
@@ -248,7 +248,7 @@ export function SwapBoard() {
               >
                 <span className="min-w-0 flex-1">
                   <span className="capitalize">{dayLabel(s.work_date)}</span> ·{' '}
-                  {SHIFT_LABEL[s.shift_type]}
+                  {shiftLabel(s.shift_type)}
                   <span className="text-xs text-slate-400">
                     {' '}
                     — {nameById.get(s.from_doctor) ?? '?'} →{' '}

@@ -47,24 +47,30 @@ const shiftIndex = new Map<string, Shift>([
 
 describe('buildMonthPdfModel', () => {
   const model = buildMonthPdfModel({ title: 'Juillet 2026', weeks, shiftIndex, doctorsById });
+  const col = (code: string) => model.columns.findIndex(c => c.code === code);
 
   it('produit une ligne par jour du mois avec le titre', () => {
     expect(model.title).toBe('Juillet 2026');
     expect(model.rows).toHaveLength(31); // juillet
   });
 
+  it('a une colonne par créneau clinique actif (défaut S1J/S1N/S2J)', () => {
+    expect(model.columns.map(c => c.code)).toEqual(['S1J', 'S1N', 'S2J']);
+  });
+
   it('place les médecins affectés dans les bonnes colonnes', () => {
     const mardi7 = model.rows.find(r => r.day === 'Mardi 7');
-    expect(mardi7?.s1j).toBe('FLACHER');
-    expect(mardi7?.s2j).toBe('ROBIN');
+    expect(mardi7?.cells[col('S1J')].name).toBe('FLACHER');
+    expect(mardi7?.cells[col('S2J')].name).toBe('ROBIN');
     expect(mardi7?.reduced).toBe(false);
   });
 
-  it('grise les week-ends et supprime le S2J', () => {
+  it('grise les week-ends et neutralise le S2J', () => {
     const samedi4 = model.rows.find(r => r.day === 'Samedi 4');
     expect(samedi4?.reduced).toBe(true);
-    expect(samedi4?.s1j).toBe('FLACHER'); // S1J conservé
-    expect(samedi4?.s2j).toBe(''); // pas de S2J le week-end
+    expect(samedi4?.cells[col('S1J')].name).toBe('FLACHER'); // S1J conservé
+    expect(samedi4?.cells[col('S2J')].name).toBe(''); // pas de S2J le week-end
+    expect(samedi4?.cells[col('S2J')].off).toBe(true);
   });
 
   it('marque les fériés et n’affiche le n° de semaine qu’une fois par semaine', () => {
