@@ -1,8 +1,1 @@
-/** @type {import('prettier').Config} */
-export default {
-  singleQuote: true,
-  semi: true,
-  trailingComma: 'es5',
-  arrowParens: 'avoid',
-  printWidth: 80,
-};
+export { default } from '@mister-guiiug/dev-wpa-config/prettier';

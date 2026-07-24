@@ -44,11 +44,41 @@ const COLS: Col[] = [
   { head: 'Vendredis', short: 'Ven', num: true, val: r => r.fridays, unit: '' },
   { head: 'Samedis', short: 'Sam', num: true, val: r => r.saturdays, unit: '' },
   { head: 'Dimanches', short: 'Dim', num: true, val: r => r.sundays, unit: '' },
-  { head: 'Heures WE', short: 'h WE', num: true, val: r => r.weekendHours, unit: ' h' },
-  { head: 'Heures non cliniques', short: 'HNC', num: true, val: r => r.hncHours, unit: ' h' },
-  { head: 'Heures totales', short: 'h Total', num: true, val: r => r.totalHours, unit: ' h' },
-  { head: 'Congés (j)', short: 'Congés', num: true, val: r => r.annualDays, unit: ' j' },
-  { head: 'Formation (h)', short: 'Format.', num: true, val: r => r.trainingHours, unit: ' h' },
+  {
+    head: 'Heures WE',
+    short: 'h WE',
+    num: true,
+    val: r => r.weekendHours,
+    unit: ' h',
+  },
+  {
+    head: 'Heures non cliniques',
+    short: 'HNC',
+    num: true,
+    val: r => r.hncHours,
+    unit: ' h',
+  },
+  {
+    head: 'Heures totales',
+    short: 'h Total',
+    num: true,
+    val: r => r.totalHours,
+    unit: ' h',
+  },
+  {
+    head: 'Congés (j)',
+    short: 'Congés',
+    num: true,
+    val: r => r.annualDays,
+    unit: ' j',
+  },
+  {
+    head: 'Formation (h)',
+    short: 'Format.',
+    num: true,
+    val: r => r.trainingHours,
+    unit: ' h',
+  },
 ];
 
 /** `Juillet 2026` → `juillet-2026` (nom de fichier sûr). */
@@ -163,17 +193,26 @@ function drawPage(
   rows: CounterRow[],
   pageStart: number
 ): void {
-  c.text(M, TITLE_Y, 15, title, { bold: true, align: 'center', width: CONTENT_W });
+  c.text(M, TITLE_Y, 15, title, {
+    bold: true,
+    align: 'center',
+    width: CONTENT_W,
+  });
 
-  // En-tête
+  // En-tête (X_COLS[0] === M par construction)
   c.fillRect(M, TABLE_TOP, CONTENT_W, HEADER_H, C_HEADER);
   const headBase = TABLE_TOP + HEADER_H * 0.5 + HEADER_FONT * 0.35;
-  c.text(X_COLS[0] + 6, headBase, HEADER_FONT, COLS[0].short, {
-    bold: true,
-    color: C_WHITE,
-  });
+  const nameCol = COLS[0];
+  if (nameCol)
+    c.text(M + 6, headBase, HEADER_FONT, nameCol.short, {
+      bold: true,
+      color: C_WHITE,
+    });
   for (let i = 1; i < COLS.length; i++) {
-    c.text(X_COLS[i], headBase, HEADER_FONT, COLS[i].short, {
+    const col = COLS[i];
+    const x = X_COLS[i];
+    if (!col || x === undefined) continue;
+    c.text(x, headBase, HEADER_FONT, col.short, {
       bold: true,
       color: C_WHITE,
       align: 'center',
@@ -186,12 +225,14 @@ function drawPage(
     const y = TABLE_TOP + HEADER_H + i * ROW_H;
     if ((pageStart + i) % 2 === 1) c.fillRect(M, y, CONTENT_W, ROW_H, C_ALT);
     const base = y + ROW_H * 0.5 + FONT * 0.35;
-    c.text(X_COLS[0] + 6, base, FONT, fit(r.name, COL_NAME - 10, FONT), {
+    c.text(M + 6, base, FONT, fit(r.name, COL_NAME - 10, FONT), {
       color: C_BLACK,
     });
     for (let ci = 1; ci < COLS.length; ci++) {
       const col = COLS[ci];
-      c.text(X_COLS[ci], base, FONT, `${col.val(r)}${col.unit}`, {
+      const x = X_COLS[ci];
+      if (!col || x === undefined) continue;
+      c.text(x, base, FONT, `${col.val(r)}${col.unit}`, {
         align: 'center',
         width: COL_NUM,
       });
@@ -200,7 +241,8 @@ function drawPage(
 
   // Grille
   const bottom = TABLE_TOP + HEADER_H + rows.length * ROW_H;
-  for (const x of [...X_COLS, X_END]) c.line(x, TABLE_TOP, x, bottom, 0.6, GRID_GRAY);
+  for (const x of [...X_COLS, X_END])
+    c.line(x, TABLE_TOP, x, bottom, 0.6, GRID_GRAY);
   c.line(M, TABLE_TOP, X_END, TABLE_TOP, 0.8, GRID_GRAY);
   c.line(M, TABLE_TOP + HEADER_H, X_END, TABLE_TOP + HEADER_H, 0.8, GRID_GRAY);
   for (let i = 1; i <= rows.length; i++) {
@@ -210,7 +252,10 @@ function drawPage(
 }
 
 /** Rend les octets du PDF (paginé) du tableau des compteurs — fonction pure. */
-export function renderCountersPdf(rows: CounterRow[], label: string): Uint8Array {
+export function renderCountersPdf(
+  rows: CounterRow[],
+  label: string
+): Uint8Array {
   const title = `Compteurs — ${label}`;
   const per = rowsPerPage();
   const pages: PdfContent[] = [];

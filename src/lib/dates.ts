@@ -41,7 +41,7 @@ export function toISODate(d: Date): string {
 
 /** Parse une clé `YYYY-MM-DD` en Date locale (minuit local). */
 export function fromISODate(iso: string): Date {
-  const [y, m, d] = iso.split('-').map(Number);
+  const [y = 0, m = 1, d = 1] = iso.split('-').map(Number);
   return new Date(y, m - 1, d);
 }
 

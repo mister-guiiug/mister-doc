@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -180,7 +186,7 @@ function DayCard({ item }: { item: DayItem }) {
     >
       <div className="flex w-12 shrink-0 flex-col items-center leading-tight">
         <span className="text-[11px] uppercase text-slate-400">
-          {WEEKDAY_LABELS[day.weekday].slice(0, 3)}
+          {(WEEKDAY_LABELS[day.weekday] ?? '').slice(0, 3)}
         </span>
         <span className="text-lg font-bold tabular-nums">
           {day.date.getDate()}

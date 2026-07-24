@@ -94,6 +94,7 @@ export function ProposeSwapDialog({
   async function submit() {
     if (!selected) return;
     const [iso, type] = selected.split('|');
+    if (!iso || !type) return;
     setBusy(true);
     setError(null);
     try {
@@ -157,7 +158,9 @@ export function ProposeSwapDialog({
                   }`}
                 >
                   <span className="capitalize">{dayLabel(s.work_date)}</span>
-                  <span className="font-medium">{shiftLabel(s.shift_type)}</span>
+                  <span className="font-medium">
+                    {shiftLabel(s.shift_type)}
+                  </span>
                 </button>
               );
             })}

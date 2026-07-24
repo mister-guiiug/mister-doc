@@ -79,7 +79,13 @@ export class PdfContent {
   }
 
   /** Texte. (x, baselineTop) = position de la ligne de base depuis le haut. */
-  text(x: number, baselineTop: number, size: number, str: string, opts: TextOptions = {}): void {
+  text(
+    x: number,
+    baselineTop: number,
+    size: number,
+    str: string,
+    opts: TextOptions = {}
+  ): void {
     const color = opts.color ?? [0, 0, 0];
     let tx = x;
     if (opts.align === 'center' && opts.width != null) {
@@ -168,7 +174,8 @@ export function buildPdf(contents: PdfContent[]): Uint8Array {
     );
     endObj();
 
-    const streamBytes = contents[i].bytes();
+    // `nPages === contents.length` par construction : l'accès est sûr.
+    const streamBytes = contents[i]!.bytes();
     startObj(contentNum);
     pushAscii(`<< /Length ${streamBytes.length} >>\nstream\n`);
     pushBytes(streamBytes);

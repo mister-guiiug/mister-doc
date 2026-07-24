@@ -109,7 +109,8 @@ export function NotificationsBell() {
       seen.current = ids;
     } else {
       for (const n of list) {
-        if (!seen.current.has(n.id) && !n.read) toastRef.current.success(n.title);
+        if (!seen.current.has(n.id) && !n.read)
+          toastRef.current.success(n.title);
       }
       seen.current = ids;
     }
@@ -265,15 +266,19 @@ function NotificationRow({
 
   function onTouchStart(e: React.TouchEvent) {
     if (!swipeable) return;
-    start.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    const t = e.touches[0];
+    if (!t) return;
+    start.current = { x: t.clientX, y: t.clientY };
     axis.current = 'none';
     moved.current = false;
     dragging.current = true;
   }
   function onTouchMove(e: React.TouchEvent) {
     if (!swipeable || !dragging.current) return;
-    const dX = e.touches[0].clientX - start.current.x;
-    const dY = e.touches[0].clientY - start.current.y;
+    const t = e.touches[0];
+    if (!t) return;
+    const dX = t.clientX - start.current.x;
+    const dY = t.clientY - start.current.y;
     if (axis.current === 'none' && (Math.abs(dX) > 6 || Math.abs(dY) > 6)) {
       axis.current = Math.abs(dX) > Math.abs(dY) ? 'x' : 'y';
     }
@@ -341,7 +346,9 @@ function NotificationRow({
                 {n.body}
               </p>
             )}
-            <p className="text-[10px] text-slate-400">{relative(n.created_at)}</p>
+            <p className="text-[10px] text-slate-400">
+              {relative(n.created_at)}
+            </p>
           </div>
           <ChevronRight className="size-4 shrink-0 self-center text-slate-300 opacity-0 transition group-hover:opacity-100" />
         </button>

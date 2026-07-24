@@ -40,6 +40,7 @@ export function Modal({
       if (els.length === 0) return;
       const first = els[0];
       const last = els[els.length - 1];
+      if (!first || !last) return;
       if (e.shiftKey && document.activeElement === first) {
         e.preventDefault();
         last.focus();

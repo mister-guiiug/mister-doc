@@ -56,9 +56,10 @@ export function ShiftTypesCard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
-  const [editing, setEditing] = useState<{ def: ShiftTypeDef; isNew: boolean } | null>(
-    null
-  );
+  const [editing, setEditing] = useState<{
+    def: ShiftTypeDef;
+    isNew: boolean;
+  } | null>(null);
 
   const reload = useCallback(async () => {
     const list = await listShiftTypes();
@@ -88,14 +89,22 @@ export function ShiftTypesCard() {
   async function move(index: number, dir: -1 | 1) {
     const target = index + dir;
     if (target < 0 || target >= types.length) return;
+    const current = types[index];
     const codes = types.map(t => t.code);
-    [codes[index], codes[target]] = [codes[target], codes[index]];
-    await run(`move:${types[index].code}`, () => adminReorderShiftTypes(codes));
+    const a = codes[index];
+    const b = codes[target];
+    if (!current || a === undefined || b === undefined) return;
+    codes[index] = b;
+    codes[target] = a;
+    await run(`move:${current.code}`, () => adminReorderShiftTypes(codes));
   }
 
   if (loading)
     return (
-      <SectionCard title="Types de créneaux" icon={<CalendarClock className="size-4" />}>
+      <SectionCard
+        title="Types de créneaux"
+        icon={<CalendarClock className="size-4" />}
+      >
         <p className="py-3 text-center text-sm text-slate-400">
           <Loader2 className="inline size-4 animate-spin" />
         </p>
@@ -108,7 +117,10 @@ export function ShiftTypesCard() {
       icon={<CalendarClock className="size-4" />}
       desc="Définissez vos créneaux (libellé, heures, nuit, couverture week-end)."
       headerRight={
-        <Button size="sm" onClick={() => setEditing({ def: blankType(), isNew: true })}>
+        <Button
+          size="sm"
+          onClick={() => setEditing({ def: blankType(), isNew: true })}
+        >
           <Plus className="size-4" /> Ajouter
         </Button>
       }
@@ -133,9 +145,13 @@ export function ShiftTypesCard() {
             />
             <div className="min-w-0 flex-1">
               <p className="flex flex-wrap items-center gap-1.5 truncate text-sm font-medium">
-                <span className="font-mono text-xs text-slate-400">{t.code}</span>
+                <span className="font-mono text-xs text-slate-400">
+                  {t.code}
+                </span>
                 {t.label}
-                <span className="text-xs font-normal text-slate-400">· {t.hours} h</span>
+                <span className="text-xs font-normal text-slate-400">
+                  · {t.hours} h
+                </span>
                 {t.isNight && (
                   <Badge>
                     <Moon className="size-3" /> nuit
@@ -408,7 +424,12 @@ function ShiftTypeDialog({
         <Button variant="secondary" size="sm" onClick={onClose}>
           Annuler
         </Button>
-        <Button size="sm" loading={saving} disabled={!valid} onClick={() => void submit()}>
+        <Button
+          size="sm"
+          loading={saving}
+          disabled={!valid}
+          onClick={() => void submit()}
+        >
           Enregistrer
         </Button>
       </div>
