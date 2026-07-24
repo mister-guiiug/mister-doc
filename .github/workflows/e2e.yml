@@ -8,6 +8,10 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+  packages: read
+
 concurrency:
   group: e2e-${{ github.ref }}
   cancel-in-progress: true
@@ -23,11 +27,14 @@ jobs:
       VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 22
+
+      # setup-node (registre GitHub Packages, scope @mister-guiiug) + npm ci
+      # des dépendances de l'app (dev-wpa-config).
       - name: Dépendances de l'app
-        run: npm ci --no-audit --no-fund
+        uses: mister-guiiug/dev-wpa-config/.github/actions/setup-pwa@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Dépendances E2E (isolées)
         run: npm --prefix e2e install --no-audit --no-fund
       - name: Navigateur Playwright

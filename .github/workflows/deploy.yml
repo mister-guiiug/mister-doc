@@ -9,6 +9,7 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  packages: read
 
 concurrency:
   group: pages
@@ -19,18 +20,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 22
-          cache: npm
+
+      # setup-node (registre GitHub Packages, scope @mister-guiiug) + npm ci.
       # npm ci : installe STRICTEMENT depuis package-lock.json (builds
-      # reproductibles, pas de dérive de versions). Le lockfile inclut les
-      # binaires natifs Linux (rollup/lightningcss/@tailwindcss-oxide) ET les
-      # helpers @emnapi (WASI), donc l'install aboutit sur le runner Linux.
-      - run: npm ci --no-audit --no-fund
+      # reproductibles). Le lockfile inclut les binaires natifs Linux
+      # (rollup/lightningcss/@tailwindcss-oxide) ET les helpers @emnapi (WASI),
+      # donc l'install aboutit sur le runner Linux.
+      - uses: mister-guiiug/dev-wpa-config/.github/actions/setup-pwa@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
       - run: npm run build
         env:
           VITE_BASE_PATH: /mister-doc/
+          VITE_PUBLIC_SITE_ORIGIN: https://${{ github.repository_owner }}.github.io
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
       - uses: actions/upload-pages-artifact@v5
