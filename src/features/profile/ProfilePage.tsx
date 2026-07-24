@@ -17,7 +17,9 @@ import {
   FileText,
   Download,
   UserX,
+  LayoutGrid,
 } from 'lucide-react';
+import { FamilyApps } from '@mister-guiiug/dev-wpa-config/react';
 import { useAuth } from '../../auth/useAuth.ts';
 import { useToast } from '../../components/Toast.tsx';
 import { useTheme } from '../../lib/theme.ts';
@@ -74,9 +76,9 @@ export function ProfilePage() {
   const [exporting, setExporting] = useState(false);
   const [copied, setCopied] = useState(false);
   const pushOn = pushConfigured();
-  const [push, setPush] = useState<'loading' | 'on' | 'off' | 'denied' | 'busy'>(
-    'loading'
-  );
+  const [push, setPush] = useState<
+    'loading' | 'on' | 'off' | 'denied' | 'busy'
+  >('loading');
 
   // Lien racine de l'application (HashRouter → l'accueil), indépendant de la
   // route courante. `BASE_URL` vaut « /mister-doc/ » en prod, « / » en local.
@@ -181,7 +183,7 @@ export function ProfilePage() {
     const ok = await confirm({
       title: 'Supprimer votre compte ?',
       message:
-        "Votre identité (nom, e-mail, connexion) sera définitivement effacée. Vos gardes passées restent au planning sous une identité anonymisée. Action irréversible : vous serez déconnecté(e).",
+        'Votre identité (nom, e-mail, connexion) sera définitivement effacée. Vos gardes passées restent au planning sous une identité anonymisée. Action irréversible : vous serez déconnecté(e).',
       danger: true,
       confirmLabel: 'Supprimer mon compte',
     });
@@ -260,7 +262,9 @@ export function ProfilePage() {
                 key={c}
                 onClick={() => setColor(c)}
                 className={`grid size-7 place-items-center rounded-full transition ${
-                  color === c ? 'ring-2 ring-slate-400 ring-offset-2 dark:ring-offset-slate-900' : ''
+                  color === c
+                    ? 'ring-2 ring-slate-400 ring-offset-2 dark:ring-offset-slate-900'
+                    : ''
                 }`}
                 style={{ backgroundColor: c }}
                 aria-label={`Couleur ${c}`}
@@ -371,8 +375,8 @@ export function ProfilePage() {
         >
           {push === 'denied' ? (
             <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
-              Les notifications sont bloquées pour ce site. Autorisez-les dans les
-              réglages du navigateur pour activer le push.
+              Les notifications sont bloquées pour ce site. Autorisez-les dans
+              les réglages du navigateur pour activer le push.
             </p>
           ) : (
             <Button
@@ -412,7 +416,8 @@ export function ProfilePage() {
             loading={exporting}
             onClick={() => void handleExport()}
           >
-            {!exporting && <Download className="size-4" />} Télécharger mes données
+            {!exporting && <Download className="size-4" />} Télécharger mes
+            données
           </Button>
           <Button
             variant="dangerGhost"
@@ -421,9 +426,9 @@ export function ProfilePage() {
           >
             <UserX className="size-4" /> Supprimer mon compte
           </Button>
-          <p className="text-xs text-slate-400">
-            Suppression = anonymisation : votre identité est effacée ; vos gardes
-            passées restent au planning sans votre nom.
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Suppression = anonymisation : votre identité est effacée ; vos
+            gardes passées restent au planning sans votre nom.
           </p>
         </div>
       </Section>
@@ -452,6 +457,17 @@ export function ProfilePage() {
           <RefreshCw className={`size-4 ${updating ? 'animate-spin' : ''}`} />
           Forcer la mise à jour
         </Button>
+      </Section>
+
+      {/* Autres applications de la famille (composant partagé, catalogue) */}
+      <Section
+        icon={<LayoutGrid className="size-4" />}
+        title="Nos autres applications"
+        desc="Les applications gratuites de la même famille"
+      >
+        <div className="family-apps">
+          <FamilyApps currentAppId="mister-doc" showSponsor={false} />
+        </div>
       </Section>
 
       <Button

@@ -13,14 +13,16 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: process.env.CI ? 'github' : 'list',
   use: {
-    baseURL: 'http://localhost:5173',
+    // Port DÉDIÉ (5175, --strictPort) : le 5173 par défaut peut être occupé par
+    // un autre dev server local, que `reuseExistingServer` réutiliserait à tort.
+    baseURL: 'http://localhost:5175',
     trace: 'on-first-retry',
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
-    command: 'npm run dev',
+    command: 'npm run dev -- --port 5175 --strictPort',
     cwd: '..',
-    url: 'http://localhost:5173',
+    url: 'http://localhost:5175',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },

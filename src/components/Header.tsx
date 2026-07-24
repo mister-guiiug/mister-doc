@@ -17,7 +17,7 @@ export function Header() {
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     `rounded-lg px-3 py-1.5 text-sm font-medium transition ${
       isActive
-        ? 'bg-teal-600 text-white'
+        ? 'bg-teal-700 text-white'
         : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
     }`;
 
@@ -37,7 +37,11 @@ export function Header() {
             Planning
           </NavLink>
           {doctor && (
-            <NavLink to="/mon-planning" className={linkClass} title="Mon planning">
+            <NavLink
+              to="/mon-planning"
+              className={linkClass}
+              title="Mon planning"
+            >
               <span className="flex items-center gap-1">
                 <CalendarCheck className="size-4" />
                 Moi
@@ -83,7 +87,7 @@ export function Header() {
               className={`flex items-center gap-1 rounded-lg p-1.5 text-sm font-medium transition ${
                 previewMember
                   ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400'
-                  : 'text-teal-600 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  : 'text-teal-700 hover:bg-slate-100 dark:text-teal-400 dark:hover:bg-slate-800'
               }`}
             >
               {previewMember ? (

@@ -5,7 +5,9 @@ type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'dangerGhost';
 type Size = 'sm' | 'md';
 
 const VARIANTS: Record<Variant, string> = {
-  primary: 'bg-teal-600 text-white hover:bg-teal-700',
+  // teal-700 (= couleur thème #0f766e) : blanc sur teal-600 ne tenait pas le
+  // ratio WCAG AA de 4.5:1 (axe color-contrast, serious).
+  primary: 'bg-teal-700 text-white hover:bg-teal-800',
   secondary:
     'border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800',
   ghost:

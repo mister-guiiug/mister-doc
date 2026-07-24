@@ -94,7 +94,9 @@ export function LoginPage() {
             placeholder="••••••••"
             required
             minLength={8}
-            autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+            autoComplete={
+              mode === 'signin' ? 'current-password' : 'new-password'
+            }
           />
           {mode === 'signup' && (
             <p className="-mt-1 text-xs text-slate-500 dark:text-slate-400">
@@ -118,7 +120,7 @@ export function LoginPage() {
 
         {mode === 'signin' && canPasskey && (
           <>
-            <div className="my-4 flex items-center gap-3 text-xs text-slate-400">
+            <div className="my-4 flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
               <span className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
               ou
               <span className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
@@ -143,11 +145,11 @@ export function LoginPage() {
           </p>
         )}
 
-        <p className="mt-4 text-center text-xs text-slate-400">
+        <p className="mt-4 text-center text-xs text-slate-500 dark:text-slate-400">
           <button
             type="button"
             onClick={() => setPrivacy(true)}
-            className="underline hover:text-slate-600 dark:hover:text-slate-300"
+            className="underline hover:text-slate-700 dark:hover:text-slate-200"
           >
             Politique de confidentialité
           </button>

@@ -47,7 +47,9 @@ function syncLabel(ts: number): string {
 }
 
 /** Lit un paramètre `?m=YYYY-MM` ; renvoie null si absent ou invalide. */
-function parseMonthParam(v: string | null): { year: number; month: number } | null {
+function parseMonthParam(
+  v: string | null
+): { year: number; month: number } | null {
   const match = v && /^(\d{4})-(\d{2})$/.exec(v);
   if (!match) return null;
   const year = Number(match[1]);
@@ -62,9 +64,10 @@ export function PlanningView() {
   const [searchParams, setSearchParams] = useSearchParams();
   const today = new Date();
   const todayIso = toISODate(today);
-  const initialMonth =
-    parseMonthParam(searchParams.get('m')) ??
-    { year: today.getFullYear(), month: today.getMonth() };
+  const initialMonth = parseMonthParam(searchParams.get('m')) ?? {
+    year: today.getFullYear(),
+    month: today.getMonth(),
+  };
   const [year, setYear] = useState(initialMonth.year);
   const [month, setMonth] = useState(initialMonth.month);
   const [slot, setSlot] = useState<SlotTarget | null>(null);
@@ -74,7 +77,9 @@ export function PlanningView() {
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [view, setView] = useState<'list' | 'grid'>(() => {
     try {
-      return localStorage.getItem('mister-doc:view') === 'list' ? 'list' : 'grid';
+      return localStorage.getItem('mister-doc:view') === 'list'
+        ? 'list'
+        : 'grid';
     } catch {
       return 'grid';
     }
@@ -147,7 +152,10 @@ export function PlanningView() {
     setYear(dt.getFullYear());
     setMonth(dt.getMonth());
     const t = setTimeout(() => {
-      dayRefs.current[d]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      dayRefs.current[d]?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
       setSearchParams(
         prev => {
           const next = new URLSearchParams(prev);
@@ -201,7 +209,11 @@ export function PlanningView() {
 
   function jumpToFirstUncovered() {
     const iso = data.uncovered[0]?.iso;
-    if (iso) dayRefs.current[iso]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (iso)
+      dayRefs.current[iso]?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
   }
 
   // Callbacks stables passés aux grilles mémoïsées : sans eux, chaque cellule se
@@ -228,19 +240,22 @@ export function PlanningView() {
   const slotDayWishes = useMemo(() => {
     const m = new Map<string, WishKind>();
     if (slot)
-      for (const w of data.wishesByDate.get(slot.iso) ?? []) m.set(w.doctor_id, w.kind);
+      for (const w of data.wishesByDate.get(slot.iso) ?? [])
+        m.set(w.doctor_id, w.kind);
     return m;
   }, [slot, data.wishesByDate]);
 
-  if (data.firstLoad) return <FullScreenSpinner label="Chargement du planning…" />;
+  if (data.firstLoad)
+    return <FullScreenSpinner label="Chargement du planning…" />;
 
   return (
     <div
       className="mx-auto flex max-w-5xl flex-col gap-4 px-3 py-4 sm:px-4"
-      onTouchStart={e => (touchX.current = e.touches[0].clientX)}
+      onTouchStart={e => (touchX.current = e.touches[0]?.clientX ?? null)}
       onTouchEnd={e => {
-        if (touchX.current == null) return;
-        const dx = e.changedTouches[0].clientX - touchX.current;
+        const t = e.changedTouches[0];
+        if (touchX.current == null || !t) return;
+        const dx = t.clientX - touchX.current;
         if (Math.abs(dx) > 70) shiftMonth(dx < 0 ? 1 : -1);
         touchX.current = null;
       }}
@@ -312,8 +327,14 @@ export function PlanningView() {
                 : 'border-slate-200 bg-white hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800'
             }`}
           >
-            {data.locked ? <LockOpen className="size-4" /> : <Lock className="size-4" />}
-            <span className="hidden sm:inline">{data.locked ? 'Déverrouiller' : 'Verrouiller'}</span>
+            {data.locked ? (
+              <LockOpen className="size-4" />
+            ) : (
+              <Lock className="size-4" />
+            )}
+            <span className="hidden sm:inline">
+              {data.locked ? 'Déverrouiller' : 'Verrouiller'}
+            </span>
           </button>
         )}
 
@@ -327,7 +348,7 @@ export function PlanningView() {
               title="Vue liste (par semaine)"
               className={`flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-medium transition ${
                 view === 'list'
-                  ? 'bg-teal-600 text-white'
+                  ? 'bg-teal-700 text-white'
                   : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
@@ -339,7 +360,7 @@ export function PlanningView() {
               title="Vue grille (7 colonnes)"
               className={`flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-medium transition ${
                 view === 'grid'
-                  ? 'bg-teal-600 text-white'
+                  ? 'bg-teal-700 text-white'
                   : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
@@ -359,7 +380,9 @@ export function PlanningView() {
             aria-label="Rafraîchir"
             title="Rafraîchir"
           >
-            <RefreshCw className={`size-5 ${data.refreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`size-5 ${data.refreshing ? 'animate-spin' : ''}`}
+            />
           </button>
         </div>
       </div>
@@ -375,8 +398,10 @@ export function PlanningView() {
           <WifiOff className="size-4 shrink-0" />
           <span className="flex-1">
             Hors ligne — planning affiché depuis le cache
-            {data.lastSync ? ` (synchronisé le ${syncLabel(data.lastSync)})` : ''}.
-            Les modifications nécessitent une connexion.
+            {data.lastSync
+              ? ` (synchronisé le ${syncLabel(data.lastSync)})`
+              : ''}
+            . Les modifications nécessitent une connexion.
           </span>
         </div>
       )}
@@ -388,7 +413,8 @@ export function PlanningView() {
         >
           <AlertTriangle className="size-4 shrink-0" />
           <span className="flex-1">
-            {data.uncovered.length} jour{data.uncovered.length > 1 ? 's' : ''} avec un créneau à couvrir
+            {data.uncovered.length} jour{data.uncovered.length > 1 ? 's' : ''}{' '}
+            avec un créneau à couvrir
           </span>
           <span className="font-semibold underline">Voir</span>
         </button>
@@ -452,7 +478,9 @@ export function PlanningView() {
           dayWishes={slotDayWishes}
           onAssign={doctorId => handleAssign(slot, doctorId)}
           onClear={() => handleClearSlot(slot)}
-          onPropose={(toDoctor, message) => handlePropose(slot, toDoctor, message)}
+          onPropose={(toDoctor, message) =>
+            handlePropose(slot, toDoctor, message)
+          }
           onClose={() => setSlot(null)}
         />
       )}

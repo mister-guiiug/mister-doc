@@ -119,7 +119,9 @@ export function Counters({
       <div className="mb-2 flex items-center gap-1.5 text-sm font-semibold">
         <CalendarHeart className="size-4 text-teal-600" />
         Mes compteurs
-        <span className="font-normal capitalize text-slate-400">· {label}</span>
+        <span className="font-normal capitalize text-slate-500 dark:text-slate-400">
+          · {label}
+        </span>
         {scope === 'quad' && loading && (
           <Loader2 className="size-3.5 animate-spin text-slate-400" />
         )}
@@ -169,8 +171,8 @@ function ScopeButton({
       aria-pressed={active}
       className={`rounded-md px-2 py-0.5 text-xs font-medium transition ${
         active
-          ? 'bg-teal-600 text-white shadow-sm'
-          : 'text-slate-500 hover:bg-slate-200/70 dark:text-slate-400 dark:hover:bg-slate-700/70'
+          ? 'bg-teal-700 text-white shadow-sm'
+          : 'text-slate-600 hover:bg-slate-200/70 dark:text-slate-400 dark:hover:bg-slate-700/70'
       }`}
     >
       {children}
@@ -202,7 +204,8 @@ function Pill({
     <span
       className={`inline-flex items-baseline gap-1 rounded-lg border px-2 py-1 text-xs ${cls}`}
     >
-      <span className="text-[10px] uppercase opacity-70">{label}</span>
+      {/* Sans opacité réduite : le ratio de contraste AA doit rester ≥ 4.5. */}
+      <span className="text-[10px] uppercase">{label}</span>
       <span className="text-sm font-bold tabular-nums">{value}</span>
     </span>
   );

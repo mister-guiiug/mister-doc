@@ -60,7 +60,7 @@ export function MonthCalendarGrid({
         {DAY_HEADERS.map((d, i) => (
           <div
             key={d}
-            className={`py-1.5 ${i >= 5 ? 'text-teal-600 dark:text-teal-400' : ''}`}
+            className={`py-1.5 ${i >= 5 ? 'text-teal-700 dark:text-teal-400' : ''}`}
           >
             {d}
           </div>
@@ -72,7 +72,7 @@ export function MonthCalendarGrid({
           key={week}
           className="grid grid-cols-[2.5rem_repeat(7,minmax(0,1fr))] border-b border-slate-200 last:border-b-0 dark:border-slate-800"
         >
-          <div className="grid place-items-center border-r border-slate-200 bg-slate-50 text-[11px] font-bold text-slate-400 dark:border-slate-800 dark:bg-slate-900/60">
+          <div className="grid place-items-center border-r border-slate-200 bg-slate-50 text-[11px] font-bold text-slate-600 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-400">
             {week}
           </div>
           {cells.map((day, i) =>
@@ -160,9 +160,9 @@ const DayCell = memo(function DayCell({
         <span
           className={`grid size-6 place-items-center rounded-md text-xs font-bold ${
             isToday
-              ? 'bg-teal-600 text-white ring-2 ring-teal-300 dark:ring-teal-600'
+              ? 'bg-teal-700 text-white ring-2 ring-teal-300 dark:ring-teal-600'
               : day.reduced
-                ? 'bg-teal-600 text-white'
+                ? 'bg-teal-700 text-white'
                 : 'text-slate-700 dark:text-slate-200'
           }`}
         >
@@ -222,7 +222,7 @@ const DayCell = memo(function DayCell({
                   : 'border-dashed border-slate-300 dark:border-slate-700'
               } ${locked ? '' : 'hover:border-teal-400'}`}
             >
-              <span className="font-semibold uppercase text-slate-400">
+              <span className="font-semibold uppercase text-slate-600 dark:text-slate-400">
                 {type}
               </span>
               {doctor ? (
@@ -234,7 +234,9 @@ const DayCell = memo(function DayCell({
                   <span className="truncate">{doctor.name}</span>
                 </>
               ) : (
-                <span className="text-slate-400">libre</span>
+                <span className="text-slate-600 dark:text-slate-400">
+                  libre
+                </span>
               )}
             </button>
           );
@@ -330,7 +332,7 @@ const DayCell = memo(function DayCell({
           </button>
         )}
         {prefers + avoids > 0 && (
-          <span className="flex items-center gap-1 text-[10px] text-slate-400">
+          <span className="flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400">
             {prefers > 0 && (
               <span className="flex items-center gap-0.5">
                 <ThumbsUp className="size-2.5 text-emerald-500" />
