@@ -2,6 +2,7 @@ import { defineConfig, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
+import { pwaSeoPlugin } from '@mister-guiiug/dev-wpa-config/vite-pwa-base';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 
@@ -30,7 +31,7 @@ function cspPlugin(isDev: boolean): Plugin {
         const hashes = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(
           m =>
             `'sha256-${createHash('sha256')
-              .update(m[1].replace(/\r\n/g, '\n'))
+              .update((m[1] ?? '').replace(/\r\n/g, '\n'))
               .digest('base64')}'`
         );
         const scriptSrc = isDev
@@ -40,7 +41,10 @@ function cspPlugin(isDev: boolean): Plugin {
           "default-src 'self'",
           `script-src ${scriptSrc}`,
           "style-src 'self' 'unsafe-inline'",
-          "img-src 'self' data: blob:",
+          // github.io : icônes du catalogue famille (grille « Nos autres
+          // applications ») — en prod 'self' suffit (même origine), l'entrée
+          // explicite sert au dev local.
+          "img-src 'self' data: blob: https://mister-guiiug.github.io",
           "font-src 'self' data:",
           "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
           "manifest-src 'self'",
@@ -74,6 +78,14 @@ export default defineConfig(({ command }) => {
 
   return {
     base: basePath,
+    optimizeDeps: {
+      // Ne pas prébundler le package famille : esbuild replie son import
+      // dynamique optionnel de @sentry/react (spécificateur volontairement
+      // non littéral) en littéral, que vite:import-analysis échoue ensuite à
+      // résoudre en dev. Le package est un petit ESM pur : servir la source
+      // telle quelle est sans coût.
+      exclude: ['@mister-guiiug/dev-wpa-config'],
+    },
     define: {
       __APP_VERSION__: JSON.stringify(version),
       __BUILD_ID__: JSON.stringify(buildId),
@@ -107,6 +119,14 @@ export default defineConfig(({ command }) => {
     plugins: [
       react(),
       tailwindcss(),
+      // SEO famille : canonical/OG résolus au build + sitemap.xml/robots.txt.
+      // `basePath` FIXE (URLs publiques stables), découplé de la base d'assets
+      // qui, elle, honore VITE_BASE_PATH (dev/preview local en `/`).
+      pwaSeoPlugin({
+        siteName: 'Mister Doc',
+        basePath: '/mister-doc/',
+        logoPath: '/icons/icon-512.png',
+      }),
       cspPlugin(command === 'serve'),
       VitePWA({
         registerType: 'autoUpdate',
