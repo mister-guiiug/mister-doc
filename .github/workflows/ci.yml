@@ -18,3 +18,10 @@ jobs:
     secrets: inherit
     with:
       run-e2e: false # les E2E vivent dans e2e.yml (sous-projet isolé)
+      # Valeurs FACTICES pour la validation d'env (src/lib/env.ts échoue au
+      # chargement du module sans elles) : le test unitaire de backend/mfa.ts
+      # importe le client Supabase transitivement. Aucun test n'atteint le
+      # réseau. Le vrai build déployé (deploy.yml) utilise les vars du dépôt.
+      build-env: |
+        VITE_SUPABASE_URL=https://placeholder.supabase.co
+        VITE_SUPABASE_ANON_KEY=placeholder-anon-key-0000000000000000
