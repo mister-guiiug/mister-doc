@@ -111,7 +111,10 @@ export function CalendarDialog({ onClose }: { onClose: () => void }) {
   const showFeed = mode === 'legacy' || (mode === 'hashed' && token !== null);
 
   return (
-    <Modal onClose={onClose} className="max-w-md rounded-t-2xl p-5 sm:rounded-2xl">
+    <Modal
+      onClose={onClose}
+      className="max-w-md rounded-t-2xl p-5 sm:rounded-2xl"
+    >
       <div className="mb-4 flex items-center justify-between">
         <h3 className="flex items-center gap-2 font-semibold">
           <CalendarPlus className="size-5 text-teal-600" />
@@ -140,8 +143,8 @@ export function CalendarDialog({ onClose }: { onClose: () => void }) {
             <p className="mb-3 flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
               <ShieldAlert className="mt-0.5 size-4 shrink-0" />
               <span>
-                Copiez ce lien <strong>maintenant</strong> : pour votre sécurité,
-                il ne sera plus affiché ensuite.
+                Copiez ce lien <strong>maintenant</strong> : pour votre
+                sécurité, il ne sera plus affiché ensuite.
               </span>
             </p>
           )}
@@ -179,7 +182,11 @@ export function CalendarDialog({ onClose }: { onClose: () => void }) {
               onClick={copy}
               className="flex shrink-0 items-center gap-1 rounded-lg bg-teal-600 px-3 text-sm font-semibold text-white hover:bg-teal-700"
             >
-              {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+              {copied ? (
+                <Check className="size-4" />
+              ) : (
+                <Copy className="size-4" />
+              )}
               {copied ? 'Copié' : 'Copier'}
             </button>
           </div>
@@ -246,8 +253,8 @@ export function CalendarDialog({ onClose }: { onClose: () => void }) {
           </Button>
           {hasToken && (
             <p className="text-xs text-slate-400">
-              Régénérer crée un nouveau lien et invalide l'ancien (les abonnements
-              en place cesseront de fonctionner).
+              Régénérer crée un nouveau lien et invalide l'ancien (les
+              abonnements en place cesseront de fonctionner).
             </p>
           )}
         </div>

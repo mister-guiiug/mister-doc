@@ -29,7 +29,9 @@ function dayLabel(iso: string): string {
 function relativeDay(iso: string): string {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const days = Math.round((fromISODate(iso).getTime() - today.getTime()) / 86_400_000);
+  const days = Math.round(
+    (fromISODate(iso).getTime() - today.getTime()) / 86_400_000
+  );
   if (days < 0) return 'passé';
   if (days === 0) return "aujourd'hui";
   if (days === 1) return 'demain';
@@ -52,7 +54,10 @@ export function SwapBoard() {
   const [proposing, setProposing] = useState(false);
 
   const load = useCallback(
-    () => listSwaps().then(setSwaps).catch(e => logError('listSwaps', e)),
+    () =>
+      listSwaps()
+        .then(setSwaps)
+        .catch(e => logError('listSwaps', e)),
     []
   );
   useEffect(() => {
@@ -132,7 +137,8 @@ export function SwapBoard() {
     <li className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium">
-          {shiftLabel(s.shift_type)} · <span className="capitalize">{dayLabel(s.work_date)}</span>
+          {shiftLabel(s.shift_type)} ·{' '}
+          <span className="capitalize">{dayLabel(s.work_date)}</span>
           <span className="ml-1 font-normal text-slate-400">
             · {relativeDay(s.work_date)}
           </span>
@@ -189,7 +195,13 @@ export function SwapBoard() {
                       variant="secondary"
                       size="sm"
                       disabled={busy === s.id}
-                      onClick={() => void act(s.id, () => declineSwap(s.id), 'Proposition déclinée.')}
+                      onClick={() =>
+                        void act(
+                          s.id,
+                          () => declineSwap(s.id),
+                          'Proposition déclinée.'
+                        )
+                      }
                     >
                       <X className="size-4" />
                     </Button>
@@ -227,7 +239,13 @@ export function SwapBoard() {
                     variant="dangerGhost"
                     size="sm"
                     disabled={busy === s.id}
-                    onClick={() => void act(s.id, () => cancelSwap(s.id), 'Proposition annulée.')}
+                    onClick={() =>
+                      void act(
+                        s.id,
+                        () => cancelSwap(s.id),
+                        'Proposition annulée.'
+                      )
+                    }
                   >
                     Annuler
                   </Button>
@@ -239,7 +257,11 @@ export function SwapBoard() {
       </Section>
 
       {resolved.length > 0 && (
-        <Section title="Historique" count={resolved.length} icon={<History className="size-4 text-slate-400" />}>
+        <Section
+          title="Historique"
+          count={resolved.length}
+          icon={<History className="size-4 text-slate-400" />}
+        >
           <ul className="flex flex-col gap-1.5">
             {resolved.map(s => (
               <li
@@ -264,8 +286,8 @@ export function SwapBoard() {
 
       <p className="text-xs text-slate-400">
         Proposez une garde via « Proposer une garde » (ou depuis le planning).
-        Accepter une garde ouverte la <strong>réaffecte automatiquement</strong> ;
-        les autres propositions en cours sur le même créneau sont annulées.
+        Accepter une garde ouverte la <strong>réaffecte automatiquement</strong>{' '}
+        ; les autres propositions en cours sur le même créneau sont annulées.
       </p>
 
       {proposing && doctor && (

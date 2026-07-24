@@ -36,7 +36,9 @@ function svg(size, pad = 0) {
 }
 
 async function png(size, pad, name) {
-  const buf = await sharp(Buffer.from(svg(size, pad))).png().toBuffer();
+  const buf = await sharp(Buffer.from(svg(size, pad)))
+    .png()
+    .toBuffer();
   await writeFile(join(outDir, name), buf);
   console.log('✓', name);
 }

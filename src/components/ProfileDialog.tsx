@@ -46,7 +46,10 @@ export function ProfileDialog({
   }
 
   return (
-    <Modal onClose={onClose} className="max-w-sm rounded-t-2xl p-5 sm:rounded-2xl">
+    <Modal
+      onClose={onClose}
+      className="max-w-sm rounded-t-2xl p-5 sm:rounded-2xl"
+    >
       <form onSubmit={handleSubmit}>
         <div className="mb-4 flex items-center justify-between">
           <h3 className="font-semibold">{title}</h3>

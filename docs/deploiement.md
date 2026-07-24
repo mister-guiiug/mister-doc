@@ -12,14 +12,14 @@ documentée en repli.
 
 ## État
 
-| Élément | État |
-| --- | --- |
-| Front (GitHub Pages) | ✅ à jour, en prod — <https://mister-guiiug.github.io/mister-doc/> |
-| Variables Actions `VITE_SUPABASE_*` | ✅ déjà posées |
-| Secrets CI (`SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_URL`) | ✅ posés (déploiement Supabase automatisé) |
-| Schéma de base | ✅ migrations `0014`→`0021` **appliquées** (via CI, 2026-07-18) |
-| Edge Functions `calendar` / `push` | ✅ **déployées** (rate-limit + lookup par hash) |
-| Passkeys (connexion par empreinte) | ✅ activées côté dashboard (RP ID `mister-guiiug.github.io`) |
+| Élément                                                 | État                                                               |
+| ------------------------------------------------------- | ------------------------------------------------------------------ |
+| Front (GitHub Pages)                                    | ✅ à jour, en prod — <https://mister-guiiug.github.io/mister-doc/> |
+| Variables Actions `VITE_SUPABASE_*`                     | ✅ déjà posées                                                     |
+| Secrets CI (`SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_URL`) | ✅ posés (déploiement Supabase automatisé)                         |
+| Schéma de base                                          | ✅ migrations `0014`→`0021` **appliquées** (via CI, 2026-07-18)    |
+| Edge Functions `calendar` / `push`                      | ✅ **déployées** (rate-limit + lookup par hash)                    |
+| Passkeys (connexion par empreinte)                      | ✅ activées côté dashboard (RP ID `mister-guiiug.github.io`)       |
 
 Le front est **rétro-compatible** : il fonctionne avant comme après ces migrations
 (double-mode calendrier, génération de codes non bloquante, etc.). On peut donc
@@ -36,7 +36,7 @@ donc pas la base) et **manuellement** via l'onglet **Actions → Déploiement Su
 Ce qu'il fait, dans l'ordre (le même job, séquentiel) :
 
 1. **Déploie les Edge Functions** `calendar` + `push` (`supabase functions deploy
-   --use-api`, sans Docker). Le `verify_jwt = false` de chaque fonction est
+--use-api`, sans Docker). Le `verify_jwt = false` de chaque fonction est
    déclaré dans [`supabase/config.toml`](../supabase/config.toml).
 2. **Applique les migrations** de préfixe **≥ 0014** via `psql`, **en une seule
    transaction atomique** (tout ou rien). Les migrations `0001`→`0013`, posées hors
@@ -50,10 +50,10 @@ chaque exécution est sûre à rejouer.
 
 Dépôt GitHub → **Settings → Secrets and variables → Actions → New repository secret** :
 
-| Secret | Où le trouver | Rôle |
-| --- | --- | --- |
-| `SUPABASE_ACCESS_TOKEN` | Supabase → **Account → Access Tokens → Generate new token** (valeur `sbp_…`) | Déployer les Edge Functions. **Créer un token dédié CI** — ne pas réutiliser le token de provisionnement `sbp_…` (qui, lui, reste à révoquer). |
-| `SUPABASE_DB_URL` | Dashboard → **Project Settings → Database → onglet « Session pooler »** (format URI) | Connexion `psql` des migrations. **Session pooler** (IPv4, port 5432), PAS la connexion directe `db.<ref>.supabase.co` (IPv6, injoignable depuis un runner GitHub). ⚠️ Le mot de passe doit être **URL-encodé** s'il contient des caractères spéciaux (`£ ( ] + / @ : …`) — le plus sûr : un mot de passe **alphanumérique** (Dashboard → Database → *Reset database password*). |
+| Secret                  | Où le trouver                                                                        | Rôle                                                                                                                                                                                                                                                                                                                                                                             |
+| ----------------------- | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SUPABASE_ACCESS_TOKEN` | Supabase → **Account → Access Tokens → Generate new token** (valeur `sbp_…`)         | Déployer les Edge Functions. **Créer un token dédié CI** — ne pas réutiliser le token de provisionnement `sbp_…` (qui, lui, reste à révoquer).                                                                                                                                                                                                                                   |
+| `SUPABASE_DB_URL`       | Dashboard → **Project Settings → Database → onglet « Session pooler »** (format URI) | Connexion `psql` des migrations. **Session pooler** (IPv4, port 5432), PAS la connexion directe `db.<ref>.supabase.co` (IPv6, injoignable depuis un runner GitHub). ⚠️ Le mot de passe doit être **URL-encodé** s'il contient des caractères spéciaux (`£ ( ] + / @ : …`) — le plus sûr : un mot de passe **alphanumérique** (Dashboard → Database → _Reset database password_). |
 
 > La **ref de projet** (`lgbuytinzukaxrqjwxme`) est publique (déjà dans l'URL de
 > l'app) : elle est en clair dans le workflow, pas besoin de secret.
@@ -84,7 +84,7 @@ optionnels du rate-limit : variables d'environnement `CALENDAR_RATE_MAX` (défau
 
 > ⚠️ **Pourquoi la fonction AVANT la migration `0018`.** `0018` remplace les tokens
 > calendrier en clair par leur seul hash. L'**ancienne** version de la fonction
-> cherche le token *en clair* : une fois le clair effacé, elle ne trouverait plus
+> cherche le token _en clair_ : une fois le clair effacé, elle ne trouverait plus
 > aucun abonnement. La **nouvelle** version compare par hash (avec repli sur le
 > clair pendant la transition) : elle fonctionne donc **avant comme après** `0018`.
 > D'où l'ordre : fonction d'abord, migrations ensuite.
@@ -97,16 +97,16 @@ sont **idempotentes** (ré-applicables sans risque). Une fois la fonction redép
 (étape 1), il n'y a **plus aucune contrainte d'ordre** entre elles au-delà de la
 numérotation.
 
-| # | Contenu | Remarque |
-| --- | --- | --- |
-| `0014_calendar_rate_limit` | rate-limit par IP de la fonction calendrier | la fonction est *fail-open* si la RPC manque → sûre |
-| `0015_calendar_token_privacy` | `calendar_token` illisible par les autres médecins (privilège colonne) | le front (colonnes explicites) est déjà en prod |
-| `0016_extend_month_lock` | verrou de mois étendu aux HNC / notes / vœux | sûre à tout moment |
-| `0017_audit_log` | journal d'audit admin | sûre à tout moment |
-| `0018_calendar_token_hash` | tokens calendrier **hashés au repos** (efface le clair) | **exige l'étape 1 faite avant** |
-| `0019_anonymize_doctor` | effacement RGPD par anonymisation | sûre à tout moment |
-| `0020_admin_reset_mfa` | réinitialisation 2FA par un admin | sûre à tout moment |
-| `0021_mfa_recovery_codes` | codes de secours 2FA self-service | sûre à tout moment |
+| #                             | Contenu                                                                | Remarque                                            |
+| ----------------------------- | ---------------------------------------------------------------------- | --------------------------------------------------- |
+| `0014_calendar_rate_limit`    | rate-limit par IP de la fonction calendrier                            | la fonction est _fail-open_ si la RPC manque → sûre |
+| `0015_calendar_token_privacy` | `calendar_token` illisible par les autres médecins (privilège colonne) | le front (colonnes explicites) est déjà en prod     |
+| `0016_extend_month_lock`      | verrou de mois étendu aux HNC / notes / vœux                           | sûre à tout moment                                  |
+| `0017_audit_log`              | journal d'audit admin                                                  | sûre à tout moment                                  |
+| `0018_calendar_token_hash`    | tokens calendrier **hashés au repos** (efface le clair)                | **exige l'étape 1 faite avant**                     |
+| `0019_anonymize_doctor`       | effacement RGPD par anonymisation                                      | sûre à tout moment                                  |
+| `0020_admin_reset_mfa`        | réinitialisation 2FA par un admin                                      | sûre à tout moment                                  |
+| `0021_mfa_recovery_codes`     | codes de secours 2FA self-service                                      | sûre à tout moment                                  |
 
 ## Vérifications après déploiement
 
@@ -125,7 +125,7 @@ numérotation.
    `429` (`Retry-After`).
 
 3. **Confidentialité du token** — dans l'app, un médecin non-admin ne voit jamais le
-   lien d'un autre (le token n'est plus ré-affichable : *montré une fois*).
+   lien d'un autre (le token n'est plus ré-affichable : _montré une fois_).
 
 4. **Journal d'audit** — `/admin` → carte « Journal d'activité » : une approbation ou
    un verrou de mois y apparaît.
@@ -147,7 +147,7 @@ C'est **inopérant tant que les passkeys ne sont pas activées côté Supabase**
 bouton afficherait alors une erreur. À faire **avant** d'annoncer la fonctionnalité :
 
 1. Dashboard → **Authentication → Passkeys** → **activer**.
-2. Renseigner le *relying party* :
+2. Renseigner le _relying party_ :
    - **Display name** : `mister-doc`
    - **RP ID** : `mister-guiiug.github.io`
    - **Origins** : `https://mister-guiiug.github.io`

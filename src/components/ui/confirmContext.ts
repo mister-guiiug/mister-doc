@@ -19,6 +19,7 @@ export const ConfirmContext = createContext<ConfirmFn | null>(null);
 
 export function useConfirm(): ConfirmFn {
   const ctx = useContext(ConfirmContext);
-  if (!ctx) throw new Error('useConfirm doit être utilisé dans ConfirmProvider');
+  if (!ctx)
+    throw new Error('useConfirm doit être utilisé dans ConfirmProvider');
   return ctx;
 }

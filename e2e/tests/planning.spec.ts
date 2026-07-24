@@ -6,7 +6,6 @@ test.describe('Planning authentifié (Supabase mocké)', () => {
     await setupAuthenticated(page);
     await page.goto('/#/?m=2026-07');
 
-
     await expect(page.getByText('Juillet 2026', { exact: true })).toBeVisible();
     // La garde S1J du 07/07 attribuée à MARTIN (bouton de créneau « S1J MARTIN »).
     await expect(page.getByRole('button', { name: /MARTIN/ })).toBeVisible();

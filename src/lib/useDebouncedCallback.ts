@@ -9,7 +9,10 @@ import { useEffect, useMemo, useRef } from 'react';
  * Sert notamment à absorber les rafales d'événements Supabase Realtime : une
  * seule requête de rechargement au lieu d'une par événement (et par table).
  */
-export function useDebouncedCallback(fn: () => void, delay: number): () => void {
+export function useDebouncedCallback(
+  fn: () => void,
+  delay: number
+): () => void {
   const fnRef = useRef(fn);
   fnRef.current = fn;
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);

@@ -1,6 +1,10 @@
 import { describe, expect, it, afterEach } from 'vitest';
 import { computeEquity, type EquityShift } from './equity.ts';
-import { setShiftTypes, DEFAULT_SHIFT_TYPES, type ShiftTypeDef } from './shifts.ts';
+import {
+  setShiftTypes,
+  DEFAULT_SHIFT_TYPES,
+  type ShiftTypeDef,
+} from './shifts.ts';
 
 const doctors = [
   { id: 'a', name: 'Alice' },
@@ -63,9 +67,19 @@ describe('computeEquity avec plusieurs types « nuit »', () => {
 
   function def(over: Partial<ShiftTypeDef>): ShiftTypeDef {
     return {
-      code: 'X', label: 'X', hours: 8, clinical: true, isNight: false,
-      weekend: true, sortOrder: 0, startTime: null, endTime: null,
-      endDayOffset: 0, color: null, active: true, ...over,
+      code: 'X',
+      label: 'X',
+      hours: 8,
+      clinical: true,
+      isNight: false,
+      weekend: true,
+      sortOrder: 0,
+      startTime: null,
+      endTime: null,
+      endDayOffset: 0,
+      color: null,
+      active: true,
+      ...over,
     };
   }
 

@@ -29,7 +29,9 @@ describe('frAuthError', () => {
 
   it('traduit une limitation de débit', () => {
     expect(
-      frAuthError('For security purposes, you can only request this after 40 seconds')
+      frAuthError(
+        'For security purposes, you can only request this after 40 seconds'
+      )
     ).toMatch(/Trop de tentatives/);
   });
 

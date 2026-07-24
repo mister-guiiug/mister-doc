@@ -1,6 +1,9 @@
 import { useId, type InputHTMLAttributes } from 'react';
 
-export interface FieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'id'> {
+export interface FieldProps extends Omit<
+  InputHTMLAttributes<HTMLInputElement>,
+  'id'
+> {
   label: string;
   /** Message d'erreur (associe `aria-describedby` + `aria-invalid`). */
   error?: string;
@@ -15,7 +18,10 @@ export function Field({ label, error, className = '', ...rest }: FieldProps) {
   const errorId = error ? `${id}-error` : undefined;
   return (
     <div className="flex flex-col gap-1 text-sm">
-      <label htmlFor={id} className="font-medium text-slate-600 dark:text-slate-300">
+      <label
+        htmlFor={id}
+        className="font-medium text-slate-600 dark:text-slate-300"
+      >
         {label}
       </label>
       <input

@@ -50,9 +50,17 @@ interface Row {
   trainingHours: number;
 }
 
-function bounds(period: Period, year: number, month: number): [string, string, string] {
+function bounds(
+  period: Period,
+  year: number,
+  month: number
+): [string, string, string] {
   if (period === 'year') {
-    return [toISODate(new Date(year, 0, 1)), toISODate(new Date(year, 11, 31)), `${year}`];
+    return [
+      toISODate(new Date(year, 0, 1)),
+      toISODate(new Date(year, 11, 31)),
+      `${year}`,
+    ];
   }
   if (period === 'quadri') {
     // Quadrimestre : 3 périodes de 4 mois (janv.–avr., mai–août, sept.–déc.).
@@ -120,7 +128,9 @@ export function AllCounters() {
             .filter(l => l.doctor_id === doctor.id)
             .map(l => ({ kind: l.kind, hours: l.hours }))
         );
-        const hncHours = sumHncHours(hnc.filter(h => h.doctor_id === doctor.id));
+        const hncHours = sumHncHours(
+          hnc.filter(h => h.doctor_id === doctor.id)
+        );
         return {
           doctor,
           fridays: c.fridays,
@@ -135,7 +145,8 @@ export function AllCounters() {
       })
       .sort(
         (a, b) =>
-          b.totalHours - a.totalHours || a.doctor.name.localeCompare(b.doctor.name)
+          b.totalHours - a.totalHours ||
+          a.doctor.name.localeCompare(b.doctor.name)
       );
   }, [doctors, shifts, leaves, hnc]);
 
@@ -274,59 +285,65 @@ export function AllCounters() {
         <EquityView report={equity} label={label} />
       ) : (
         <>
-      <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-        <table className="w-full min-w-[34rem] text-sm">
-          <thead>
-            <tr className="border-b border-slate-100 text-left text-xs uppercase text-slate-400 dark:border-slate-800">
-              <th className="px-3 py-2 font-semibold">Médecin</th>
-              <Th>Ven</Th>
-              <Th>Sam</Th>
-              <Th>Dim</Th>
-              <Th>h WE</Th>
-              <Th>HNC</Th>
-              <Th>h Total</Th>
-              <Th>Congés</Th>
-              <Th>Format.</Th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map(r => (
-              <tr
-                key={r.doctor.id}
-                className="border-b border-slate-50 last:border-0 dark:border-slate-800/60"
-              >
-                <td className="px-3 py-2">
-                  <span className="flex items-center gap-2">
-                    <span
-                      className="inline-block size-2.5 shrink-0 rounded-full"
-                      style={{ backgroundColor: r.doctor.color }}
-                    />
-                    <span className="truncate font-medium">{r.doctor.name}</span>
-                  </span>
-                </td>
-                <Td>{r.fridays}</Td>
-                <Td>{r.saturdays}</Td>
-                <Td>{r.sundays}</Td>
-                <Td strong>{r.weekendHours} h</Td>
-                <Td>{r.hncHours} h</Td>
-                <Td strong>{r.totalHours} h</Td>
-                <Td>{r.annualDays} j</Td>
-                <Td>{r.trainingHours} h</Td>
-              </tr>
-            ))}
-            {rows.length === 0 && (
-              <tr>
-                <td colSpan={9} className="px-3 py-6 text-center text-slate-400">
-                  Aucun médecin.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-      <p className="text-xs text-slate-400">
-        Heures WE = créneaux du vendredi, samedi et dimanche. Période : {label}.
-      </p>
+          <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+            <table className="w-full min-w-[34rem] text-sm">
+              <thead>
+                <tr className="border-b border-slate-100 text-left text-xs uppercase text-slate-400 dark:border-slate-800">
+                  <th className="px-3 py-2 font-semibold">Médecin</th>
+                  <Th>Ven</Th>
+                  <Th>Sam</Th>
+                  <Th>Dim</Th>
+                  <Th>h WE</Th>
+                  <Th>HNC</Th>
+                  <Th>h Total</Th>
+                  <Th>Congés</Th>
+                  <Th>Format.</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map(r => (
+                  <tr
+                    key={r.doctor.id}
+                    className="border-b border-slate-50 last:border-0 dark:border-slate-800/60"
+                  >
+                    <td className="px-3 py-2">
+                      <span className="flex items-center gap-2">
+                        <span
+                          className="inline-block size-2.5 shrink-0 rounded-full"
+                          style={{ backgroundColor: r.doctor.color }}
+                        />
+                        <span className="truncate font-medium">
+                          {r.doctor.name}
+                        </span>
+                      </span>
+                    </td>
+                    <Td>{r.fridays}</Td>
+                    <Td>{r.saturdays}</Td>
+                    <Td>{r.sundays}</Td>
+                    <Td strong>{r.weekendHours} h</Td>
+                    <Td>{r.hncHours} h</Td>
+                    <Td strong>{r.totalHours} h</Td>
+                    <Td>{r.annualDays} j</Td>
+                    <Td>{r.trainingHours} h</Td>
+                  </tr>
+                ))}
+                {rows.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={9}
+                      className="px-3 py-6 text-center text-slate-400"
+                    >
+                      Aucun médecin.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-xs text-slate-400">
+            Heures WE = créneaux du vendredi, samedi et dimanche. Période :{' '}
+            {label}.
+          </p>
         </>
       )}
     </div>
@@ -336,7 +353,13 @@ export function AllCounters() {
 function Th({ children }: { children: React.ReactNode }) {
   return <th className="px-2 py-2 text-right font-semibold">{children}</th>;
 }
-function Td({ children, strong }: { children: React.ReactNode; strong?: boolean }) {
+function Td({
+  children,
+  strong,
+}: {
+  children: React.ReactNode;
+  strong?: boolean;
+}) {
   return (
     <td
       className={`px-2 py-2 text-right tabular-nums ${strong ? 'font-semibold text-teal-700 dark:text-teal-300' : ''}`}
@@ -394,7 +417,8 @@ function EquityView({
       </div>
       <p className="text-xs text-slate-400">
         Charge comparée sur {label}. Barre = proportion du maximum de l'équipe ;
-        ▲/▼ = écart à la moyenne. Nuits = gardes S1N ; heures cliniques (hors HNC).
+        ▲/▼ = écart à la moyenne. Nuits = gardes S1N ; heures cliniques (hors
+        HNC).
       </p>
     </div>
   );
@@ -424,14 +448,19 @@ function EquityBar({
         <span className="tabular-nums">
           <span className="font-semibold">{value}</span>
           {(over || under) && (
-            <span className={`ml-1 ${over ? 'text-amber-600' : 'text-teal-600'}`}>
+            <span
+              className={`ml-1 ${over ? 'text-amber-600' : 'text-teal-600'}`}
+            >
               {over ? '▲' : '▼'} {Math.abs(Math.round(delta))}
             </span>
           )}
         </span>
       </div>
       <div className="h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-        <div className={`h-full rounded-full ${bar}`} style={{ width: `${pct}%` }} />
+        <div
+          className={`h-full rounded-full ${bar}`}
+          style={{ width: `${pct}%` }}
+        />
       </div>
     </div>
   );

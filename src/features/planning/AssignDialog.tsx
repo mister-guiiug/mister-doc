@@ -96,7 +96,10 @@ export function AssignDialog({
     };
   }, [target.iso, target.shiftType]);
 
-  const onLeave = useMemo(() => doctorsOnLeave(target.iso, leaves), [target.iso, leaves]);
+  const onLeave = useMemo(
+    () => doctorsOnLeave(target.iso, leaves),
+    [target.iso, leaves]
+  );
   const working = useMemo(
     () => doctorsWorking(target.iso, monthShifts),
     [target.iso, monthShifts]
@@ -113,7 +116,8 @@ export function AssignDialog({
     return doctors
       .filter(doc => doc.name.toLowerCase().includes(q))
       .sort(
-        (a, b) => (hoursByDoctor.get(a.id) ?? 0) - (hoursByDoctor.get(b.id) ?? 0)
+        (a, b) =>
+          (hoursByDoctor.get(a.id) ?? 0) - (hoursByDoctor.get(b.id) ?? 0)
       );
   }, [doctors, query, hoursByDoctor]);
 
@@ -283,14 +287,18 @@ export function AssignDialog({
                           {h.changed_by
                             ? `${nameOf(h.changed_by)} a attribué à `
                             : 'Attribué à '}
-                          <span className="font-medium">{nameOf(h.doctor_id)}</span>
+                          <span className="font-medium">
+                            {nameOf(h.doctor_id)}
+                          </span>
                         </>
                       )}
                       {h.action === 'reassigned' && (
                         <>
                           {h.changed_by ? `${nameOf(h.changed_by)} : ` : ''}
                           {nameOf(h.prev_doctor_id)} →{' '}
-                          <span className="font-medium">{nameOf(h.doctor_id)}</span>
+                          <span className="font-medium">
+                            {nameOf(h.doctor_id)}
+                          </span>
                         </>
                       )}
                       {h.action === 'removed' && (
@@ -404,7 +412,10 @@ export function AssignDialog({
         })}
       </ul>
 
-      {(onLeave.size > 0 || filtered.some(doc => violatesRest(doc.id, target.iso, monthShifts))) && (
+      {(onLeave.size > 0 ||
+        filtered.some(doc =>
+          violatesRest(doc.id, target.iso, monthShifts)
+        )) && (
         <p className="flex items-center gap-1 border-t border-slate-100 px-3 py-2 text-[11px] text-slate-400 dark:border-slate-800">
           <AlertTriangle className="size-3 shrink-0" />
           Les badges signalent congés, gardes existantes et repos de sécurité.

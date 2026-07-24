@@ -68,7 +68,10 @@ async function seedSession(page: Page, mfa: boolean) {
     ({ ref, uid, mfa }) => {
       const exp = Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 365;
       const b64 = (o: unknown) =>
-        btoa(JSON.stringify(o)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+        btoa(JSON.stringify(o))
+          .replace(/=/g, '')
+          .replace(/\+/g, '-')
+          .replace(/\//g, '_');
       // `aal1` = mot de passe seulement ; combiné à un facteur TOTP vérifié dans
       // `user.factors`, `getAuthenticatorAssuranceLevel()` renvoie next=aal2 → défi.
       const jwt = `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({
@@ -183,7 +186,8 @@ export async function setupAuthenticated(
         factors,
       });
     if (url.includes('/rpc/ensure_self_doctor')) return json(SELF);
-    if (url.includes('/rpc/get_settings')) return json({ pentecote_ferie: true });
+    if (url.includes('/rpc/get_settings'))
+      return json({ pentecote_ferie: true });
     if (url.includes('/rest/v1/doctors')) return json([SELF, MARTIN]);
     if (url.includes('/rest/v1/shifts')) return json([SHIFT]);
     if (url.includes('/rest/v1/leaves')) return json([]);

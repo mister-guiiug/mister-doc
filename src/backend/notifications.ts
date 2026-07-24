@@ -26,7 +26,10 @@ export async function markRead(id: string): Promise<void> {
 }
 
 export async function deleteNotification(id: string): Promise<void> {
-  const { error } = await getSupabase().from('notifications').delete().eq('id', id);
+  const { error } = await getSupabase()
+    .from('notifications')
+    .delete()
+    .eq('id', id);
   if (error) throw new Error(error.message);
 }
 

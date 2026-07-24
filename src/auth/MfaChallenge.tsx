@@ -66,7 +66,9 @@ export function MfaChallenge() {
             {isTotp ? (
               <input
                 value={code}
-                onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                onChange={e =>
+                  setCode(e.target.value.replace(/\D/g, '').slice(0, 6))
+                }
                 inputMode="numeric"
                 autoComplete="one-time-code"
                 pattern="\d{6}"

@@ -108,7 +108,14 @@ export function usePlanningMutations(data: PlanningData, ctx: MutationCtx) {
       hours: number | null
     ) => {
       try {
-        await setLeaveRange(doctorId, from, to, kind, hours, doctor?.id ?? null);
+        await setLeaveRange(
+          doctorId,
+          from,
+          to,
+          kind,
+          hours,
+          doctor?.id ?? null
+        );
         await loadData();
         toast.success('Absence enregistrée.');
       } catch (e) {

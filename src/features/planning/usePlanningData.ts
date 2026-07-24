@@ -21,7 +21,11 @@ import { listMonthLeaves, subscribeLeaves } from '../../backend/leaves.ts';
 import { listMonthNotes, subscribeNotes } from '../../backend/notes.ts';
 import { listMonthWishes, subscribeWishes } from '../../backend/wishes.ts';
 import { listMonthHnc, subscribeHnc } from '../../backend/hnc.ts';
-import { isMonthLocked, listLocks, subscribeLocks } from '../../backend/locks.ts';
+import {
+  isMonthLocked,
+  listLocks,
+  subscribeLocks,
+} from '../../backend/locks.ts';
 
 /** Cliché des données d'un mois, conservé dans IndexedDB pour l'hors-ligne. */
 interface CachedMonth {
@@ -175,7 +179,10 @@ export function usePlanningData(year: number, month: number) {
   useEffect(() => subscribeLocks(() => void listLocks().then(setLocks)), []);
 
   const weeks = useMemo(() => weeksOfMonth(year, month), [year, month]);
-  const doctorsById = useMemo(() => new Map(doctors.map(d => [d.id, d])), [doctors]);
+  const doctorsById = useMemo(
+    () => new Map(doctors.map(d => [d.id, d])),
+    [doctors]
+  );
   const nameById = useMemo(
     () => new Map(doctors.map(d => [d.id, d.name])),
     [doctors]
@@ -184,12 +191,18 @@ export function usePlanningData(year: number, month: number) {
     () => new Map(shifts.map(s => [`${s.work_date}|${s.shift_type}`, s])),
     [shifts]
   );
-  const leavesByDate = useMemo(() => groupBy(leaves, l => l.work_date), [leaves]);
+  const leavesByDate = useMemo(
+    () => groupBy(leaves, l => l.work_date),
+    [leaves]
+  );
   const notesByDate = useMemo(
     () => new Map(notes.map(n => [n.work_date, n])),
     [notes]
   );
-  const wishesByDate = useMemo(() => groupBy(wishes, w => w.work_date), [wishes]);
+  const wishesByDate = useMemo(
+    () => groupBy(wishes, w => w.work_date),
+    [wishes]
+  );
   const hncByDate = useMemo(() => groupBy(hnc, h => h.work_date), [hnc]);
   const issuesByDate = useMemo(
     () => computeIssues(shifts, leaves, nameById),

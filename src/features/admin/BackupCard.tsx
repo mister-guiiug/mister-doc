@@ -40,7 +40,10 @@ export function BackupCard() {
   const [pending, setPending] = useState<File | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const reload = () => listBackups().then(setBackups).catch(() => {});
+  const reload = () =>
+    listBackups()
+      .then(setBackups)
+      .catch(() => {});
   useEffect(() => {
     reload();
   }, []);
@@ -90,7 +93,8 @@ export function BackupCard() {
   async function restoreSnapshot(id: string) {
     if (
       !(await confirm({
-        message: 'Restaurer cette sauvegarde ? Le planning actuel sera remplacé.',
+        message:
+          'Restaurer cette sauvegarde ? Le planning actuel sera remplacé.',
         danger: true,
         confirmLabel: 'Restaurer',
       }))
@@ -154,7 +158,9 @@ export function BackupCard() {
 
       {pending && (
         <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
-          <span className="truncate text-xs text-slate-500">{pending.name}</span>
+          <span className="truncate text-xs text-slate-500">
+            {pending.name}
+          </span>
           <Button
             variant="secondary"
             size="sm"
@@ -186,10 +192,11 @@ export function BackupCard() {
       <p className="mt-3 flex items-start gap-1.5 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">
         <Info className="mt-0.5 size-3.5 shrink-0" />
         <span>
-          Une <b>sauvegarde automatique</b> est réalisée chaque semaine (conservées :
-          10 dernières). Déposez le fichier exporté dans votre Google&nbsp;Drive ou
-          iCloud (ou un dossier synchronisé). L'upload Drive automatique nécessite
-          des identifiants Google&nbsp;; iCloud n'expose pas d'API serveur.
+          Une <b>sauvegarde automatique</b> est réalisée chaque semaine
+          (conservées : 10 dernières). Déposez le fichier exporté dans votre
+          Google&nbsp;Drive ou iCloud (ou un dossier synchronisé). L'upload
+          Drive automatique nécessite des identifiants Google&nbsp;; iCloud
+          n'expose pas d'API serveur.
         </span>
       </p>
 

@@ -12,43 +12,47 @@ export async function exportMyData(
   const sb = getSupabase();
   const id = doctor.id;
 
-  const [shifts, leaves, hnc, wishes, notes, swaps, notifs] = await Promise.all([
-    sb
-      .from('shifts')
-      .select('work_date,shift_type,created_at')
-      .eq('doctor_id', id)
-      .order('work_date'),
-    sb
-      .from('leaves')
-      .select('work_date,kind,hours,created_at')
-      .eq('doctor_id', id)
-      .order('work_date'),
-    sb
-      .from('hnc_hours')
-      .select('work_date,hours,created_at')
-      .eq('doctor_id', id)
-      .order('work_date'),
-    sb
-      .from('wishes')
-      .select('work_date,kind,note,created_at')
-      .eq('doctor_id', id)
-      .order('work_date'),
-    sb
-      .from('day_notes')
-      .select('work_date,note,updated_at')
-      .eq('created_by', id)
-      .order('work_date'),
-    sb
-      .from('swap_requests')
-      .select('work_date,shift_type,from_doctor,to_doctor,status,message,created_at')
-      .or(`from_doctor.eq.${id},to_doctor.eq.${id}`)
-      .order('created_at'),
-    sb
-      .from('notifications')
-      .select('type,title,body,work_date,read,created_at')
-      .eq('doctor_id', id)
-      .order('created_at'),
-  ]);
+  const [shifts, leaves, hnc, wishes, notes, swaps, notifs] = await Promise.all(
+    [
+      sb
+        .from('shifts')
+        .select('work_date,shift_type,created_at')
+        .eq('doctor_id', id)
+        .order('work_date'),
+      sb
+        .from('leaves')
+        .select('work_date,kind,hours,created_at')
+        .eq('doctor_id', id)
+        .order('work_date'),
+      sb
+        .from('hnc_hours')
+        .select('work_date,hours,created_at')
+        .eq('doctor_id', id)
+        .order('work_date'),
+      sb
+        .from('wishes')
+        .select('work_date,kind,note,created_at')
+        .eq('doctor_id', id)
+        .order('work_date'),
+      sb
+        .from('day_notes')
+        .select('work_date,note,updated_at')
+        .eq('created_by', id)
+        .order('work_date'),
+      sb
+        .from('swap_requests')
+        .select(
+          'work_date,shift_type,from_doctor,to_doctor,status,message,created_at'
+        )
+        .or(`from_doctor.eq.${id},to_doctor.eq.${id}`)
+        .order('created_at'),
+      sb
+        .from('notifications')
+        .select('type,title,body,work_date,read,created_at')
+        .eq('doctor_id', id)
+        .order('created_at'),
+    ]
+  );
 
   for (const r of [shifts, leaves, hnc, wishes, notes, swaps, notifs]) {
     if (r.error) throw new Error(r.error.message);

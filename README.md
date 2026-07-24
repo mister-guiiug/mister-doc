@@ -12,9 +12,11 @@ métier, à partir d'un modèle simple de créneaux mensuels.
 ## Fonctionnalités
 
 ### Planning
+
 - **Vue mensuelle** groupée par **numéro de semaine ISO**, avec **liste** (mobile)
   ou **grille 7 colonnes** (desktop, bascule mémorisée).
 - **Créneaux cliniques** à occupant unique, base horaire métier :
+
   | Créneau | Libellé | Heures |
   | ------- | ------- | ------ |
   | `S1J`   | S1 Jour | 10 h   |
@@ -24,6 +26,7 @@ métier, à partir d'un modèle simple de créneaux mensuels.
   1 médecin par créneau et par jour ; les créneaux non pourvus sont signalés
   « à couvrir ». **Exception week-end / jours fériés** (fériés FR calculés) :
   seuls `S1J` et `S1N` sont requis.
+
 - **Heures Non Cliniques (HNC, ex-« S3 »)** : plusieurs médecins par jour, chacun
   saisit son **propre nombre d'heures**, **n'importe quel jour**, hors couverture
   « à couvrir ». Comptées dans le temps total **et** dans un compteur HNC dédié.
@@ -43,6 +46,7 @@ métier, à partir d'un modèle simple de créneaux mensuels.
 - **Verrouillage de mois** (admin) pour figer un planning validé.
 
 ### Comptes, rôles, admin
+
 - **Authentification Supabase** + barrière d'approbation (voir Sécurité).
 - **Profil dédié** (`/profil`) : nom, couleur, thème clair/sombre, abonnement
   calendrier, **partage du lien de l'app**, **notifications push** (opt-in),
@@ -56,6 +60,7 @@ métier, à partir d'un modèle simple de créneaux mensuels.
   masquer temporairement ses fonctions admin pour voir l'app comme un non-admin.
 
 ### Notifications & sauvegardes
+
 - **Notifications in-app** (cloche, temps réel) : garde attribuée/retirée, absence
   (posée/supprimée, **groupée par plage**), HNC, échange proposé/accepté/décliné,
   mois verrouillé/déverrouillé, demande de compte (aux admins), approbation.
@@ -66,6 +71,7 @@ métier, à partir d'un modèle simple de créneaux mensuels.
 - **Sauvegarde/restauration** (admin) + **sauvegarde auto hebdomadaire** (pg_cron).
 
 ### Technique
+
 - **PWA installable** (invite d'installation), shell applicatif en cache, mise à
   jour automatique du service worker + bouton de mise à jour forcée.
 - Accessibilité (modales Échap + piège de focus), thème clair/sombre,
@@ -132,28 +138,28 @@ migrations `≥ 0014`) est **automatisé par la CI** — workflow
 tout changement `supabase/**` sur `main`. Détails, secrets requis et procédure
 manuelle de repli : [`docs/deploiement.md`](docs/deploiement.md).
 
-| Migration | Contenu |
-| --------- | ------- |
-| `0001_init` | tables `doctors` / `shifts` / `app_config`, RLS, barrière d'approbation, RPC de base |
-| `0002_admin_update_doctor` | édition profil (soi / admin) |
-| `0003_leaves` | congés annuels & formations |
-| `0004_calendar_feed` · `0005_improvements` | flux .ics (token), tokens par médecin, notes de jour, verrou de mois, réglages |
-| `0006_notifications_backups` | notifications (triggers) + sauvegarde/restauration + pg_cron |
-| `0007_swaps_wishes` | échanges de gardes + vœux |
-| `0008_self_service` | suppression de sa demande en attente |
-| `0009_hnc` | **Heures Non Cliniques** (table `hnc_hours`, migration des ex-`S3`) |
-| `0010_admin_reject` | rejet admin d'une demande en attente |
-| `0011_shift_history` | historique des changements par créneau |
-| `0012_notif_improvements` | améliorations des notifications |
-| `0013_push_subscriptions` | abonnements Web Push |
-| `0014_calendar_rate_limit` | **rate-limit** de l'Edge Function calendrier (table `edge_rate_limit` + RPC `edge_rate_limit_hit`) |
-| `0015_calendar_token_privacy` | **confidentialité** du token calendrier (privilège colonne : `calendar_token` illisible par les autres médecins) |
-| `0016_extend_month_lock` | verrou de mois **étendu** aux HNC / notes / vœux (triggers `assert_month_unlocked`) |
-| `0017_audit_log` | **journal d'audit** admin (table `audit_log` + triggers sur `doctors` / `locked_months`) |
-| `0018_calendar_token_hash` | tokens calendrier **hashés au repos** (SHA-256 ; plus de token en clair en base ; lien montré une seule fois) |
-| `0019_anonymize_doctor` | **effacement RGPD** des comptes approuvés par **anonymisation** (RPC `anonymize_doctor`, self-service ou admin) |
-| `0020_admin_reset_mfa` | **récupération 2FA** : un admin réinitialise la double authentification d'un médecin (RPC `admin_reset_mfa`) |
-| `0021_mfa_recovery_codes` | **codes de secours 2FA** self-service (table `mfa_recovery_codes` hashés + RPC `generate_`/`use_mfa_recovery_code`) |
+| Migration                                  | Contenu                                                                                                             |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| `0001_init`                                | tables `doctors` / `shifts` / `app_config`, RLS, barrière d'approbation, RPC de base                                |
+| `0002_admin_update_doctor`                 | édition profil (soi / admin)                                                                                        |
+| `0003_leaves`                              | congés annuels & formations                                                                                         |
+| `0004_calendar_feed` · `0005_improvements` | flux .ics (token), tokens par médecin, notes de jour, verrou de mois, réglages                                      |
+| `0006_notifications_backups`               | notifications (triggers) + sauvegarde/restauration + pg_cron                                                        |
+| `0007_swaps_wishes`                        | échanges de gardes + vœux                                                                                           |
+| `0008_self_service`                        | suppression de sa demande en attente                                                                                |
+| `0009_hnc`                                 | **Heures Non Cliniques** (table `hnc_hours`, migration des ex-`S3`)                                                 |
+| `0010_admin_reject`                        | rejet admin d'une demande en attente                                                                                |
+| `0011_shift_history`                       | historique des changements par créneau                                                                              |
+| `0012_notif_improvements`                  | améliorations des notifications                                                                                     |
+| `0013_push_subscriptions`                  | abonnements Web Push                                                                                                |
+| `0014_calendar_rate_limit`                 | **rate-limit** de l'Edge Function calendrier (table `edge_rate_limit` + RPC `edge_rate_limit_hit`)                  |
+| `0015_calendar_token_privacy`              | **confidentialité** du token calendrier (privilège colonne : `calendar_token` illisible par les autres médecins)    |
+| `0016_extend_month_lock`                   | verrou de mois **étendu** aux HNC / notes / vœux (triggers `assert_month_unlocked`)                                 |
+| `0017_audit_log`                           | **journal d'audit** admin (table `audit_log` + triggers sur `doctors` / `locked_months`)                            |
+| `0018_calendar_token_hash`                 | tokens calendrier **hashés au repos** (SHA-256 ; plus de token en clair en base ; lien montré une seule fois)       |
+| `0019_anonymize_doctor`                    | **effacement RGPD** des comptes approuvés par **anonymisation** (RPC `anonymize_doctor`, self-service ou admin)     |
+| `0020_admin_reset_mfa`                     | **récupération 2FA** : un admin réinitialise la double authentification d'un médecin (RPC `admin_reset_mfa`)        |
+| `0021_mfa_recovery_codes`                  | **codes de secours 2FA** self-service (table `mfa_recovery_codes` hashés + RPC `generate_`/`use_mfa_recovery_code`) |
 
 Après `0001`, renseignez le code de bootstrap :
 

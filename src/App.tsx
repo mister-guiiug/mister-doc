@@ -17,7 +17,9 @@ const MyPlanningView = lazy(() =>
   }))
 );
 const AdminPanel = lazy(() =>
-  import('./features/admin/AdminPanel.tsx').then(m => ({ default: m.AdminPanel }))
+  import('./features/admin/AdminPanel.tsx').then(m => ({
+    default: m.AdminPanel,
+  }))
 );
 const AllCounters = lazy(() =>
   import('./features/admin/AllCounters.tsx').then(m => ({
@@ -49,10 +51,15 @@ export default function App() {
               <div className="min-h-dvh bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
                 <Header />
                 <main className="pb-24">
-                  <Suspense fallback={<FullScreenSpinner label="Chargement…" />}>
+                  <Suspense
+                    fallback={<FullScreenSpinner label="Chargement…" />}
+                  >
                     <Routes>
                       <Route path="/" element={<PlanningView />} />
-                      <Route path="/mon-planning" element={<MyPlanningView />} />
+                      <Route
+                        path="/mon-planning"
+                        element={<MyPlanningView />}
+                      />
                       <Route path="/echanges" element={<SwapBoard />} />
                       <Route path="/profil" element={<ProfilePage />} />
                       <Route

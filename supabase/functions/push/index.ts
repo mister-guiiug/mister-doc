@@ -83,7 +83,9 @@ Deno.serve(async req => {
   if (!WEBHOOK_SECRET) {
     return new Response('WEBHOOK_SECRET non configuré', { status: 500 });
   }
-  if (!timingSafeEqual(req.headers.get('x-webhook-secret') ?? '', WEBHOOK_SECRET)) {
+  if (
+    !timingSafeEqual(req.headers.get('x-webhook-secret') ?? '', WEBHOOK_SECRET)
+  ) {
     return new Response('forbidden', { status: 401 });
   }
   if (!VAPID_PUBLIC || !VAPID_PRIVATE) {

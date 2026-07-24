@@ -25,7 +25,10 @@ import {
   anonymizeDoctor,
   listDoctors,
 } from '../../backend/doctors.ts';
-import { getSettings, setSettings as saveSettings } from '../../backend/settings.ts';
+import {
+  getSettings,
+  setSettings as saveSettings,
+} from '../../backend/settings.ts';
 import { sendReminders } from '../../backend/reminders.ts';
 import { setIncludePentecote } from '../../lib/dates.ts';
 import { FullScreenSpinner } from '../../components/Spinner.tsx';
@@ -56,7 +59,9 @@ export function AdminPanel() {
   const [reminderMsg, setReminderMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    getSettings().then(setSettings).catch(() => {});
+    getSettings()
+      .then(setSettings)
+      .catch(() => {});
   }, []);
 
   async function togglePentecote(checked: boolean) {
@@ -151,8 +156,8 @@ export function AdminPanel() {
               Compter le Lundi de Pentecôte comme férié
             </span>
             <span className="block text-xs text-slate-400">
-              Si décoché, ce jour a une couverture normale (4 créneaux). Effet au
-              prochain affichage du planning.
+              Si décoché, ce jour a une couverture normale (4 créneaux). Effet
+              au prochain affichage du planning.
             </span>
           </span>
         </label>
@@ -161,8 +166,9 @@ export function AdminPanel() {
           <span className="text-sm">
             <span className="font-medium">Rappels de garde</span>
             <span className="block text-xs text-slate-400">
-              Envoyés automatiquement chaque soir (push « garde demain » / « nuit ce
-              soir »). Ce bouton les déclenche maintenant (test ou rattrapage).
+              Envoyés automatiquement chaque soir (push « garde demain » / «
+              nuit ce soir »). Ce bouton les déclenche maintenant (test ou
+              rattrapage).
             </span>
           </span>
           <Button
@@ -176,7 +182,9 @@ export function AdminPanel() {
           </Button>
         </div>
         {reminderMsg && (
-          <p className="mt-1 text-xs text-teal-600 dark:text-teal-400">{reminderMsg}</p>
+          <p className="mt-1 text-xs text-teal-600 dark:text-teal-400">
+            {reminderMsg}
+          </p>
         )}
       </Card>
 
@@ -207,7 +215,9 @@ export function AdminPanel() {
                 <Button
                   size="sm"
                   loading={busyId === d.id}
-                  onClick={() => void act(d.id, () => adminSetDoctor(d.id, true, null))}
+                  onClick={() =>
+                    void act(d.id, () => adminSetDoctor(d.id, true, null))
+                  }
                 >
                   {busyId !== d.id && <UserCheck className="size-4" />}
                   Approuver

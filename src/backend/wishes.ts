@@ -3,7 +3,10 @@ import { toISODate } from '../lib/dates.ts';
 import type { Wish, WishKind } from './types.ts';
 
 function monthBounds(year: number, month: number): [string, string] {
-  return [toISODate(new Date(year, month, 1)), toISODate(new Date(year, month + 1, 0))];
+  return [
+    toISODate(new Date(year, month, 1)),
+    toISODate(new Date(year, month + 1, 0)),
+  ];
 }
 
 export async function listMonthWishes(

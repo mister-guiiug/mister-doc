@@ -3,7 +3,13 @@ import { WEEKDAY_LABELS } from '../../lib/dates.ts';
 import type { Doctor, Shift } from '../../backend/types.ts';
 import { clinicalShiftTypes, shiftDef, shiftLabel } from '../../lib/shifts.ts';
 import { logWarn } from '../../lib/logger.ts';
-import { PAGE, PdfContent, buildPdf, downloadPdf, type Rgb } from '../../lib/pdf.ts';
+import {
+  PAGE,
+  PdfContent,
+  buildPdf,
+  downloadPdf,
+  type Rgb,
+} from '../../lib/pdf.ts';
 
 /**
  * Export d'un **vrai fichier PDF** du mois affiché : n° de semaine, jour, puis
@@ -145,7 +151,11 @@ function drawPage(
   const nCols = columns.length;
   const cw = colWidth(nCols);
 
-  c.text(M, TITLE_Y, 16, title, { bold: true, align: 'center', width: CONTENT_W });
+  c.text(M, TITLE_Y, 16, title, {
+    bold: true,
+    align: 'center',
+    width: CONTENT_W,
+  });
 
   // En-tête
   c.fillRect(X_SEM, TABLE_TOP, CONTENT_W, HEADER_H, C_HEADER);
@@ -158,7 +168,10 @@ function drawPage(
       width: w,
     });
   head(X_SEM, COL_SEM, 'Sem');
-  c.text(X_JOUR + 6, headBase, HEADER_FONT, 'Jour', { bold: true, color: C_WHITE });
+  c.text(X_JOUR + 6, headBase, HEADER_FONT, 'Jour', {
+    bold: true,
+    color: C_WHITE,
+  });
   columns.forEach((col, i) => head(colX(i, nCols), cw, col.code));
 
   // Lignes
@@ -172,7 +185,11 @@ function drawPage(
 
     const base = y + ROW_H * 0.5 + FONT * 0.35;
     if (r.week)
-      c.text(X_SEM, base, FONT, r.week, { bold: true, align: 'center', width: COL_SEM });
+      c.text(X_SEM, base, FONT, r.week, {
+        bold: true,
+        align: 'center',
+        width: COL_SEM,
+      });
     c.text(X_JOUR + 6, base, FONT, r.day, { color: C_BLACK });
     r.cells.forEach((cell, ci) => {
       if (cell.name)
@@ -189,7 +206,14 @@ function drawPage(
   for (let i = 1; i <= nCols; i++) verticals.push(colX(i, nCols));
   for (const x of verticals) c.line(x, TABLE_TOP, x, bottom, 0.6, GRID_GRAY);
   c.line(X_SEM, TABLE_TOP, X_END, TABLE_TOP, 0.8, GRID_GRAY);
-  c.line(X_SEM, TABLE_TOP + HEADER_H, X_END, TABLE_TOP + HEADER_H, 0.8, GRID_GRAY);
+  c.line(
+    X_SEM,
+    TABLE_TOP + HEADER_H,
+    X_END,
+    TABLE_TOP + HEADER_H,
+    0.8,
+    GRID_GRAY
+  );
   for (let i = 1; i <= rows.length; i++) {
     const y = TABLE_TOP + HEADER_H + i * ROW_H;
     c.line(X_SEM, y, X_END, y, 0.5, GRID_GRAY);

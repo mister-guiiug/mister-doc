@@ -12,17 +12,15 @@ export async function savePushSubscription(
   doctorId: string,
   k: PushKeys
 ): Promise<void> {
-  const { error } = await getSupabase()
-    .from('push_subscriptions')
-    .upsert(
-      {
-        endpoint: k.endpoint,
-        doctor_id: doctorId,
-        p256dh: k.p256dh,
-        auth: k.auth,
-      },
-      { onConflict: 'endpoint' }
-    );
+  const { error } = await getSupabase().from('push_subscriptions').upsert(
+    {
+      endpoint: k.endpoint,
+      doctor_id: doctorId,
+      p256dh: k.p256dh,
+      auth: k.auth,
+    },
+    { onConflict: 'endpoint' }
+  );
   if (error) throw new Error(error.message);
 }
 

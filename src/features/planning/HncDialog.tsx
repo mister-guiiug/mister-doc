@@ -66,7 +66,10 @@ export function HncDialog({
   }
 
   return (
-    <Modal onClose={onClose} className="max-w-md rounded-t-2xl p-4 sm:rounded-2xl">
+    <Modal
+      onClose={onClose}
+      className="max-w-md rounded-t-2xl p-4 sm:rounded-2xl"
+    >
       <div className="mb-3 flex items-center justify-between">
         <h3 className="flex items-center gap-2 font-semibold">
           <Clock3 className="size-5 text-sky-600" />

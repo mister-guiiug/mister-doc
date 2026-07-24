@@ -23,7 +23,9 @@ describe('computeIssues', () => {
       names
     );
     const day = issues.get('2026-07-11') ?? [];
-    expect(day.some(i => i.level === 'error' && /Repos/.test(i.message))).toBe(true);
+    expect(day.some(i => i.level === 'error' && /Repos/.test(i.message))).toBe(
+      true
+    );
   });
 
   it('signale un conflit garde + absence le même jour', () => {
@@ -73,7 +75,11 @@ describe('helpers d’affectation', () => {
     expect(violatesRest('b', '2026-07-11', shifts)).toBe(false);
   });
   it('doctorsOnLeave / doctorsWorking', () => {
-    expect([...doctorsOnLeave('2026-07-10', [{ work_date: '2026-07-10', doctor_id: 'x' }])]).toEqual(['x']);
+    expect([
+      ...doctorsOnLeave('2026-07-10', [
+        { work_date: '2026-07-10', doctor_id: 'x' },
+      ]),
+    ]).toEqual(['x']);
     expect(doctorsWorking('2026-07-11', shifts).has('b')).toBe(true);
   });
 });

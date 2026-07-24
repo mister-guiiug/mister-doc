@@ -18,7 +18,12 @@ const DEFAULT_LABEL: Record<string, string> = {
   S2J: 'S2 Jour',
   S3: 'S3',
 };
-const DEFAULT_HOURS: Record<string, number> = { S1J: 10, S1N: 15, S2J: 8, S3: 8 };
+const DEFAULT_HOURS: Record<string, number> = {
+  S1J: 10,
+  S1N: 15,
+  S2J: 8,
+  S3: 8,
+};
 // [début, fin, décalage de jour de la fin]
 const DEFAULT_TIMES: Record<string, [string, string, number]> = {
   S1J: ['080000', '180000', 0],
@@ -57,7 +62,8 @@ const MAPS_TTL_MS = 300_000;
  * défauts historiques). Résultat mis en cache `MAPS_TTL_MS`.
  */
 async function loadMaps(): Promise<ShiftMaps> {
-  if (mapsCache && Date.now() - mapsCache.at < MAPS_TTL_MS) return mapsCache.maps;
+  if (mapsCache && Date.now() - mapsCache.at < MAPS_TTL_MS)
+    return mapsCache.maps;
   const maps: ShiftMaps = {
     label: { ...DEFAULT_LABEL },
     hours: { ...DEFAULT_HOURS },
@@ -72,7 +78,8 @@ async function loadMaps(): Promise<ShiftMaps> {
       maps.hours[r.code] = Number(r.hours);
       const start = icsTime(r.start_time);
       const end = icsTime(r.end_time);
-      if (start && end) maps.times[r.code] = [start, end, r.end_day_offset === 1 ? 1 : 0];
+      if (start && end)
+        maps.times[r.code] = [start, end, r.end_day_offset === 1 ? 1 : 0];
       else delete maps.times[r.code]; // pas d'horaire → événement journée entière
     }
   }
@@ -118,8 +125,13 @@ async function restSafe<T>(path: string): Promise<T | null> {
  * correspond à celui stocké en base (colonnes `calendar_token_hash`).
  */
 async function sha256hex(s: string): Promise<string> {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
-  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+  const buf = await crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(s)
+  );
+  return [...new Uint8Array(buf)]
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 /**
@@ -172,7 +184,10 @@ function nextDay(iso: string): string {
     .replace(/-/g, '');
 }
 const stamp = () =>
-  new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
+  new Date()
+    .toISOString()
+    .replace(/[-:]/g, '')
+    .replace(/\.\d{3}Z$/, 'Z');
 
 function allDay(uid: string, start: string, summary: string, cat: string) {
   return [
@@ -242,15 +257,19 @@ Deno.serve(async (req: Request) => {
     const wantTimed = url.searchParams.get('timed') === '1';
     const wantMine = url.searchParams.get('scope') === 'me';
 
-    if (!token) return new Response('Token requis.', { status: 401, headers: CORS });
+    if (!token)
+      return new Response('Token requis.', { status: 401, headers: CORS });
 
     // Rate-limit par IP AVANT toute validation : borne le coût d'un brute-force de
     // token (chaque tentative interrogerait sinon la base) et le scraping du flux.
     if (!(await rateAllow(`calendar:${clientIp(req)}`))) {
-      return new Response('Trop de requêtes. Réessayez dans quelques instants.', {
-        status: 429,
-        headers: { ...CORS, 'Retry-After': String(RATE_WINDOW) },
-      });
+      return new Response(
+        'Trop de requêtes. Réessayez dans quelques instants.',
+        {
+          status: 429,
+          headers: { ...CORS, 'Retry-After': String(RATE_WINDOW) },
+        }
+      );
     }
 
     // Le token est stocké HASHÉ au repos (SHA-256). On compare par hash ; on
@@ -275,7 +294,10 @@ Deno.serve(async (req: Request) => {
       // 2) ancien token partagé (équipe) ?
       const cfg =
         (await restSafe<
-          { calendar_token: string | null; calendar_token_hash: string | null }[]
+          {
+            calendar_token: string | null;
+            calendar_token_hash: string | null;
+          }[]
         >('app_config?id=eq.1&select=calendar_token,calendar_token_hash')) ??
         (await rest<{ calendar_token: string | null }[]>(
           'app_config?id=eq.1&select=calendar_token'
@@ -315,7 +337,14 @@ Deno.serve(async (req: Request) => {
       const summary = `${label} · ${who} (${h}h)`;
       events.push(
         wantTimed
-          ? timed(`shift-${s.id}`, s.work_date, s.shift_type, summary, label, maps.times)
+          ? timed(
+              `shift-${s.id}`,
+              s.work_date,
+              s.shift_type,
+              summary,
+              label,
+              maps.times
+            )
           : allDay(`shift-${s.id}`, s.work_date, summary, label)
       );
     }
@@ -335,7 +364,9 @@ Deno.serve(async (req: Request) => {
       );
     }
     for (const n of notes) {
-      events.push(allDay(`note-${n.work_date}`, n.work_date, `📝 ${n.note}`, 'Note'));
+      events.push(
+        allDay(`note-${n.work_date}`, n.work_date, `📝 ${n.note}`, 'Note')
+      );
     }
 
     const calName = scopedDoctorId

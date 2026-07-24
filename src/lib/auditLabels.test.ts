@@ -19,7 +19,9 @@ function entry(partial: Partial<AuditEntry>): AuditEntry {
 describe('auditActionLabel', () => {
   it('mappe les actions connues', () => {
     expect(auditActionLabel('doctor.approve')).toBe('a approuvé');
-    expect(auditActionLabel('doctor.grant_admin')).toBe('a promu administrateur');
+    expect(auditActionLabel('doctor.grant_admin')).toBe(
+      'a promu administrateur'
+    );
     expect(auditActionLabel('month.lock')).toBe('a verrouillé');
     expect(auditActionLabel('mfa.reset')).toBe('a réinitialisé la 2FA de');
   });
@@ -35,9 +37,9 @@ describe('auditTargetLabel', () => {
   });
 
   it('reconstruit le mois depuis details (verrou de mois)', () => {
-    expect(
-      auditTargetLabel(entry({ details: { year: 2026, month: 6 } }))
-    ).toBe('juillet 2026');
+    expect(auditTargetLabel(entry({ details: { year: 2026, month: 6 } }))).toBe(
+      'juillet 2026'
+    );
   });
 
   it('chaîne vide si ni cible ni mois', () => {

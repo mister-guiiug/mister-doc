@@ -21,10 +21,7 @@ export interface EquityDoctor {
 }
 
 export type EquityMetricKey =
-  | 'weekendDays'
-  | 'nights'
-  | 'holidays'
-  | 'totalHours';
+  'weekendDays' | 'nights' | 'holidays' | 'totalHours';
 
 /** Indicateurs de pénibilité, dans l'ordre d'affichage. */
 export const EQUITY_METRICS: {

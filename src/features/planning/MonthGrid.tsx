@@ -358,13 +358,19 @@ const DayRow = memo(function DayRow({
         {(prefers.length > 0 || avoids.length > 0) && (
           <span className="flex items-center gap-1.5 text-[11px] text-slate-400">
             {prefers.length > 0 && (
-              <span title={`Dispo : ${wishNames(prefers)}`} className="flex items-center gap-0.5">
+              <span
+                title={`Dispo : ${wishNames(prefers)}`}
+                className="flex items-center gap-0.5"
+              >
                 <ThumbsUp className="size-3 text-emerald-500" />
                 {prefers.length}
               </span>
             )}
             {avoids.length > 0 && (
-              <span title={`Indispo : ${wishNames(avoids)}`} className="flex items-center gap-0.5">
+              <span
+                title={`Indispo : ${wishNames(avoids)}`}
+                className="flex items-center gap-0.5"
+              >
                 <ThumbsDown className="size-3 text-rose-500" />
                 {avoids.length}
               </span>

@@ -62,6 +62,8 @@ test.describe('Page de connexion', () => {
     await expect(
       page.getByRole('heading', { name: 'Politique de confidentialité' })
     ).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Vos droits' })).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: 'Vos droits' })
+    ).toBeVisible();
   });
 });

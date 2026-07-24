@@ -1,11 +1,7 @@
 import { useState } from 'react';
 import { X, CalendarOff } from 'lucide-react';
 import { WEEKDAY_LABELS, fromISODate, mondayIndex } from '../../lib/dates.ts';
-import {
-  LEAVE_KINDS,
-  LEAVE_LABEL,
-  type LeaveKind,
-} from '../../lib/leaves.ts';
+import { LEAVE_KINDS, LEAVE_LABEL, type LeaveKind } from '../../lib/leaves.ts';
 import type { Doctor } from '../../backend/types.ts';
 import { Modal } from '../../components/Modal.tsx';
 import { Button } from '../../components/ui/Button.tsx';
@@ -65,7 +61,10 @@ export function LeaveDialog({
   }
 
   return (
-    <Modal onClose={onClose} className="max-w-md rounded-t-2xl p-4 sm:rounded-2xl">
+    <Modal
+      onClose={onClose}
+      className="max-w-md rounded-t-2xl p-4 sm:rounded-2xl"
+    >
       <form onSubmit={handleSubmit}>
         <div className="mb-4 flex items-center justify-between">
           <h3 className="flex items-center gap-2 font-semibold">

@@ -24,7 +24,10 @@ export function ConfirmDialog({
     danger = false,
   } = options;
   return (
-    <Modal onClose={onCancel} className="max-w-sm rounded-t-2xl p-5 sm:rounded-2xl">
+    <Modal
+      onClose={onCancel}
+      className="max-w-sm rounded-t-2xl p-5 sm:rounded-2xl"
+    >
       {title && (
         <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">
           {title}

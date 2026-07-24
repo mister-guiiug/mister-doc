@@ -15,7 +15,11 @@ function doctor(id: string, name: string): Doctor {
     created_at: '',
   };
 }
-function shift(work_date: string, shift_type: Shift['shift_type'], doctor_id: string): Shift {
+function shift(
+  work_date: string,
+  shift_type: Shift['shift_type'],
+  doctor_id: string
+): Shift {
   return {
     id: `${work_date}-${shift_type}`,
     work_date,
@@ -46,7 +50,12 @@ const shiftIndex = new Map<string, Shift>([
 ]);
 
 describe('buildMonthPdfModel', () => {
-  const model = buildMonthPdfModel({ title: 'Juillet 2026', weeks, shiftIndex, doctorsById });
+  const model = buildMonthPdfModel({
+    title: 'Juillet 2026',
+    weeks,
+    shiftIndex,
+    doctorsById,
+  });
   const col = (code: string) => model.columns.findIndex(c => c.code === code);
 
   it('produit une ligne par jour du mois avec le titre', () => {
@@ -83,33 +92,58 @@ describe('buildMonthPdfModel', () => {
 });
 
 describe('renderMonthPdf', () => {
-  const model = buildMonthPdfModel({ title: 'Juillet 2026', weeks, shiftIndex, doctorsById });
+  const model = buildMonthPdfModel({
+    title: 'Juillet 2026',
+    weeks,
+    shiftIndex,
+    doctorsById,
+  });
   const bytes = renderMonthPdf(model);
 
   it('produit un binaire PDF bien formé (en-tête + trailer)', () => {
     expect(latin1(bytes.subarray(0, 8))).toBe('%PDF-1.4');
-    expect(latin1(bytes.subarray(bytes.length - 8)).trimEnd().endsWith('%%EOF')).toBe(true);
+    expect(
+      latin1(bytes.subarray(bytes.length - 8))
+        .trimEnd()
+        .endsWith('%%EOF')
+    ).toBe(true);
   });
 
   it('a une table xref dont chaque offset pointe sur son objet', () => {
     const text = latin1(bytes);
     const sx = text.lastIndexOf('startxref');
-    const xrefOffset = parseInt(text.slice(sx + 9).trim().split(/\s/)[0], 10);
+    const xrefOffset = parseInt(
+      text
+        .slice(sx + 9)
+        .trim()
+        .split(/\s/)[0],
+      10
+    );
     expect(latin1(bytes.subarray(xrefOffset, xrefOffset + 4))).toBe('xref');
 
     // Analyse robuste de l'en-tête « xref\n0 N\n » quel que soit l'EOL.
     const after = latin1(bytes.subarray(xrefOffset));
     const nl1 = after.indexOf('\n');
     const nl2 = after.indexOf('\n', nl1 + 1);
-    const count = parseInt(after.slice(nl1 + 1, nl2).trim().split(/\s+/)[1], 10);
+    const count = parseInt(
+      after
+        .slice(nl1 + 1, nl2)
+        .trim()
+        .split(/\s+/)[1],
+      10
+    );
     expect(count).toBeGreaterThanOrEqual(7);
 
     // Entrées 20 octets ; on saute l'entrée libre 0, puis on vérifie « i 0 obj ».
     const entriesStart = xrefOffset + nl2 + 1 + 20;
     for (let i = 1; i < count; i++) {
-      const entry = latin1(bytes.subarray(entriesStart + (i - 1) * 20, entriesStart + i * 20));
+      const entry = latin1(
+        bytes.subarray(entriesStart + (i - 1) * 20, entriesStart + i * 20)
+      );
       const off = parseInt(entry.slice(0, 10), 10);
-      expect(latin1(bytes.subarray(off, off + `${i} 0 obj`.length))).toBe(`${i} 0 obj`);
+      expect(latin1(bytes.subarray(off, off + `${i} 0 obj`.length))).toBe(
+        `${i} 0 obj`
+      );
     }
   });
 });

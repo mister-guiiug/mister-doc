@@ -19,7 +19,9 @@ test.describe('Double authentification (2FA)', () => {
       page.getByRole('button', { name: /Se déconnecter/ })
     ).toBeVisible();
     // …et le planning reste inaccessible tant que le défi n'est pas franchi.
-    await expect(page.getByText('Juillet 2026', { exact: true })).toHaveCount(0);
+    await expect(page.getByText('Juillet 2026', { exact: true })).toHaveCount(
+      0
+    );
 
     // Voie de récupération : bascule vers le code de secours.
     await page

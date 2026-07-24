@@ -175,7 +175,9 @@ export function TwoFactorCard() {
       desc="Un code à 6 chiffres en plus du mot de passe, à chaque connexion"
     >
       {status === 'loading' && (
-        <p className="text-sm text-slate-500 dark:text-slate-400">Chargement…</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          Chargement…
+        </p>
       )}
 
       {status === 'error' && (
@@ -190,10 +192,10 @@ export function TwoFactorCard() {
           <p className="flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
             <KeyRound className="mt-0.5 size-4 shrink-0" />
             <span>
-              Conservez ces <strong>codes de secours</strong> en lieu sûr. Chacun ne
-              fonctionne qu'<strong>une seule fois</strong> et permet de récupérer
-              l'accès si vous perdez votre authentificateur. Ils ne seront plus
-              affichés.
+              Conservez ces <strong>codes de secours</strong> en lieu sûr.
+              Chacun ne fonctionne qu'<strong>une seule fois</strong> et permet
+              de récupérer l'accès si vous perdez votre authentificateur. Ils ne
+              seront plus affichés.
             </span>
           </p>
           <ul className="grid grid-cols-2 gap-1.5 rounded-lg bg-slate-50 p-3 font-mono text-sm dark:bg-slate-800">
@@ -207,7 +209,11 @@ export function TwoFactorCard() {
             <Button variant="secondary" className="flex-1" onClick={copyCodes}>
               <Copy className="size-4" /> Copier
             </Button>
-            <Button variant="secondary" className="flex-1" onClick={downloadCodes}>
+            <Button
+              variant="secondary"
+              className="flex-1"
+              onClick={downloadCodes}
+            >
               <Download className="size-4" /> Télécharger
             </Button>
           </div>
@@ -221,8 +227,8 @@ export function TwoFactorCard() {
       {status === 'on' && !enroll && !codes && (
         <div className="flex flex-col gap-3">
           <p className="flex items-center gap-2 rounded-lg bg-teal-50 px-3 py-2 text-sm font-medium text-teal-700 dark:bg-teal-950/40 dark:text-teal-300">
-            <ShieldCheck className="size-4 shrink-0" /> Activée — un code vous sera
-            demandé à chaque connexion.
+            <ShieldCheck className="size-4 shrink-0" /> Activée — un code vous
+            sera demandé à chaque connexion.
           </p>
           <Button
             variant="secondary"
@@ -247,8 +253,8 @@ export function TwoFactorCard() {
       {status === 'off' && !enroll && (
         <div className="flex flex-col gap-3">
           <p className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-            <ShieldAlert className="size-4 shrink-0 text-amber-500" /> Recommandée
-            pour protéger l'accès au planning.
+            <ShieldAlert className="size-4 shrink-0 text-amber-500" />{' '}
+            Recommandée pour protéger l'accès au planning.
           </p>
           <Button
             className="w-full py-2.5"
@@ -265,8 +271,8 @@ export function TwoFactorCard() {
         <form onSubmit={confirmEnroll} className="flex flex-col gap-3">
           <ol className="list-decimal space-y-1 pl-5 text-sm text-slate-600 dark:text-slate-300">
             <li>
-              Scannez ce QR code dans votre application d'authentification (Google
-              Authenticator, Authy…).
+              Scannez ce QR code dans votre application d'authentification
+              (Google Authenticator, Authy…).
             </li>
             <li>Saisissez le code à 6 chiffres qu'elle affiche.</li>
           </ol>
@@ -295,7 +301,9 @@ export function TwoFactorCard() {
             </span>
             <input
               value={code}
-              onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              onChange={e =>
+                setCode(e.target.value.replace(/\D/g, '').slice(0, 6))
+              }
               inputMode="numeric"
               autoComplete="one-time-code"
               pattern="\d{6}"

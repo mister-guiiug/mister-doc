@@ -50,9 +50,12 @@ export function computeIssues(
     const arr = byDay.get(s.work_date);
     if (arr) arr.push(s);
     else byDay.set(s.work_date, [s]);
-    if (isNightShift(s.shift_type)) nightByDoctorDate.add(`${s.doctor_id}|${s.work_date}`);
+    if (isNightShift(s.shift_type))
+      nightByDoctorDate.add(`${s.doctor_id}|${s.work_date}`);
   }
-  const leaveByDoctorDate = new Set(leaves.map(l => `${l.doctor_id}|${l.work_date}`));
+  const leaveByDoctorDate = new Set(
+    leaves.map(l => `${l.doctor_id}|${l.work_date}`)
+  );
 
   // Repos de sécurité + cumul + conflit.
   for (const [iso, dayShifts] of byDay) {
@@ -104,6 +107,9 @@ export function violatesRest(
 ): boolean {
   const prev = prevISO(iso);
   return shifts.some(
-    s => s.doctor_id === doctorId && s.work_date === prev && isNightShift(s.shift_type)
+    s =>
+      s.doctor_id === doctorId &&
+      s.work_date === prev &&
+      isNightShift(s.shift_type)
   );
 }

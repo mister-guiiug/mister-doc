@@ -88,7 +88,7 @@ jobs:
           # l'URI (« could not translate host name »). Le plus sûr : mot de passe
           # alphanumérique (Dashboard → Database → Reset database password).
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-          PGSSLMODE: require   # Supabase exige TLS
+          PGSSLMODE: require # Supabase exige TLS
         run: |
           set -euo pipefail
           cd supabase/migrations

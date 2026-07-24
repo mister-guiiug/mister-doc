@@ -26,12 +26,25 @@ export function BottomNav() {
   if (!doctor) return null;
 
   const items: Item[] = [
-    { to: '/', label: 'Planning', icon: <CalendarDays className="size-5" />, end: true },
-    { to: '/mon-planning', label: 'Moi', icon: <CalendarCheck className="size-5" /> },
+    {
+      to: '/',
+      label: 'Planning',
+      icon: <CalendarDays className="size-5" />,
+      end: true,
+    },
+    {
+      to: '/mon-planning',
+      label: 'Moi',
+      icon: <CalendarCheck className="size-5" />,
+    },
     { to: '/echanges', label: 'Échanges', icon: <Repeat className="size-5" /> },
     ...(isAdmin
       ? [
-          { to: '/compteurs', label: 'Compteurs', icon: <BarChart3 className="size-5" /> },
+          {
+            to: '/compteurs',
+            label: 'Compteurs',
+            icon: <BarChart3 className="size-5" />,
+          },
           { to: '/admin', label: 'Admin', icon: <Shield className="size-5" /> },
         ]
       : []),

@@ -36,16 +36,16 @@ d'autres services que celui d'origine.
 
 ## 3. État initial — couplage en dur (généralisé)
 
-| Emplacement | Avant | Après |
-| --- | --- | --- |
-| [`src/lib/shifts.ts`](../src/lib/shifts.ts) | `SHIFT_TYPES`, `ShiftType` (union), `SHIFT_HOURS`, `SHIFT_LABEL` | `ShiftType = string`, config de module + `shiftHours()`/`shiftLabel()`/`isNightShift()` |
-| id. | `CLINICAL/WEEKEND/PRIMARY_SHIFT`, `activeShiftTypes` | dérivés de la config (`clinicalShiftTypes()`, `activeShiftTypes()`) |
-| [`validation.ts`](../src/lib/validation.ts) | littéral `'S1N'` | `isNightShift(code)` (repos de sécurité) |
-| [`equity.ts`](../src/lib/equity.ts) | littéral `'S1N'` + `SHIFT_HOURS` | `isNightShift()` + `shiftHours()` |
-| [`monthPdf.ts`](../src/features/planning/monthPdf.ts) | colonnes S1J/S1N/S2J fixes | **colonnes dynamiques** = cliniques actifs |
-| [`calendar/index.ts`](../supabase/functions/calendar/index.ts) | maps figées | charge `shift_types` (cache 5 min) + repli |
-| `0001`/`0007` | **CHECK** `in (...)` | **FK** vers `shift_types(code)` |
-| `0006` | `shift_label(t)` = CASE | lit la table `shift_types` |
+| Emplacement                                                    | Avant                                                            | Après                                                                                   |
+| -------------------------------------------------------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| [`src/lib/shifts.ts`](../src/lib/shifts.ts)                    | `SHIFT_TYPES`, `ShiftType` (union), `SHIFT_HOURS`, `SHIFT_LABEL` | `ShiftType = string`, config de module + `shiftHours()`/`shiftLabel()`/`isNightShift()` |
+| id.                                                            | `CLINICAL/WEEKEND/PRIMARY_SHIFT`, `activeShiftTypes`             | dérivés de la config (`clinicalShiftTypes()`, `activeShiftTypes()`)                     |
+| [`validation.ts`](../src/lib/validation.ts)                    | littéral `'S1N'`                                                 | `isNightShift(code)` (repos de sécurité)                                                |
+| [`equity.ts`](../src/lib/equity.ts)                            | littéral `'S1N'` + `SHIFT_HOURS`                                 | `isNightShift()` + `shiftHours()`                                                       |
+| [`monthPdf.ts`](../src/features/planning/monthPdf.ts)          | colonnes S1J/S1N/S2J fixes                                       | **colonnes dynamiques** = cliniques actifs                                              |
+| [`calendar/index.ts`](../supabase/functions/calendar/index.ts) | maps figées                                                      | charge `shift_types` (cache 5 min) + repli                                              |
+| `0001`/`0007`                                                  | **CHECK** `in (...)`                                             | **FK** vers `shift_types(code)`                                                         |
+| `0006`                                                         | `shift_label(t)` = CASE                                          | lit la table `shift_types`                                                              |
 
 `ShiftType` est passé d'une **union littérale** à `string` : la validité vient
 désormais de la base (FK) et de la config runtime, plus d'une union figée.
@@ -68,17 +68,17 @@ plus être supprimé, seulement désactivé.
 
 ## 5. Sémantique des attributs
 
-| Champ | Remplace | Effet |
-| --- | --- | --- |
-| `code` | valeur `shift_type` | Identifiant stable (immuable une fois créé). |
-| `label` | `SHIFT_LABEL` | Affichage. |
-| `hours` | `SHIFT_HOURS` | Compteurs, heures totales/WE, équité, .ics. |
-| `clinical` | `CLINICAL_SHIFT_TYPES` | `true` ⇒ compte dans la **couverture**. |
-| `weekend` | `WEEKEND_SHIFT_TYPES` | `true` ⇒ requis aussi samedi/dimanche/férié. |
-| `is_night` | littéral `'S1N'` | `true` ⇒ **repos de sécurité** le lendemain + **compteur nuits**. |
-| `start/end_time`, `end_day_offset` | `SHIFT_TIMES` (edge) | Événements horodatés du flux .ics. |
-| `sort_order` | ordre implicite | Ordre des colonnes (grille, PDF, dialogues). |
-| `color`, `active` | — | Confort / cycle de vie. |
+| Champ                              | Remplace               | Effet                                                             |
+| ---------------------------------- | ---------------------- | ----------------------------------------------------------------- |
+| `code`                             | valeur `shift_type`    | Identifiant stable (immuable une fois créé).                      |
+| `label`                            | `SHIFT_LABEL`          | Affichage.                                                        |
+| `hours`                            | `SHIFT_HOURS`          | Compteurs, heures totales/WE, équité, .ics.                       |
+| `clinical`                         | `CLINICAL_SHIFT_TYPES` | `true` ⇒ compte dans la **couverture**.                           |
+| `weekend`                          | `WEEKEND_SHIFT_TYPES`  | `true` ⇒ requis aussi samedi/dimanche/férié.                      |
+| `is_night`                         | littéral `'S1N'`       | `true` ⇒ **repos de sécurité** le lendemain + **compteur nuits**. |
+| `start/end_time`, `end_day_offset` | `SHIFT_TIMES` (edge)   | Événements horodatés du flux .ics.                                |
+| `sort_order`                       | ordre implicite        | Ordre des colonnes (grille, PDF, dialogues).                      |
+| `color`, `active`                  | —                      | Confort / cycle de vie.                                           |
 
 ## 6. Diffusion de la configuration côté front
 
@@ -122,13 +122,13 @@ Validation renforcée à l'exécution (valeurs venues de la DB / FK).
 
 ## 11. Plan de déploiement (livré)
 
-| Phase | Contenu | Comportement |
-| --- | --- | --- |
-| **0. Données** | Migration `0022` : table + seed + CHECK→FK + fonctions SQL | Aucun changement visible |
-| **1. Config runtime** | `setShiftTypes` au login ; lookups dans `shifts/validation/equity` | Identique au seed |
-| **2. Admin** | `ShiftTypesCard` + RPC | Admin peut créer/éditer/réordonner/désactiver |
-| **3. Rendu** | PDF colonnes dynamiques + edge `calendar` DB-driven | Prise en compte de N types |
-| **4. Doc** | Ce document | — |
+| Phase                 | Contenu                                                            | Comportement                                  |
+| --------------------- | ------------------------------------------------------------------ | --------------------------------------------- |
+| **0. Données**        | Migration `0022` : table + seed + CHECK→FK + fonctions SQL         | Aucun changement visible                      |
+| **1. Config runtime** | `setShiftTypes` au login ; lookups dans `shifts/validation/equity` | Identique au seed                             |
+| **2. Admin**          | `ShiftTypesCard` + RPC                                             | Admin peut créer/éditer/réordonner/désactiver |
+| **3. Rendu**          | PDF colonnes dynamiques + edge `calendar` DB-driven                | Prise en compte de N types                    |
+| **4. Doc**            | Ce document                                                        | —                                             |
 
 ## 12. Tests
 
@@ -151,11 +151,11 @@ Validation renforcée à l'exécution (valeurs venues de la DB / FK).
 
 ## 14. Décisions retenues
 
-| # | Décision | Choix |
-| --- | --- | --- |
-| **D1** | Clé de jointure | **`code` texte** (pas de réécriture) |
-| **D2** | Plafond de types cliniques | **~6** (soft, journalisé) |
-| **D3** | Heures | **Recalcul rétroactif** depuis la config |
-| **D4** | « Nuit » | **Booléen `is_night`** (repos = « lendemain ») |
-| **D5** | Couleur par type | **Optionnelle** (champ `color`) |
-| **D6** | `weekend`/`clinical` | **Suffisent** (clinique ⇒ requis) |
+| #      | Décision                   | Choix                                          |
+| ------ | -------------------------- | ---------------------------------------------- |
+| **D1** | Clé de jointure            | **`code` texte** (pas de réécriture)           |
+| **D2** | Plafond de types cliniques | **~6** (soft, journalisé)                      |
+| **D3** | Heures                     | **Recalcul rétroactif** depuis la config       |
+| **D4** | « Nuit »                   | **Booléen `is_night`** (repos = « lendemain ») |
+| **D5** | Couleur par type           | **Optionnelle** (champ `color`)                |
+| **D6** | `weekend`/`clinical`       | **Suffisent** (clinique ⇒ requis)              |

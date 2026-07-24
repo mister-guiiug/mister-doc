@@ -106,13 +106,43 @@ describe('configuration dynamique des créneaux', () => {
 
   it('prend en compte un 4ᵉ créneau clinique en semaine', () => {
     setShiftTypes([
-      def({ code: 'S1J', label: 'S1 Jour', hours: 10, weekend: true, sortOrder: 0 }),
-      def({ code: 'S1N', label: 'S1 Nuit', hours: 15, isNight: true, weekend: true, sortOrder: 1 }),
-      def({ code: 'S2J', label: 'S2 Jour', hours: 8, weekend: false, sortOrder: 2 }),
-      def({ code: 'S4', label: 'S4 Jour', hours: 6, weekend: false, sortOrder: 3 }),
+      def({
+        code: 'S1J',
+        label: 'S1 Jour',
+        hours: 10,
+        weekend: true,
+        sortOrder: 0,
+      }),
+      def({
+        code: 'S1N',
+        label: 'S1 Nuit',
+        hours: 15,
+        isNight: true,
+        weekend: true,
+        sortOrder: 1,
+      }),
+      def({
+        code: 'S2J',
+        label: 'S2 Jour',
+        hours: 8,
+        weekend: false,
+        sortOrder: 2,
+      }),
+      def({
+        code: 'S4',
+        label: 'S4 Jour',
+        hours: 6,
+        weekend: false,
+        sortOrder: 3,
+      }),
     ]);
     // mardi ordinaire : les 4 cliniques actifs
-    expect(activeShiftTypes(new Date(2026, 6, 7))).toEqual(['S1J', 'S1N', 'S2J', 'S4']);
+    expect(activeShiftTypes(new Date(2026, 6, 7))).toEqual([
+      'S1J',
+      'S1N',
+      'S2J',
+      'S4',
+    ]);
     expect(clinicalShiftTypes()).toEqual(['S1J', 'S1N', 'S2J', 'S4']);
   });
 
@@ -144,11 +174,18 @@ describe('configuration dynamique des créneaux', () => {
     expect(isNightShift('GN')).toBe(true);
     expect(isNightShift('CD')).toBe(false);
     // Les heures fractionnaires remontent dans les compteurs.
-    expect(computeCounters([{ work_date: '2026-01-05', shift_type: 'GN' }]).totalHours).toBe(12.5);
+    expect(
+      computeCounters([{ work_date: '2026-01-05', shift_type: 'GN' }])
+        .totalHours
+    ).toBe(12.5);
   });
 
   it('conserve les défauts si on tente d’injecter une liste vide', () => {
     setShiftTypes([]);
-    expect(activeShiftTypes(new Date(2026, 6, 7))).toEqual(['S1J', 'S1N', 'S2J']);
+    expect(activeShiftTypes(new Date(2026, 6, 7))).toEqual([
+      'S1J',
+      'S1N',
+      'S2J',
+    ]);
   });
 });

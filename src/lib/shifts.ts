@@ -49,10 +49,62 @@ export interface ShiftTypeDef {
  * tests. Doit rester alignée avec le seed de la migration 0022.
  */
 export const DEFAULT_SHIFT_TYPES: readonly ShiftTypeDef[] = [
-  { code: 'S1J', label: 'S1 Jour', hours: 10, clinical: true, isNight: false, weekend: true, sortOrder: 0, startTime: '08:00', endTime: '18:00', endDayOffset: 0, color: null, active: true },
-  { code: 'S1N', label: 'S1 Nuit', hours: 15, clinical: true, isNight: true, weekend: true, sortOrder: 1, startTime: '18:00', endTime: '09:00', endDayOffset: 1, color: null, active: true },
-  { code: 'S2J', label: 'S2 Jour', hours: 8, clinical: true, isNight: false, weekend: false, sortOrder: 2, startTime: '08:00', endTime: '16:00', endDayOffset: 0, color: null, active: true },
-  { code: 'S3', label: 'Heures non cliniques', hours: 8, clinical: false, isNight: false, weekend: false, sortOrder: 3, startTime: null, endTime: null, endDayOffset: 0, color: null, active: false },
+  {
+    code: 'S1J',
+    label: 'S1 Jour',
+    hours: 10,
+    clinical: true,
+    isNight: false,
+    weekend: true,
+    sortOrder: 0,
+    startTime: '08:00',
+    endTime: '18:00',
+    endDayOffset: 0,
+    color: null,
+    active: true,
+  },
+  {
+    code: 'S1N',
+    label: 'S1 Nuit',
+    hours: 15,
+    clinical: true,
+    isNight: true,
+    weekend: true,
+    sortOrder: 1,
+    startTime: '18:00',
+    endTime: '09:00',
+    endDayOffset: 1,
+    color: null,
+    active: true,
+  },
+  {
+    code: 'S2J',
+    label: 'S2 Jour',
+    hours: 8,
+    clinical: true,
+    isNight: false,
+    weekend: false,
+    sortOrder: 2,
+    startTime: '08:00',
+    endTime: '16:00',
+    endDayOffset: 0,
+    color: null,
+    active: true,
+  },
+  {
+    code: 'S3',
+    label: 'Heures non cliniques',
+    hours: 8,
+    clinical: false,
+    isNight: false,
+    weekend: false,
+    sortOrder: 3,
+    startTime: null,
+    endTime: null,
+    endDayOffset: 0,
+    color: null,
+    active: false,
+  },
 ];
 
 // ---------------------------- État de module ----------------------------
@@ -64,7 +116,9 @@ let current: ShiftTypeDef[] = sortDefs(DEFAULT_SHIFT_TYPES);
 let byCode: Map<ShiftType, ShiftTypeDef> = index(current);
 
 function sortDefs(defs: readonly ShiftTypeDef[]): ShiftTypeDef[] {
-  return [...defs].sort((a, b) => a.sortOrder - b.sortOrder || a.code.localeCompare(b.code));
+  return [...defs].sort(
+    (a, b) => a.sortOrder - b.sortOrder || a.code.localeCompare(b.code)
+  );
 }
 function index(defs: ShiftTypeDef[]): Map<ShiftType, ShiftTypeDef> {
   return new Map(defs.map(d => [d.code, d]));

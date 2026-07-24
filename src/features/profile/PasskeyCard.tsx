@@ -65,7 +65,9 @@ export function PasskeyCard() {
     setBusy(true);
     try {
       await registerPasskey();
-      toast.success('Passkey enregistrée — vous pouvez désormais vous connecter avec l’empreinte.');
+      toast.success(
+        'Passkey enregistrée — vous pouvez désormais vous connecter avec l’empreinte.'
+      );
       await refresh();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Erreur');
@@ -108,7 +110,9 @@ export function PasskeyCard() {
       )}
 
       {status === 'loading' && (
-        <p className="text-sm text-slate-500 dark:text-slate-400">Chargement…</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          Chargement…
+        </p>
       )}
 
       {status === 'error' && (
