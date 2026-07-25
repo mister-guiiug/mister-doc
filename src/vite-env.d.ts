@@ -9,6 +9,7 @@ interface ImportMetaEnv {
   readonly VITE_SUPABASE_ANON_KEY: string;
   /** Clé publique VAPID (Web Push). Vide/absente → push désactivé côté UI. */
   readonly VITE_VAPID_PUBLIC_KEY?: string;
+  readonly VITE_SENTRY_DSN?: string;
 }
 
 interface ImportMeta {
