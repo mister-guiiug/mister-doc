@@ -17,6 +17,10 @@ export default defineConfig({
     // un autre dev server local, que `reuseExistingServer` réutiliserait à tort.
     baseURL: 'http://localhost:5175',
     trace: 'on-first-retry',
+    // L'app est internationalisée (FR/EN). Sans ça, la locale CI par défaut
+    // (en-US) bascule l'UI en anglais et casse les locators FR des specs. Un seed
+    // localStorage dans les tests complète (createI18n lit le storage en premier).
+    locale: 'fr-FR',
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {

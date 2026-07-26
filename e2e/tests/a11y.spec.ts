@@ -42,6 +42,19 @@ async function expectNoA11yViolations(page: Page): Promise<void> {
 }
 
 test.describe('Accessibilité — WCAG A/AA', () => {
+  // L'app est internationalisée (FR/EN). Sur CI la locale navigateur (en-US)
+  // basculerait l'UI en anglais et casserait les locators FR ci-dessous : on
+  // épingle le français (createI18n lit `misterdoc_locale` en premier).
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      try {
+        localStorage.setItem('misterdoc_locale', 'fr');
+      } catch {
+        /* contexte sans storage : la locale fr-FR du projet Playwright prend le relais */
+      }
+    });
+  });
+
   test('page de connexion sans violation', async ({ page }) => {
     await page.route(/supabase\.co/, route => route.abort());
     await page.goto('/');
@@ -74,9 +87,10 @@ test.describe('Accessibilité — WCAG A/AA', () => {
   test('profil authentifié sans violation', async ({ page }) => {
     await setupAuthenticated(page);
     await page.goto('/#/profil');
-    await expect(
-      page.getByText('Nos autres applications').first()
-    ).toBeVisible();
+    // La grille FamilyApps est rendue : cibler une CARTE visible. Le titre
+    // `[data-dwc="family-apps-title"]` est un heading sr-only (masqué by design),
+    // donc pas `toBeVisible`.
+    await expect(page.locator('[data-dwc="family-app"]').first()).toBeVisible();
     await expectNoA11yViolations(page);
   });
 });
