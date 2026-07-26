@@ -12,6 +12,7 @@ import { useToast } from '../../components/Toast.tsx';
 import { useConfirm } from '../../components/ui/confirmContext.ts';
 import { Button } from '../../components/ui/Button.tsx';
 import { SectionCard } from '../../components/ui/SectionCard.tsx';
+import { useI18n } from '../../i18n/index.ts';
 import {
   cancelTotpEnrollment,
   confirmTotpEnrollment,
@@ -32,6 +33,7 @@ type Status = 'loading' | 'on' | 'off' | 'error';
 export function TwoFactorCard() {
   const toast = useToast();
   const confirm = useConfirm();
+  const { t } = useI18n();
   const [status, setStatus] = useState<Status>('loading');
   const [enroll, setEnroll] = useState<TotpEnrollment | null>(null);
   const [code, setCode] = useState('');
@@ -67,7 +69,8 @@ export function TwoFactorCard() {
       const e = await enrollTotp();
       if (alive.current) setEnroll(e);
     } catch (e) {
-      if (alive.current) setErr(e instanceof Error ? e.message : 'Erreur');
+      if (alive.current)
+        setErr(e instanceof Error ? e.message : t('common.error'));
     } finally {
       if (alive.current) setBusy(false);
     }
@@ -83,7 +86,7 @@ export function TwoFactorCard() {
       if (!alive.current) return;
       setEnroll(null);
       setCode('');
-      toast.success('Double authentification activée.');
+      toast.success(t('twoFactor.enabled'));
       await refresh();
       // Génère les codes de secours dans la foulée (non bloquant si indisponible).
       try {
@@ -94,7 +97,7 @@ export function TwoFactorCard() {
       }
     } catch (e) {
       if (alive.current) {
-        setErr(e instanceof Error ? e.message : 'Erreur');
+        setErr(e instanceof Error ? e.message : t('common.error'));
         setCode('');
       }
     } finally {
@@ -116,7 +119,7 @@ export function TwoFactorCard() {
       const c = await generateRecoveryCodes();
       if (alive.current) setCodes(c);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Erreur');
+      toast.error(e instanceof Error ? e.message : t('common.error'));
     } finally {
       if (alive.current) setBusy(false);
     }
@@ -125,18 +128,13 @@ export function TwoFactorCard() {
   function copyCodes() {
     void navigator.clipboard
       .writeText((codes ?? []).join('\n'))
-      .then(() => toast.success('Codes copiés.'))
-      .catch(() => toast.error('Copie impossible.'));
+      .then(() => toast.success(t('twoFactor.codesCopied')))
+      .catch(() => toast.error(t('twoFactor.copyError')));
   }
 
   function downloadCodes() {
     const blob = new Blob(
-      [
-        'Codes de secours mister-doc (double authentification).\n' +
-          'Chacun ne fonctionne qu’une seule fois. Conservez-les en lieu sûr.\n\n' +
-          (codes ?? []).join('\n') +
-          '\n',
-      ],
+      [t('twoFactor.backupFileHeader') + (codes ?? []).join('\n') + '\n'],
       { type: 'text/plain' }
     );
     const url = URL.createObjectURL(blob);
@@ -149,20 +147,19 @@ export function TwoFactorCard() {
 
   async function disable() {
     const ok = await confirm({
-      title: 'Désactiver la double authentification ?',
-      message:
-        'Votre compte ne sera plus protégé que par le mot de passe. Vous pourrez la réactiver à tout moment.',
-      confirmLabel: 'Désactiver',
+      title: t('twoFactor.disableConfirmTitle'),
+      message: t('twoFactor.disableConfirmMsg'),
+      confirmLabel: t('twoFactor.disableLabel'),
       danger: true,
     });
     if (!ok) return;
     setBusy(true);
     try {
       await disableTotp();
-      toast.success('Double authentification désactivée.');
+      toast.success(t('twoFactor.disabled'));
       await refresh();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Erreur');
+      toast.error(e instanceof Error ? e.message : t('common.error'));
     } finally {
       if (alive.current) setBusy(false);
     }
@@ -171,18 +168,18 @@ export function TwoFactorCard() {
   return (
     <SectionCard
       icon={<ShieldCheck className="size-4" />}
-      title="Double authentification"
-      desc="Un code à 6 chiffres en plus du mot de passe, à chaque connexion"
+      title={t('twoFactor.title')}
+      desc={t('twoFactor.desc')}
     >
       {status === 'loading' && (
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          Chargement…
+          {t('twoFactor.loading')}
         </p>
       )}
 
       {status === 'error' && (
         <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
-          État indisponible (hors ligne ?). Réessayez une fois connecté.
+          {t('twoFactor.unavailable')}
         </p>
       )}
 
@@ -191,12 +188,7 @@ export function TwoFactorCard() {
         <div className="flex flex-col gap-3">
           <p className="flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
             <KeyRound className="mt-0.5 size-4 shrink-0" />
-            <span>
-              Conservez ces <strong>codes de secours</strong> en lieu sûr.
-              Chacun ne fonctionne qu'<strong>une seule fois</strong> et permet
-              de récupérer l'accès si vous perdez votre authentificateur. Ils ne
-              seront plus affichés.
-            </span>
+            <span>{t('twoFactor.backupIntro')}</span>
           </p>
           <ul className="grid grid-cols-2 gap-1.5 rounded-lg bg-slate-50 p-3 font-mono text-sm dark:bg-slate-800">
             {codes.map(c => (
@@ -207,18 +199,18 @@ export function TwoFactorCard() {
           </ul>
           <div className="flex gap-2">
             <Button variant="secondary" className="flex-1" onClick={copyCodes}>
-              <Copy className="size-4" /> Copier
+              <Copy className="size-4" /> {t('twoFactor.copy')}
             </Button>
             <Button
               variant="secondary"
               className="flex-1"
               onClick={downloadCodes}
             >
-              <Download className="size-4" /> Télécharger
+              <Download className="size-4" /> {t('twoFactor.download')}
             </Button>
           </div>
           <Button className="w-full py-2.5" onClick={() => setCodes(null)}>
-            <Check className="size-4" /> J'ai enregistré mes codes
+            <Check className="size-4" /> {t('twoFactor.savedCodes')}
           </Button>
         </div>
       )}
@@ -227,8 +219,8 @@ export function TwoFactorCard() {
       {status === 'on' && !enroll && !codes && (
         <div className="flex flex-col gap-3">
           <p className="flex items-center gap-2 rounded-lg bg-teal-50 px-3 py-2 text-sm font-medium text-teal-700 dark:bg-teal-950/40 dark:text-teal-300">
-            <ShieldCheck className="size-4 shrink-0" /> Activée — un code vous
-            sera demandé à chaque connexion.
+            <ShieldCheck className="size-4 shrink-0" />{' '}
+            {t('twoFactor.enabledInfo')}
           </p>
           <Button
             variant="secondary"
@@ -236,7 +228,7 @@ export function TwoFactorCard() {
             loading={busy}
             onClick={() => void makeCodes()}
           >
-            <KeyRound className="size-4" /> Régénérer les codes de secours
+            <KeyRound className="size-4" /> {t('twoFactor.regenCodes')}
           </Button>
           <Button
             variant="dangerGhost"
@@ -244,7 +236,7 @@ export function TwoFactorCard() {
             loading={busy}
             onClick={() => void disable()}
           >
-            Désactiver
+            {t('twoFactor.disable')}
           </Button>
         </div>
       )}
@@ -254,14 +246,14 @@ export function TwoFactorCard() {
         <div className="flex flex-col gap-3">
           <p className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
             <ShieldAlert className="size-4 shrink-0 text-amber-500" />{' '}
-            Recommandée pour protéger l'accès au planning.
+            {t('twoFactor.recommend')}
           </p>
           <Button
             className="w-full py-2.5"
             loading={busy}
             onClick={() => void startEnroll()}
           >
-            <ShieldCheck className="size-4" /> Activer
+            <ShieldCheck className="size-4" /> {t('twoFactor.enable')}
           </Button>
         </div>
       )}
@@ -270,17 +262,14 @@ export function TwoFactorCard() {
       {enroll && (
         <form onSubmit={confirmEnroll} className="flex flex-col gap-3">
           <ol className="list-decimal space-y-1 pl-5 text-sm text-slate-600 dark:text-slate-300">
-            <li>
-              Scannez ce QR code dans votre application d'authentification
-              (Google Authenticator, Authy…).
-            </li>
-            <li>Saisissez le code à 6 chiffres qu'elle affiche.</li>
+            <li>{t('twoFactor.enrollStep1')}</li>
+            <li>{t('twoFactor.enrollStep2')}</li>
           </ol>
           <div className="mx-auto rounded-xl border border-slate-200 bg-white p-2 dark:border-slate-700">
             {/* data:image/svg+xml fourni par Supabase — autorisé par la CSP img-src data:. */}
             <img
               src={enroll.qrCode}
-              alt="QR code de configuration"
+              alt={t('twoFactor.qrAlt')}
               width={176}
               height={176}
               className="size-44"
@@ -288,7 +277,7 @@ export function TwoFactorCard() {
           </div>
           <div className="rounded-lg bg-slate-50 px-3 py-2 text-center dark:bg-slate-800">
             <span className="text-xs text-slate-500 dark:text-slate-400">
-              Ou saisie manuelle :
+              {t('twoFactor.manualEntry')}
             </span>
             <p className="mt-0.5 break-all font-mono text-xs font-medium">
               {enroll.secret}
@@ -297,7 +286,7 @@ export function TwoFactorCard() {
 
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium text-slate-600 dark:text-slate-300">
-              Code à 6 chiffres
+              {t('twoFactor.code6Label')}
             </span>
             <input
               value={code}
@@ -329,7 +318,7 @@ export function TwoFactorCard() {
               className="flex-1 py-2.5"
               onClick={() => void cancelEnroll()}
             >
-              <X className="size-4" /> Annuler
+              <X className="size-4" /> {t('twoFactor.cancel')}
             </Button>
             <Button
               type="submit"
@@ -337,7 +326,7 @@ export function TwoFactorCard() {
               loading={busy}
               disabled={code.trim().length < 6}
             >
-              <Check className="size-4" /> Vérifier
+              <Check className="size-4" /> {t('twoFactor.verify')}
             </Button>
           </div>
         </form>

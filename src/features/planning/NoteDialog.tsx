@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { X, Trash2, StickyNote } from 'lucide-react';
-import { WEEKDAY_LABELS, fromISODate, mondayIndex } from '../../lib/dates.ts';
+import { fromISODate, mondayIndex } from '../../lib/dates.ts';
 import { Modal } from '../../components/Modal.tsx';
 import { Button } from '../../components/ui/Button.tsx';
 import { useConfirm } from '../../components/ui/confirmContext.ts';
+import { useI18n } from '../../i18n/index.ts';
 
 export function NoteDialog({
   date,
@@ -21,9 +22,10 @@ export function NoteDialog({
   const [note, setNote] = useState(initialNote);
   const [busy, setBusy] = useState(false);
   const confirm = useConfirm();
+  const { t, m } = useI18n();
 
   const d = fromISODate(date);
-  const dayLabel = `${WEEKDAY_LABELS[mondayIndex(d)]} ${d.getDate()}`;
+  const dayLabel = `${m.common.weekdays[mondayIndex(d)]} ${d.getDate()}`;
 
   async function run(action: () => Promise<void>) {
     setBusy(true);
@@ -43,11 +45,11 @@ export function NoteDialog({
       <div className="mb-3 flex items-center justify-between">
         <h3 className="flex items-center gap-2 font-semibold">
           <StickyNote className="size-5 text-slate-500" />
-          Note — <span className="capitalize">{dayLabel}</span>
+          {t('note.title')} — <span className="capitalize">{dayLabel}</span>
         </h3>
         <button
           onClick={onClose}
-          aria-label="Fermer"
+          aria-label={t('common.close')}
           className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
         >
           <X className="size-5" />
@@ -58,7 +60,7 @@ export function NoteDialog({
         value={note}
         onChange={e => setNote(e.target.value)}
         rows={3}
-        placeholder="Réunion, staff, RMM, évènement…"
+        placeholder={t('note.placeholder')}
         className="w-full resize-y rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:border-slate-600 dark:bg-slate-800"
       />
 
@@ -70,16 +72,16 @@ export function NoteDialog({
             onClick={async () => {
               if (
                 await confirm({
-                  message: `Supprimer la note du ${dayLabel} ?`,
+                  message: t('note.deleteConfirm', { day: dayLabel }),
                   danger: true,
-                  confirmLabel: 'Supprimer',
+                  confirmLabel: t('note.delete'),
                 })
               )
                 void run(onDelete);
             }}
             className="flex items-center gap-1 rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 dark:border-red-900/60 dark:hover:bg-red-950/30"
           >
-            <Trash2 className="size-4" /> Supprimer
+            <Trash2 className="size-4" /> {t('note.delete')}
           </button>
         )}
         <Button
@@ -89,7 +91,7 @@ export function NoteDialog({
           onClick={() => void run(() => onSave(note.trim()))}
           className="ml-auto"
         >
-          Enregistrer
+          {t('note.save')}
         </Button>
       </div>
     </Modal>

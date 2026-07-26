@@ -27,6 +27,7 @@ import {
   subscribeNotifications,
 } from '../backend/notifications.ts';
 import { useToast } from './Toast.tsx';
+import { useI18n } from '../i18n/index.ts';
 import { logError } from '../lib/logger.ts';
 import type { Notification } from '../backend/types.ts';
 
@@ -72,15 +73,8 @@ function iconFor(type: string) {
   }
 }
 
-function relative(iso: string): string {
-  const diff = (Date.now() - new Date(iso).getTime()) / 1000;
-  if (diff < 60) return "à l'instant";
-  if (diff < 3600) return `il y a ${Math.floor(diff / 60)} min`;
-  if (diff < 86400) return `il y a ${Math.floor(diff / 3600)} h`;
-  return `il y a ${Math.floor(diff / 86400)} j`;
-}
-
 export function NotificationsBell() {
+  const { t } = useI18n();
   const [items, setItems] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
   const [, setTick] = useState(0);
@@ -168,7 +162,9 @@ export function NotificationsBell() {
       <button
         onClick={() => setOpen(o => !o)}
         aria-label={
-          unread > 0 ? `Notifications, ${unread} non lues` : 'Notifications'
+          unread > 0
+            ? t('notifications.unreadAria', { count: unread })
+            : t('notifications.title')
         }
         className="relative rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800"
       >
@@ -184,31 +180,32 @@ export function NotificationsBell() {
       </button>
       {/* Annonce discrète pour les lecteurs d'écran quand le compteur change. */}
       <span className="sr-only" role="status" aria-live="polite">
-        {unread > 0 ? `${unread} notifications non lues` : ''}
+        {unread > 0 ? t('notifications.unreadStatus', { count: unread }) : ''}
       </span>
 
       {open && (
         <div className="fixed inset-0 z-40" onClick={() => setOpen(false)}>
           <div
             role="dialog"
-            aria-label="Notifications"
+            aria-label={t('notifications.title')}
             onClick={e => e.stopPropagation()}
             className="absolute right-2 top-14 flex max-h-[70dvh] w-[min(22rem,calc(100vw-1rem))] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-900"
           >
             <div className="flex items-center justify-between border-b border-slate-100 px-4 py-2.5 dark:border-slate-800">
-              <h3 className="font-semibold">Notifications</h3>
+              <h3 className="font-semibold">{t('notifications.title')}</h3>
               <div className="flex items-center gap-1">
                 {unread > 0 && (
                   <button
                     onClick={() => void handleMarkAll()}
                     className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-950/40"
                   >
-                    <Check className="size-3.5" /> Tout lire
+                    <Check className="size-3.5" />{' '}
+                    {t('notifications.markAllRead')}
                   </button>
                 )}
                 <button
                   onClick={() => setOpen(false)}
-                  aria-label="Fermer"
+                  aria-label={t('common.close')}
                   className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
                 >
                   <X className="size-4" />
@@ -219,7 +216,7 @@ export function NotificationsBell() {
             <ul className="min-h-0 flex-1 overflow-y-auto">
               {items.length === 0 && (
                 <li className="px-4 py-8 text-center text-sm text-slate-400">
-                  Aucune notification.
+                  {t('notifications.none')}
                 </li>
               )}
               {items.map(n => (
@@ -256,6 +253,16 @@ function NotificationRow({
   onMarkRead: (id: string) => void;
   onDelete: (id: string) => void;
 }) {
+  const { t } = useI18n();
+  const relative = (iso: string): string => {
+    const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+    if (diff < 60) return t('notifications.relativeNow');
+    if (diff < 3600)
+      return t('notifications.relativeMin', { n: Math.floor(diff / 60) });
+    if (diff < 86400)
+      return t('notifications.relativeHour', { n: Math.floor(diff / 3600) });
+    return t('notifications.relativeDay', { n: Math.floor(diff / 86400) });
+  };
   const [dx, setDx] = useState(0);
   const dxRef = useRef(0);
   const start = useRef({ x: 0, y: 0 });
@@ -315,10 +322,10 @@ function NotificationRow({
           style={{ opacity: Math.min(1, Math.abs(dx) / SWIPE_THRESHOLD) }}
         >
           <span className="flex items-center gap-1">
-            <Check className="size-4" /> Lu
+            <Check className="size-4" /> {t('notifications.read')}
           </span>
           <span className="flex items-center gap-1">
-            <Check className="size-4" /> Lu
+            <Check className="size-4" /> {t('notifications.read')}
           </span>
         </div>
       )}
@@ -354,7 +361,7 @@ function NotificationRow({
         </button>
         <button
           onClick={() => onDelete(n.id)}
-          aria-label="Supprimer"
+          aria-label={t('notifications.delete')}
           className="shrink-0 px-2 text-slate-300 opacity-0 transition hover:text-slate-500 group-hover:opacity-100"
         >
           <X className="size-3.5" />

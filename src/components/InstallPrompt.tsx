@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Download, Share, X } from 'lucide-react';
+import { useI18n } from '../i18n/index.ts';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -27,6 +28,7 @@ function isIos(): boolean {
  * iOS (qui n'expose pas l'événement). Le refus est mémorisé.
  */
 export function InstallPrompt() {
+  const { t } = useI18n();
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(
     null
   );
@@ -89,16 +91,16 @@ export function InstallPrompt() {
           <Download className="size-5" />
         </span>
         <div className="min-w-0 flex-1 text-sm">
-          <p className="font-semibold">Installer mister-doc</p>
+          <p className="font-semibold">{t('install.title')}</p>
           {iosHint ? (
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Appuyez sur{' '}
-              <Share className="inline size-3.5 align-text-bottom" /> puis « Sur
-              l'écran d'accueil ».
+              {t('install.iosBefore')}
+              <Share className="inline size-3.5 align-text-bottom" />
+              {t('install.iosAfter')}
             </p>
           ) : (
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Accès rapide, plein écran, hors-ligne.
+              {t('install.benefits')}
             </p>
           )}
         </div>
@@ -107,12 +109,12 @@ export function InstallPrompt() {
             onClick={() => void install()}
             className="shrink-0 rounded-lg bg-teal-600 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-700"
           >
-            Installer
+            {t('install.install')}
           </button>
         )}
         <button
           onClick={close}
-          aria-label="Fermer"
+          aria-label={t('common.close')}
           className="shrink-0 rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
         >
           <X className="size-5" />

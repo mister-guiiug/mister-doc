@@ -4,9 +4,10 @@ import { useAuth } from '../../auth/useAuth.ts';
 import { useToast } from '../../components/Toast.tsx';
 import { Button } from '../../components/ui/Button.tsx';
 import { EmptyState } from '../../components/ui/EmptyState.tsx';
-import { fromISODate, WEEKDAY_LABELS, mondayIndex } from '../../lib/dates.ts';
+import { fromISODate, mondayIndex } from '../../lib/dates.ts';
 import { shiftLabel, type ShiftType } from '../../lib/shifts.ts';
 import { logError } from '../../lib/logger.ts';
+import { useI18n } from '../../i18n/index.ts';
 import type { Doctor, SwapRequest } from '../../backend/types.ts';
 import { listDoctors } from '../../backend/doctors.ts';
 import {
@@ -20,33 +21,28 @@ import {
 import { FullScreenSpinner } from '../../components/Spinner.tsx';
 import { ProposeSwapDialog } from './ProposeSwapDialog.tsx';
 
-function dayLabel(iso: string): string {
-  const d = fromISODate(iso);
-  return `${WEEKDAY_LABELS[mondayIndex(d)]} ${d.getDate()}/${d.getMonth() + 1}`;
-}
-
-/** « aujourd'hui » / « demain » / « dans N j » / « passé » relatif à aujourd'hui. */
-function relativeDay(iso: string): string {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const days = Math.round(
-    (fromISODate(iso).getTime() - today.getTime()) / 86_400_000
-  );
-  if (days < 0) return 'passé';
-  if (days === 0) return "aujourd'hui";
-  if (days === 1) return 'demain';
-  return `dans ${days} j`;
-}
-
-const STATUS_LABEL: Record<string, string> = {
-  accepted: 'Acceptée',
-  declined: 'Déclinée',
-  cancelled: 'Annulée',
-};
-
 export function SwapBoard() {
   const { doctor } = useAuth();
   const toast = useToast();
+  const { t, m } = useI18n();
+
+  const dayLabel = (iso: string): string => {
+    const d = fromISODate(iso);
+    return `${m.common.weekdays[mondayIndex(d)]} ${d.getDate()}/${d.getMonth() + 1}`;
+  };
+
+  // « aujourd'hui » / « demain » / « dans N j » / « passé » relatif à aujourd'hui.
+  const relativeDay = (iso: string): string => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const days = Math.round(
+      (fromISODate(iso).getTime() - today.getTime()) / 86_400_000
+    );
+    if (days < 0) return t('swaps.past');
+    if (days === 0) return t('swaps.todayRel');
+    if (days === 1) return t('swaps.tomorrow');
+    return t('swaps.inDays', { n: days });
+  };
   const [swaps, setSwaps] = useState<SwapRequest[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
@@ -107,7 +103,7 @@ export function SwapBoard() {
       await load();
       toast.success(msg);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Erreur');
+      toast.error(e instanceof Error ? e.message : t('common.error'));
     } finally {
       setBusy(null);
     }
@@ -122,10 +118,10 @@ export function SwapBoard() {
   ) {
     await proposeSwap(workDate, shiftType, toDoctor, message);
     await load();
-    toast.success('Proposition envoyée.');
+    toast.success(t('swaps.sent'));
   }
 
-  if (loading) return <FullScreenSpinner label="Chargement…" />;
+  if (loading) return <FullScreenSpinner label={t('common.loading')} />;
 
   const Item = ({
     s,
@@ -146,7 +142,9 @@ export function SwapBoard() {
         <p className="flex items-center gap-1 text-xs text-slate-500">
           {nameById.get(s.from_doctor) ?? '?'}
           <ArrowRight className="size-3" />
-          {s.to_doctor ? (nameById.get(s.to_doctor) ?? '?') : 'ouvert à tous'}
+          {s.to_doctor
+            ? (nameById.get(s.to_doctor) ?? '?')
+            : t('swaps.openTarget')}
         </p>
         {s.message && (
           <p className="mt-0.5 truncate text-xs italic text-slate-400">
@@ -162,9 +160,11 @@ export function SwapBoard() {
     <Button
       size="sm"
       loading={busy === s.id}
-      onClick={() => void act(s.id, () => acceptSwap(s.id), 'Garde reprise.')}
+      onClick={() =>
+        void act(s.id, () => acceptSwap(s.id), t('swaps.shiftTaken'))
+      }
     >
-      Accepter
+      {t('swaps.accept')}
     </Button>
   );
 
@@ -172,16 +172,16 @@ export function SwapBoard() {
     <div className="mx-auto flex max-w-3xl flex-col gap-5 px-3 py-4 sm:px-4">
       <div className="flex flex-wrap items-center gap-2">
         <h1 className="flex items-center gap-2 text-lg font-bold">
-          <Repeat className="size-5 text-teal-600" /> Bourse aux gardes
+          <Repeat className="size-5 text-teal-600" /> {t('swaps.title')}
         </h1>
         <Button className="ml-auto" onClick={() => setProposing(true)}>
-          <Plus className="size-4" /> Proposer une garde
+          <Plus className="size-4" /> {t('swaps.propose')}
         </Button>
       </div>
 
-      <Section title="Pour moi" count={forMe.length}>
+      <Section title={t('swaps.forMe')} count={forMe.length}>
         {forMe.length === 0 ? (
-          <Empty>Aucune proposition en attente pour vous.</Empty>
+          <Empty>{t('swaps.noneForMe')}</Empty>
         ) : (
           <ul className="flex flex-col gap-2">
             {forMe.map(s => (
@@ -199,7 +199,7 @@ export function SwapBoard() {
                         void act(
                           s.id,
                           () => declineSwap(s.id),
-                          'Proposition déclinée.'
+                          t('swaps.declined')
                         )
                       }
                     >
@@ -213,9 +213,9 @@ export function SwapBoard() {
         )}
       </Section>
 
-      <Section title="Ouverts à tous" count={open.length}>
+      <Section title={t('swaps.openToAll')} count={open.length}>
         {open.length === 0 ? (
-          <Empty>Aucune garde proposée à l'ensemble de l'équipe.</Empty>
+          <Empty>{t('swaps.noneOpen')}</Empty>
         ) : (
           <ul className="flex flex-col gap-2">
             {open.map(s => (
@@ -225,9 +225,9 @@ export function SwapBoard() {
         )}
       </Section>
 
-      <Section title="Mes propositions" count={mine.length}>
+      <Section title={t('swaps.myProposals')} count={mine.length}>
         {mine.length === 0 ? (
-          <Empty>Vous n'avez aucune proposition en cours.</Empty>
+          <Empty>{t('swaps.noneMine')}</Empty>
         ) : (
           <ul className="flex flex-col gap-2">
             {mine.map(s => (
@@ -243,11 +243,11 @@ export function SwapBoard() {
                       void act(
                         s.id,
                         () => cancelSwap(s.id),
-                        'Proposition annulée.'
+                        t('swaps.cancelled')
                       )
                     }
                   >
-                    Annuler
+                    {t('common.cancel')}
                   </Button>
                 }
               />
@@ -258,7 +258,7 @@ export function SwapBoard() {
 
       {resolved.length > 0 && (
         <Section
-          title="Historique"
+          title={t('swaps.history')}
           count={resolved.length}
           icon={<History className="size-4 text-slate-400" />}
         >
@@ -274,7 +274,9 @@ export function SwapBoard() {
                   <span className="text-xs text-slate-400">
                     {' '}
                     — {nameById.get(s.from_doctor) ?? '?'} →{' '}
-                    {s.to_doctor ? (nameById.get(s.to_doctor) ?? '?') : 'tous'}
+                    {s.to_doctor
+                      ? (nameById.get(s.to_doctor) ?? '?')
+                      : t('swaps.allTarget')}
                   </span>
                 </span>
                 <StatusBadge status={s.status} />
@@ -284,11 +286,7 @@ export function SwapBoard() {
         </Section>
       )}
 
-      <p className="text-xs text-slate-400">
-        Proposez une garde via « Proposer une garde » (ou depuis le planning).
-        Accepter une garde ouverte la <strong>réaffecte automatiquement</strong>{' '}
-        ; les autres propositions en cours sur le même créneau sont annulées.
-      </p>
+      <p className="text-xs text-slate-400">{t('swaps.footer')}</p>
 
       {proposing && doctor && (
         <ProposeSwapDialog
@@ -304,17 +302,26 @@ export function SwapBoard() {
 }
 
 function StatusBadge({ status }: { status: string }) {
+  const { t } = useI18n();
   const cls =
     status === 'accepted'
       ? 'border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-900 dark:bg-teal-950/40 dark:text-teal-300'
       : status === 'declined'
         ? 'border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300'
         : 'border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-400';
+  const label =
+    status === 'accepted'
+      ? t('swaps.statusAccepted')
+      : status === 'declined'
+        ? t('swaps.statusDeclined')
+        : status === 'cancelled'
+          ? t('swaps.statusCancelled')
+          : status;
   return (
     <span
       className={`shrink-0 rounded-full border px-2 py-0.5 text-xs font-medium ${cls}`}
     >
-      {STATUS_LABEL[status] ?? status}
+      {label}
     </span>
   );
 }

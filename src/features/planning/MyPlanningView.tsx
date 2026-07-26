@@ -16,14 +16,10 @@ import {
   CalendarOff,
 } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth.ts';
-import {
-  monthDays,
-  monthLabel,
-  WEEKDAY_LABELS,
-  type MonthDay,
-} from '../../lib/dates.ts';
+import { useI18n } from '../../i18n/index.ts';
+import { monthDays, type MonthDay } from '../../lib/dates.ts';
 import { shiftLabel, shiftHours, isNightShift } from '../../lib/shifts.ts';
-import { LEAVE_LABEL } from '../../lib/leaves.ts';
+import type { LeaveKind } from '../../lib/leaves.ts';
 import { logError } from '../../lib/logger.ts';
 import { useDebouncedCallback } from '../../lib/useDebouncedCallback.ts';
 import type { HncEntry, Leave, Shift } from '../../backend/types.ts';
@@ -49,6 +45,7 @@ interface DayItem {
  */
 export function MyPlanningView() {
   const { doctor } = useAuth();
+  const { t, m } = useI18n();
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
@@ -106,7 +103,7 @@ export function MyPlanningView() {
   }
 
   if (!doctor) return null;
-  if (firstLoad) return <FullScreenSpinner label="Chargement…" />;
+  if (firstLoad) return <FullScreenSpinner label={t('common.loading')} />;
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-4 px-3 py-4 sm:px-4">
@@ -125,17 +122,17 @@ export function MyPlanningView() {
           <button
             onClick={() => shiftMonth(-1)}
             className="rounded-lg p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800"
-            aria-label="Mois précédent"
+            aria-label={t('common.prevMonth')}
           >
             <ChevronLeft className="size-5" />
           </button>
           <span className="min-w-32 text-center text-sm font-semibold capitalize">
-            {monthLabel(year, month)}
+            {`${m.common.months[month]} ${year}`}
           </span>
           <button
             onClick={() => shiftMonth(1)}
             className="rounded-lg p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800"
-            aria-label="Mois suivant"
+            aria-label={t('common.nextMonth')}
           >
             <ChevronRight className="size-5" />
           </button>
@@ -147,19 +144,19 @@ export function MyPlanningView() {
           }}
           className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800"
         >
-          Auj.
+          {t('common.today')}
         </button>
         <button
           onClick={() => setCalendar(true)}
           className="ml-auto flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800"
         >
-          <CalendarPlus className="size-4" /> Calendrier
+          <CalendarPlus className="size-4" /> {t('planning.calendar')}
         </button>
       </div>
 
       {items.length === 0 ? (
         <p className="rounded-2xl border border-slate-200 bg-white px-4 py-10 text-center text-sm text-slate-400 dark:border-slate-800 dark:bg-slate-900">
-          Rien de prévu ce mois-ci.
+          {t('planning.nothingThisMonth')}
         </p>
       ) : (
         <ul className="flex flex-col gap-1.5">
@@ -175,7 +172,10 @@ export function MyPlanningView() {
 }
 
 function DayCard({ item }: { item: DayItem }) {
+  const { t, m } = useI18n();
   const { day, shifts, leaves, hnc } = item;
+  const leaveLabel = (kind: LeaveKind) =>
+    kind === 'annual' ? t('leaves.annual') : t('leaves.training');
   return (
     <li
       className={`flex items-start gap-3 rounded-xl border p-3 ${
@@ -186,7 +186,7 @@ function DayCard({ item }: { item: DayItem }) {
     >
       <div className="flex w-12 shrink-0 flex-col items-center leading-tight">
         <span className="text-[11px] uppercase text-slate-400">
-          {(WEEKDAY_LABELS[day.weekday] ?? '').slice(0, 3)}
+          {m.common.weekdaysShort[day.weekday]}
         </span>
         <span className="text-lg font-bold tabular-nums">
           {day.date.getDate()}
@@ -194,7 +194,7 @@ function DayCard({ item }: { item: DayItem }) {
         {day.holiday && (
           <Star
             className="size-3 text-amber-500"
-            aria-label={day.holidayName ?? 'Férié'}
+            aria-label={day.holidayName ?? t('planning.holiday')}
           />
         )}
       </div>
@@ -220,7 +220,7 @@ function DayCard({ item }: { item: DayItem }) {
             tone={l.kind === 'training' ? 'amber' : 'violet'}
             icon={<CalendarOff className="size-3" />}
           >
-            {LEAVE_LABEL[l.kind]}
+            {leaveLabel(l.kind)}
             {l.kind === 'training' && l.hours != null ? ` · ${l.hours} h` : ''}
           </Badge>
         ))}

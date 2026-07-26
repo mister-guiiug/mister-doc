@@ -16,7 +16,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth.ts';
 import { useToast } from '../../components/Toast.tsx';
-import { fromISODate, monthLabel, toISODate } from '../../lib/dates.ts';
+import { useI18n } from '../../i18n/index.ts';
+import { fromISODate, toISODate } from '../../lib/dates.ts';
 import type { ShiftType } from '../../lib/shifts.ts';
 import type { Leave, WishKind } from '../../backend/types.ts';
 import { Counters } from './Counters.tsx';
@@ -37,8 +38,8 @@ function monthParam(year: number, month: number): string {
 }
 
 /** Horodatage court `DD/MM HH:MM` (dernière synchro affichée hors-ligne). */
-function syncLabel(ts: number): string {
-  return new Date(ts).toLocaleString('fr-FR', {
+function syncLabel(ts: number, locale: string): string {
+  return new Date(ts).toLocaleString(locale === 'en' ? 'en-GB' : 'fr-FR', {
     day: '2-digit',
     month: '2-digit',
     hour: '2-digit',
@@ -61,6 +62,7 @@ function parseMonthParam(
 export function PlanningView() {
   const { doctor, isAdmin } = useAuth();
   const toast = useToast();
+  const { t, m, locale } = useI18n();
   const [searchParams, setSearchParams] = useSearchParams();
   const today = new Date();
   const todayIso = toISODate(today);
@@ -198,9 +200,11 @@ export function PlanningView() {
     }
   }
 
+  const monthTitle = `${m.common.months[month]} ${year}`;
+
   function handleExportPdf() {
     exportMonthPdf({
-      title: monthLabel(year, month),
+      title: monthTitle,
       weeks: data.weeks,
       shiftIndex: data.shiftIndex,
       doctorsById: data.doctorsById,
@@ -246,7 +250,7 @@ export function PlanningView() {
   }, [slot, data.wishesByDate]);
 
   if (data.firstLoad)
-    return <FullScreenSpinner label="Chargement du planning…" />;
+    return <FullScreenSpinner label={t('planning.loadingPlanning')} />;
 
   return (
     <div
@@ -277,19 +281,19 @@ export function PlanningView() {
           <button
             onClick={() => shiftMonth(-1)}
             className="rounded-lg p-2 hover:bg-slate-100 dark:hover:bg-slate-800"
-            aria-label="Mois précédent"
+            aria-label={t('common.prevMonth')}
           >
             <ChevronLeft className="size-5" />
           </button>
           <span className="flex min-w-32 items-center justify-center gap-2 px-1 text-sm font-semibold capitalize sm:min-w-40 sm:text-base">
             <CalendarDays className="size-4 shrink-0 text-teal-600" />
-            {monthLabel(year, month)}
+            {monthTitle}
             {data.locked && <Lock className="size-4 text-slate-400" />}
           </span>
           <button
             onClick={() => shiftMonth(1)}
             className="rounded-lg p-2 hover:bg-slate-100 dark:hover:bg-slate-800"
-            aria-label="Mois suivant"
+            aria-label={t('common.nextMonth')}
           >
             <ChevronRight className="size-5" />
           </button>
@@ -298,7 +302,7 @@ export function PlanningView() {
           onClick={() => goToMonth(today.getFullYear(), today.getMonth())}
           className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800"
         >
-          Auj.
+          {t('common.today')}
         </button>
 
         <label className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-2 py-1.5 text-sm dark:border-slate-800 dark:bg-slate-900">
@@ -307,9 +311,9 @@ export function PlanningView() {
             value={highlightId ?? ''}
             onChange={e => setHighlightId(e.target.value || null)}
             className="max-w-28 bg-transparent text-sm outline-none"
-            aria-label="Surligner un médecin"
+            aria-label={t('planning.highlightDoctor')}
           >
-            <option value="">Tous</option>
+            <option value="">{t('common.all')}</option>
             {data.doctors.map(d => (
               <option key={d.id} value={d.id}>
                 {d.name}
@@ -333,7 +337,7 @@ export function PlanningView() {
               <Lock className="size-4" />
             )}
             <span className="hidden sm:inline">
-              {data.locked ? 'Déverrouiller' : 'Verrouiller'}
+              {data.locked ? t('planning.unlock') : t('planning.lock')}
             </span>
           </button>
         )}
@@ -345,40 +349,40 @@ export function PlanningView() {
             <button
               onClick={() => changeView('list')}
               aria-pressed={view === 'list'}
-              title="Vue liste (par semaine)"
+              title={t('planning.listViewTitle')}
               className={`flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-medium transition ${
                 view === 'list'
                   ? 'bg-teal-700 text-white'
                   : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
-              <List className="size-4" /> Liste
+              <List className="size-4" /> {t('planning.list')}
             </button>
             <button
               onClick={() => changeView('grid')}
               aria-pressed={view === 'grid'}
-              title="Vue grille (7 colonnes)"
+              title={t('planning.gridViewTitle')}
               className={`flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-medium transition ${
                 view === 'grid'
                   ? 'bg-teal-700 text-white'
                   : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
-              <LayoutGrid className="size-4" /> Grille
+              <LayoutGrid className="size-4" /> {t('planning.grid')}
             </button>
           </div>
           <button
             onClick={handleExportPdf}
-            title="Exporter le mois en PDF (Sem · Jour · S1J · S1N · S2J)"
+            title={t('planning.exportPdfTitle')}
             className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800"
           >
-            <FileDown className="size-4" /> PDF
+            <FileDown className="size-4" /> {t('counters.pdf')}
           </button>
           <button
             onClick={() => void data.loadData()}
             className="rounded-xl border border-slate-200 bg-white p-2 text-slate-500 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800"
-            aria-label="Rafraîchir"
-            title="Rafraîchir"
+            aria-label={t('planning.refresh')}
+            title={t('planning.refresh')}
           >
             <RefreshCw
               className={`size-5 ${data.refreshing ? 'animate-spin' : ''}`}
@@ -397,11 +401,13 @@ export function PlanningView() {
         <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-300">
           <WifiOff className="size-4 shrink-0" />
           <span className="flex-1">
-            Hors ligne — planning affiché depuis le cache
+            {t('planning.offlinePrefix')}
             {data.lastSync
-              ? ` (synchronisé le ${syncLabel(data.lastSync)})`
+              ? t('planning.offlineSynced', {
+                  date: syncLabel(data.lastSync, locale),
+                })
               : ''}
-            . Les modifications nécessitent une connexion.
+            {t('planning.offlineSuffix')}
           </span>
         </div>
       )}
@@ -413,10 +419,11 @@ export function PlanningView() {
         >
           <AlertTriangle className="size-4 shrink-0" />
           <span className="flex-1">
-            {data.uncovered.length} jour{data.uncovered.length > 1 ? 's' : ''}{' '}
-            avec un créneau à couvrir
+            {data.uncovered.length > 1
+              ? t('planning.uncoveredMany', { count: data.uncovered.length })
+              : t('planning.uncoveredOne', { count: data.uncovered.length })}
           </span>
-          <span className="font-semibold underline">Voir</span>
+          <span className="font-semibold underline">{t('planning.see')}</span>
         </button>
       )}
 

@@ -6,6 +6,7 @@ import {
   type ReactNode,
 } from 'react';
 import { CheckCircle2, AlertCircle, X } from 'lucide-react';
+import { useI18n } from '../i18n/index.ts';
 
 type ToastKind = 'success' | 'error';
 interface Toast {
@@ -30,6 +31,7 @@ export function useToast(): ToastApi {
 let counter = 0;
 
 export function ToastProvider({ children }: { children: ReactNode }) {
+  const { t: tr } = useI18n();
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const remove = useCallback((id: number) => {
@@ -72,7 +74,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             <span className="min-w-0 flex-1">{t.message}</span>
             <button
               onClick={() => remove(t.id)}
-              aria-label="Fermer"
+              aria-label={tr('common.close')}
               className="shrink-0 text-slate-400 hover:text-slate-600"
             >
               <X className="size-4" />

@@ -25,6 +25,7 @@ import { Button } from '../../components/ui/Button.tsx';
 import { Field } from '../../components/ui/Field.tsx';
 import { Modal } from '../../components/Modal.tsx';
 import { useConfirm } from '../../components/ui/confirmContext.ts';
+import { useI18n } from '../../i18n/index.ts';
 
 /** Modèle vierge d'un nouveau créneau (défauts raisonnables). */
 function blankType(): ShiftTypeDef {
@@ -52,6 +53,7 @@ function blankType(): ShiftTypeDef {
  */
 export function ShiftTypesCard() {
   const confirm = useConfirm();
+  const { t: tr } = useI18n();
   const [types, setTypes] = useState<ShiftTypeDef[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -69,9 +71,9 @@ export function ShiftTypesCard() {
 
   useEffect(() => {
     reload()
-      .catch(e => setError(e instanceof Error ? e.message : 'Erreur'))
+      .catch(e => setError(e instanceof Error ? e.message : tr('common.error')))
       .finally(() => setLoading(false));
-  }, [reload]);
+  }, [reload, tr]);
 
   async function run(key: string, fn: () => Promise<void>) {
     setBusy(key);
@@ -80,7 +82,7 @@ export function ShiftTypesCard() {
       await fn();
       await reload();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erreur');
+      setError(e instanceof Error ? e.message : tr('common.error'));
     } finally {
       setBusy(null);
     }
@@ -102,7 +104,7 @@ export function ShiftTypesCard() {
   if (loading)
     return (
       <SectionCard
-        title="Types de créneaux"
+        title={tr('shiftTypes.title')}
         icon={<CalendarClock className="size-4" />}
       >
         <p className="py-3 text-center text-sm text-slate-400">
@@ -113,15 +115,15 @@ export function ShiftTypesCard() {
 
   return (
     <SectionCard
-      title="Types de créneaux"
+      title={tr('shiftTypes.title')}
       icon={<CalendarClock className="size-4" />}
-      desc="Définissez vos créneaux (libellé, heures, nuit, couverture week-end)."
+      desc={tr('shiftTypes.desc')}
       headerRight={
         <Button
           size="sm"
           onClick={() => setEditing({ def: blankType(), isNew: true })}
         >
-          <Plus className="size-4" /> Ajouter
+          <Plus className="size-4" /> {tr('shiftTypes.add')}
         </Button>
       }
     >
@@ -154,38 +156,46 @@ export function ShiftTypesCard() {
                 </span>
                 {t.isNight && (
                   <Badge>
-                    <Moon className="size-3" /> nuit
+                    <Moon className="size-3" /> {tr('shiftTypes.nightBadge')}
                   </Badge>
                 )}
-                {!t.clinical && <Badge>non clinique</Badge>}
-                {t.clinical && !t.weekend && <Badge>semaine</Badge>}
-                {!t.active && <Badge>inactif</Badge>}
+                {!t.clinical && (
+                  <Badge>{tr('shiftTypes.nonClinicalBadge')}</Badge>
+                )}
+                {t.clinical && !t.weekend && (
+                  <Badge>{tr('shiftTypes.weekBadge')}</Badge>
+                )}
+                {!t.active && <Badge>{tr('shiftTypes.inactiveBadge')}</Badge>}
               </p>
             </div>
 
             <IconBtn
-              title="Monter"
+              title={tr('shiftTypes.up')}
               disabled={i === 0 || busy !== null}
               onClick={() => void move(i, -1)}
             >
               <ChevronUp className="size-4" />
             </IconBtn>
             <IconBtn
-              title="Descendre"
+              title={tr('shiftTypes.down')}
               disabled={i === types.length - 1 || busy !== null}
               onClick={() => void move(i, 1)}
             >
               <ChevronDown className="size-4" />
             </IconBtn>
             <IconBtn
-              title="Modifier"
+              title={tr('shiftTypes.edit')}
               disabled={busy !== null}
               onClick={() => setEditing({ def: t, isNew: false })}
             >
               <Pencil className="size-4" />
             </IconBtn>
             <IconBtn
-              title={t.active ? 'Désactiver' : 'Activer'}
+              title={
+                t.active
+                  ? tr('shiftTypes.deactivate')
+                  : tr('shiftTypes.activate')
+              }
               disabled={busy !== null}
               onClick={() =>
                 void run(`toggle:${t.code}`, () =>
@@ -203,13 +213,16 @@ export function ShiftTypesCard() {
             </IconBtn>
             <button
               disabled={busy !== null}
-              title="Supprimer (si inutilisé)"
+              title={tr('shiftTypes.deleteTitle')}
               onClick={async () => {
                 if (
                   await confirm({
-                    message: `Supprimer le créneau « ${t.label} » (${t.code}) ? Impossible s'il est utilisé par des gardes — désactivez-le alors.`,
+                    message: tr('shiftTypes.deleteConfirm', {
+                      label: t.label,
+                      code: t.code,
+                    }),
                     danger: true,
-                    confirmLabel: 'Supprimer',
+                    confirmLabel: tr('common.delete'),
                   })
                 )
                   void run(`del:${t.code}`, () => adminDeleteShiftType(t.code));
@@ -287,6 +300,7 @@ function ShiftTypeDialog({
   onSave: (def: ShiftTypeDef) => Promise<void>;
   onClose: () => void;
 }) {
+  const { t } = useI18n();
   const [draft, setDraft] = useState<ShiftTypeDef>(def);
   const [saving, setSaving] = useState(false);
   const set = <K extends keyof ShiftTypeDef>(k: K, v: ShiftTypeDef[K]) =>
@@ -294,7 +308,9 @@ function ShiftTypeDialog({
 
   const code = draft.code.trim().toUpperCase();
   const codeError =
-    isNew && existingCodes.includes(code) ? 'Ce code existe déjà.' : undefined;
+    isNew && existingCodes.includes(code)
+      ? t('shiftTypes.codeExists')
+      : undefined;
   const valid =
     code.length > 0 &&
     draft.label.trim().length > 0 &&
@@ -316,11 +332,13 @@ function ShiftTypeDialog({
     <Modal onClose={onClose} className="max-w-md rounded-t-2xl sm:rounded-2xl">
       <div className="flex items-center justify-between border-b border-slate-100 p-4 dark:border-slate-800">
         <h3 className="font-semibold">
-          {isNew ? 'Nouveau créneau' : `Modifier — ${def.code}`}
+          {isNew
+            ? t('shiftTypes.newTitle')
+            : t('shiftTypes.editTitle', { code: def.code })}
         </h3>
         <button
           onClick={onClose}
-          aria-label="Fermer"
+          aria-label={t('common.close')}
           className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
         >
           <X className="size-5" />
@@ -330,7 +348,7 @@ function ShiftTypeDialog({
       <div className="flex max-h-[70dvh] flex-col gap-3 overflow-y-auto p-4">
         <div className="grid grid-cols-2 gap-3">
           <Field
-            label="Code"
+            label={t('shiftTypes.code')}
             value={draft.code}
             disabled={!isNew}
             maxLength={8}
@@ -339,7 +357,7 @@ function ShiftTypeDialog({
             onChange={e => set('code', e.target.value.toUpperCase())}
           />
           <Field
-            label="Heures"
+            label={t('shiftTypes.hours')}
             type="number"
             min={0}
             max={24}
@@ -349,7 +367,7 @@ function ShiftTypeDialog({
           />
         </div>
         <Field
-          label="Libellé"
+          label={t('shiftTypes.label')}
           value={draft.label}
           placeholder="S1 Jour"
           onChange={e => set('label', e.target.value)}
@@ -357,22 +375,22 @@ function ShiftTypeDialog({
 
         <fieldset className="flex flex-col gap-2 rounded-lg border border-slate-200 p-3 dark:border-slate-700">
           <Check
-            label="Clinique (créneau à couvrir dans le planning)"
+            label={t('shiftTypes.clinicalCheck')}
             checked={draft.clinical}
             onChange={v => set('clinical', v)}
           />
           <Check
-            label="Requis le week-end / jour férié"
+            label={t('shiftTypes.weekendCheck')}
             checked={draft.weekend}
             onChange={v => set('weekend', v)}
           />
           <Check
-            label="Nuit (repos de sécurité le lendemain, compté en nuits)"
+            label={t('shiftTypes.nightCheck')}
             checked={draft.isNight}
             onChange={v => set('isNight', v)}
           />
           <Check
-            label="Actif (proposé à l'affectation)"
+            label={t('shiftTypes.activeCheck')}
             checked={draft.active}
             onChange={v => set('active', v)}
           />
@@ -380,27 +398,27 @@ function ShiftTypeDialog({
 
         <div className="grid grid-cols-2 gap-3">
           <Field
-            label="Début (agenda .ics)"
+            label={t('shiftTypes.startIcs')}
             type="time"
             value={draft.startTime ?? ''}
             onChange={e => set('startTime', e.target.value || null)}
           />
           <Field
-            label="Fin (agenda .ics)"
+            label={t('shiftTypes.endIcs')}
             type="time"
             value={draft.endTime ?? ''}
             onChange={e => set('endTime', e.target.value || null)}
           />
         </div>
         <Check
-          label="La garde se termine le lendemain (nuit)"
+          label={t('shiftTypes.endsNextDay')}
           checked={draft.endDayOffset === 1}
           onChange={v => set('endDayOffset', v ? 1 : 0)}
         />
 
         <label className="flex items-center gap-2 text-sm">
           <span className="font-medium text-slate-600 dark:text-slate-300">
-            Couleur du badge
+            {t('shiftTypes.badgeColor')}
           </span>
           <input
             type="color"
@@ -414,7 +432,7 @@ function ShiftTypeDialog({
               onClick={() => set('color', null)}
               className="text-xs text-slate-400 underline"
             >
-              retirer
+              {t('shiftTypes.removeColor')}
             </button>
           )}
         </label>
@@ -422,7 +440,7 @@ function ShiftTypeDialog({
 
       <div className="flex justify-end gap-2 border-t border-slate-100 p-3 dark:border-slate-800">
         <Button variant="secondary" size="sm" onClick={onClose}>
-          Annuler
+          {t('shiftTypes.cancel')}
         </Button>
         <Button
           size="sm"
@@ -430,7 +448,7 @@ function ShiftTypeDialog({
           disabled={!valid}
           onClick={() => void submit()}
         >
-          Enregistrer
+          {t('shiftTypes.save')}
         </Button>
       </div>
     </Modal>

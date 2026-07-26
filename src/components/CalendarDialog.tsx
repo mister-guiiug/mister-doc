@@ -21,6 +21,7 @@ import { Modal } from './Modal.tsx';
 import { Button } from './ui/Button.tsx';
 import { SegmentedControl } from './ui/SegmentedControl.tsx';
 import { useConfirm } from './ui/confirmContext.ts';
+import { useI18n } from '../i18n/index.ts';
 
 /**
  * Abonnement au flux iCalendar (.ics). Le token est HASHÉ au repos (migration
@@ -31,6 +32,7 @@ import { useConfirm } from './ui/confirmContext.ts';
 export function CalendarDialog({ onClose }: { onClose: () => void }) {
   const toast = useToast();
   const confirm = useConfirm();
+  const { t } = useI18n();
   const [mode, setMode] = useState<'loading' | 'legacy' | 'hashed'>('loading');
   // `token` : source des URLs. Legacy → token persistant ; hashé → token fraîchement
   // généré (montré une fois), sinon null.
@@ -56,7 +58,8 @@ export function CalendarDialog({ onClose }: { onClose: () => void }) {
             }
           })
           .catch(e => {
-            if (alive) setError(e instanceof Error ? e.message : 'Erreur');
+            if (alive)
+              setError(e instanceof Error ? e.message : t('common.error'));
           });
       } else {
         setHasToken(status);
@@ -78,7 +81,7 @@ export function CalendarDialog({ onClose }: { onClose: () => void }) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      toast.error('Copie impossible — sélectionnez l’URL manuellement.');
+      toast.error(t('calendar.copyImpossible'));
     }
   }
 
@@ -87,21 +90,20 @@ export function CalendarDialog({ onClose }: { onClose: () => void }) {
     if (
       regenerate &&
       !(await confirm({
-        message:
-          'Régénérer le lien ? Les abonnements existants cesseront de fonctionner.',
+        message: t('calendar.regenConfirm'),
         danger: true,
-        confirmLabel: 'Régénérer',
+        confirmLabel: t('calendar.regenLabel'),
       }))
     )
       return;
     setBusy(true);
     try {
-      const t = await rotateCalendarToken();
-      setToken(t);
+      const tok = await rotateCalendarToken();
+      setToken(tok);
       setHasToken(true);
-      toast.success('Nouveau lien généré.');
+      toast.success(t('calendar.newLinkGenerated'));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Erreur');
+      toast.error(e instanceof Error ? e.message : t('common.error'));
     } finally {
       setBusy(false);
     }
@@ -118,11 +120,11 @@ export function CalendarDialog({ onClose }: { onClose: () => void }) {
       <div className="mb-4 flex items-center justify-between">
         <h3 className="flex items-center gap-2 font-semibold">
           <CalendarPlus className="size-5 text-teal-600" />
-          S'abonner au calendrier
+          {t('calendar.title')}
         </h3>
         <button
           onClick={onClose}
-          aria-label="Fermer"
+          aria-label={t('common.close')}
           className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
         >
           <X className="size-5" />
@@ -142,22 +144,19 @@ export function CalendarDialog({ onClose }: { onClose: () => void }) {
           {mode === 'hashed' && (
             <p className="mb-3 flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
               <ShieldAlert className="mt-0.5 size-4 shrink-0" />
-              <span>
-                Copiez ce lien <strong>maintenant</strong> : pour votre
-                sécurité, il ne sera plus affiché ensuite.
-              </span>
+              <span>{t('calendar.securityWarning')}</span>
             </p>
           )}
 
           <SegmentedControl
             className="mb-2"
             fullWidth
-            ariaLabel="Portée du calendrier"
+            ariaLabel={t('calendar.scopeAria')}
             value={scope}
             onChange={setScope}
             options={[
-              { value: 'team', label: "Toute l'équipe" },
-              { value: 'me', label: 'Mes gardes' },
+              { value: 'team', label: t('calendar.team') },
+              { value: 'me', label: t('calendar.me') },
             ]}
           />
 
@@ -168,7 +167,7 @@ export function CalendarDialog({ onClose }: { onClose: () => void }) {
               onChange={e => setTimed(e.target.checked)}
               className="size-4 accent-teal-600"
             />
-            Événements horodatés (sinon journée entière)
+            {t('calendar.timed')}
           </label>
 
           <div className="mb-3 flex items-stretch gap-2">
@@ -187,7 +186,7 @@ export function CalendarDialog({ onClose }: { onClose: () => void }) {
               ) : (
                 <Copy className="size-4" />
               )}
-              {copied ? 'Copié' : 'Copier'}
+              {copied ? t('calendar.copied') : t('calendar.copy')}
             </button>
           </div>
 
@@ -196,7 +195,7 @@ export function CalendarDialog({ onClose }: { onClose: () => void }) {
               href={webcal}
               className="flex items-center justify-center gap-2 rounded-lg border border-slate-300 py-2 text-sm font-medium hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-800"
             >
-              <Rss className="size-4" /> S'abonner (Apple / Outlook)
+              <Rss className="size-4" /> {t('calendar.subscribeApple')}
             </a>
             <a
               href={google}
@@ -204,21 +203,21 @@ export function CalendarDialog({ onClose }: { onClose: () => void }) {
               rel="noreferrer"
               className="flex items-center justify-center gap-2 rounded-lg border border-slate-300 py-2 text-sm font-medium hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-800"
             >
-              <CalendarPlus className="size-4" /> Ajouter à Google Agenda
+              <CalendarPlus className="size-4" /> {t('calendar.addGoogle')}
             </a>
             <a
               href={url}
               download="mister-doc.ics"
               className="flex items-center justify-center gap-2 rounded-lg border border-slate-300 py-2 text-sm font-medium hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-800"
             >
-              <Download className="size-4" /> Télécharger le .ics
+              <Download className="size-4" /> {t('calendar.downloadIcs')}
             </a>
           </div>
 
           {mode === 'legacy' && (
             <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 dark:border-slate-800">
               <p className="text-xs text-slate-400">
-                Lien personnel secret. Mise à jour auto ≈ 1×/h.
+                {t('calendar.legacyNote')}
               </p>
               <button
                 onClick={() => void generate(true)}
@@ -230,7 +229,7 @@ export function CalendarDialog({ onClose }: { onClose: () => void }) {
                 ) : (
                   <RotateCcw className="size-3.5" />
                 )}
-                Régénérer
+                {t('calendar.regenerate')}
               </button>
             </div>
           )}
@@ -240,8 +239,8 @@ export function CalendarDialog({ onClose }: { onClose: () => void }) {
         <div className="flex flex-col gap-3">
           <p className="text-sm text-slate-600 dark:text-slate-300">
             {hasToken
-              ? "Un lien d'abonnement personnel est déjà actif. Pour votre sécurité, il n'est plus affiché ici."
-              : 'Générez votre lien personnel d’abonnement au planning (gardes, congés, formations).'}
+              ? t('calendar.hashedActive')
+              : t('calendar.hashedGenerate')}
           </p>
           <Button
             className="w-full py-2.5"
@@ -249,12 +248,11 @@ export function CalendarDialog({ onClose }: { onClose: () => void }) {
             onClick={() => void generate(hasToken)}
           >
             {!busy && <CalendarPlus className="size-4" />}
-            {hasToken ? 'Régénérer le lien' : 'Générer mon lien'}
+            {hasToken ? t('calendar.regenLink') : t('calendar.generateLink')}
           </Button>
           {hasToken && (
             <p className="text-xs text-slate-400">
-              Régénérer crée un nouveau lien et invalide l'ancien (les
-              abonnements en place cesseront de fonctionner).
+              {t('calendar.regenInvalidate')}
             </p>
           )}
         </div>

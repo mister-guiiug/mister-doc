@@ -3,15 +3,12 @@ import { CalendarHeart, Loader2 } from 'lucide-react';
 import { computeCounters, type CountableShift } from '../../lib/shifts.ts';
 import { computeLeaveStats, type CountableLeave } from '../../lib/leaves.ts';
 import { sumHncHours } from '../../lib/hnc.ts';
-import {
-  monthLabel,
-  quadrimesterBounds,
-  quadrimesterLabel,
-} from '../../lib/dates.ts';
+import { quadrimesterBounds, quadrimesterIndex } from '../../lib/dates.ts';
 import { listShiftsBetween } from '../../backend/planning.ts';
 import { listLeavesBetween } from '../../backend/leaves.ts';
 import { listHncBetween } from '../../backend/hnc.ts';
 import { logError } from '../../lib/logger.ts';
+import { useI18n } from '../../i18n/index.ts';
 import type { HncEntry, Leave, Shift } from '../../backend/types.ts';
 
 /** Portée des compteurs : mois affiché ou quadrimestre (bloc de 4 mois). */
@@ -44,6 +41,7 @@ export function Counters({
    * optimistes) : sert de déclencheur unique au refetch du quadrimestre. */
   reloadKey: number;
 }) {
+  const { t, m } = useI18n();
   const [scope, setScope] = useState<Scope>(() => {
     try {
       return localStorage.getItem(SCOPE_KEY) === 'quad' ? 'quad' : 'month';
@@ -111,14 +109,17 @@ export function Counters({
   const hncHours = sumHncHours(src.hnc.filter(h => h.doctor_id === doctorId));
   const totalHours = c.totalHours + hncHours;
 
+  const quadStart = quadrimesterIndex(month) * 4;
   const label =
-    scope === 'quad' ? quadrimesterLabel(year, month) : monthLabel(year, month);
+    scope === 'quad'
+      ? `${m.common.months[quadStart]} – ${m.common.months[quadStart + 3]} ${year}`
+      : `${m.common.months[month]} ${year}`;
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
       <div className="mb-2 flex items-center gap-1.5 text-sm font-semibold">
         <CalendarHeart className="size-4 text-teal-600" />
-        Mes compteurs
+        {t('counters.mine')}
         <span className="font-normal capitalize text-slate-500 dark:text-slate-400">
           · {label}
         </span>
@@ -130,25 +131,45 @@ export function Counters({
             active={scope === 'month'}
             onClick={() => changeScope('month')}
           >
-            Mois
+            {t('counters.scopeMonth')}
           </ScopeButton>
           <ScopeButton
             active={scope === 'quad'}
             onClick={() => changeScope('quad')}
           >
-            Quadri.
+            {t('counters.scopeQuad')}
           </ScopeButton>
         </div>
       </div>
       <div className="flex flex-wrap gap-1.5">
-        <Pill label="Ven" value={c.fridays} />
-        <Pill label="Sam" value={c.saturdays} />
-        <Pill label="Dim" value={c.sundays} />
-        <Pill label="WE" value={`${c.weekendHours} h`} accent />
-        <Pill label="HNC" value={`${hncHours} h`} tone="sky" />
-        <Pill label="Total" value={`${totalHours} h`} accent />
-        <Pill label="Congés" value={`${l.annualDays} j`} tone="violet" />
-        <Pill label="Formation" value={`${l.trainingHours} h`} tone="amber" />
+        <Pill label={t('counters.fri')} value={c.fridays} />
+        <Pill label={t('counters.sat')} value={c.saturdays} />
+        <Pill label={t('counters.sun')} value={c.sundays} />
+        <Pill
+          label={t('counters.we')}
+          value={`${c.weekendHours} ${t('common.hoursUnit')}`}
+          accent
+        />
+        <Pill
+          label={t('counters.hnc')}
+          value={`${hncHours} ${t('common.hoursUnit')}`}
+          tone="sky"
+        />
+        <Pill
+          label={t('counters.total')}
+          value={`${totalHours} ${t('common.hoursUnit')}`}
+          accent
+        />
+        <Pill
+          label={t('counters.leave')}
+          value={`${l.annualDays} ${t('common.daysUnit')}`}
+          tone="violet"
+        />
+        <Pill
+          label={t('counters.training')}
+          value={`${l.trainingHours} ${t('common.hoursUnit')}`}
+          tone="amber"
+        />
       </div>
     </section>
   );

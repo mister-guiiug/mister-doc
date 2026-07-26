@@ -8,6 +8,7 @@ import {
   UserRound,
 } from 'lucide-react';
 import { useAuth } from '../auth/useAuth.ts';
+import { useI18n } from '../i18n/index.ts';
 
 interface Item {
   to: string;
@@ -23,32 +24,45 @@ interface Item {
  */
 export function BottomNav() {
   const { doctor, isAdmin } = useAuth();
+  const { t } = useI18n();
   if (!doctor) return null;
 
   const items: Item[] = [
     {
       to: '/',
-      label: 'Planning',
+      label: t('nav.planning'),
       icon: <CalendarDays className="size-5" />,
       end: true,
     },
     {
       to: '/mon-planning',
-      label: 'Moi',
+      label: t('nav.me'),
       icon: <CalendarCheck className="size-5" />,
     },
-    { to: '/echanges', label: 'Échanges', icon: <Repeat className="size-5" /> },
+    {
+      to: '/echanges',
+      label: t('nav.swaps'),
+      icon: <Repeat className="size-5" />,
+    },
     ...(isAdmin
       ? [
           {
             to: '/compteurs',
-            label: 'Compteurs',
+            label: t('nav.counters'),
             icon: <BarChart3 className="size-5" />,
           },
-          { to: '/admin', label: 'Admin', icon: <Shield className="size-5" /> },
+          {
+            to: '/admin',
+            label: t('nav.admin'),
+            icon: <Shield className="size-5" />,
+          },
         ]
       : []),
-    { to: '/profil', label: 'Profil', icon: <UserRound className="size-5" /> },
+    {
+      to: '/profil',
+      label: t('nav.profile'),
+      icon: <UserRound className="size-5" />,
+    },
   ];
 
   return (

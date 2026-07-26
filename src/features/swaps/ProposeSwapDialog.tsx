@@ -1,24 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Repeat, Loader2, X } from 'lucide-react';
 import { Modal } from '../../components/Modal.tsx';
-import {
-  fromISODate,
-  mondayIndex,
-  toISODate,
-  WEEKDAY_LABELS,
-} from '../../lib/dates.ts';
+import { fromISODate, mondayIndex, toISODate } from '../../lib/dates.ts';
 import { shiftLabel, type ShiftType } from '../../lib/shifts.ts';
 import { logError } from '../../lib/logger.ts';
 import { listShiftsBetween } from '../../backend/planning.ts';
 import type { Doctor, Shift } from '../../backend/types.ts';
+import { useI18n } from '../../i18n/index.ts';
 
 /** Nombre de jours à venir dans lesquels chercher mes gardes proposables. */
 const HORIZON_DAYS = 60;
-
-function dayLabel(iso: string): string {
-  const d = fromISODate(iso);
-  return `${WEEKDAY_LABELS[mondayIndex(d)]} ${d.getDate()}/${d.getMonth() + 1}`;
-}
 
 /**
  * Dialogue « Proposer une garde » depuis la bourse : liste mes gardes cliniques
@@ -52,6 +43,12 @@ export function ProposeSwapDialog({
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { t, m } = useI18n();
+
+  const dayLabel = (iso: string): string => {
+    const d = fromISODate(iso);
+    return `${m.common.weekdays[mondayIndex(d)]} ${d.getDate()}/${d.getMonth() + 1}`;
+  };
 
   useEffect(() => {
     const now = new Date();
@@ -73,7 +70,7 @@ export function ProposeSwapDialog({
       })
       .catch(e => {
         logError('ProposeSwap listShiftsBetween', e);
-        if (alive) setError('Impossible de charger vos gardes.');
+        if (alive) setError(t('swaps.cannotLoad'));
       })
       .finally(() => alive && setLoading(false));
     return () => {
@@ -101,7 +98,7 @@ export function ProposeSwapDialog({
       await onSubmit(iso, type as ShiftType, target || null, message.trim());
       onClose();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erreur');
+      setError(e instanceof Error ? e.message : t('common.error'));
     } finally {
       setBusy(false);
     }
@@ -119,11 +116,11 @@ export function ProposeSwapDialog({
           className="flex items-center gap-2 font-semibold"
         >
           <Repeat className="size-5 text-teal-600" />
-          Proposer une garde
+          {t('swaps.propose')}
         </h3>
         <button
           onClick={onClose}
-          aria-label="Fermer"
+          aria-label={t('common.close')}
           className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
         >
           <X className="size-5" />
@@ -136,12 +133,12 @@ export function ProposeSwapDialog({
         </div>
       ) : myShifts.length === 0 ? (
         <p className="py-6 text-center text-sm text-slate-400">
-          Aucune garde à venir à proposer (60 jours).
+          {t('swaps.noneToPropose')}
         </p>
       ) : (
         <>
           <p className="mb-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
-            Ma garde à céder
+            {t('swaps.myShiftToGive')}
           </p>
           <div className="mb-3 flex max-h-48 flex-col gap-1 overflow-y-auto">
             {myShifts.map(s => {
@@ -168,14 +165,14 @@ export function ProposeSwapDialog({
 
           <label className="mb-3 flex flex-col gap-1 text-sm">
             <span className="font-medium text-slate-600 dark:text-slate-300">
-              Destinataire
+              {t('swaps.recipient')}
             </span>
             <select
               value={target}
               onChange={e => setTarget(e.target.value)}
               className="rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-teal-500 dark:border-slate-600 dark:bg-slate-800"
             >
-              <option value="">Ouvert à tous</option>
+              <option value="">{t('assign.openToAll')}</option>
               {doctors
                 .filter(d => d.id !== selfDoctorId && d.approved)
                 .map(d => (
@@ -188,13 +185,13 @@ export function ProposeSwapDialog({
 
           <label className="mb-4 flex flex-col gap-1 text-sm">
             <span className="font-medium text-slate-600 dark:text-slate-300">
-              Message (facultatif)
+              {t('swaps.messageOptional')}
             </span>
             <textarea
               value={message}
               onChange={e => setMessage(e.target.value)}
               rows={2}
-              placeholder="Ex. : je récupère la vôtre du 12 en échange."
+              placeholder={t('swaps.messagePlaceholder')}
               className="resize-none rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-teal-500 dark:border-slate-600 dark:bg-slate-800"
             />
           </label>
@@ -215,7 +212,7 @@ export function ProposeSwapDialog({
             ) : (
               <Repeat className="size-4" />
             )}
-            Proposer l'échange
+            {t('swaps.proposeExchange')}
           </button>
         </>
       )}

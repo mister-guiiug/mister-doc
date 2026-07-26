@@ -14,8 +14,9 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
-import { WEEKDAY_LABELS, fromISODate, mondayIndex } from '../../lib/dates.ts';
+import { fromISODate, mondayIndex } from '../../lib/dates.ts';
 import { shiftLabel, shiftHours, type ShiftType } from '../../lib/shifts.ts';
+import { useI18n } from '../../i18n/index.ts';
 import {
   doctorsOnLeave,
   doctorsWorking,
@@ -73,16 +74,17 @@ export function AssignDialog({
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [historyOpen, setHistoryOpen] = useState(false);
   const confirm = useConfirm();
+  const { t, m } = useI18n();
   const isMine = currentShift?.doctor_id === selfDoctorId;
 
   const d = fromISODate(target.iso);
-  const dayLabel = `${WEEKDAY_LABELS[mondayIndex(d)]} ${d.getDate()}`;
+  const dayLabel = `${m.common.weekdays[mondayIndex(d)]} ${d.getDate()}`;
   const doctorsById = useMemo(
     () => new Map(doctors.map(doc => [doc.id, doc])),
     [doctors]
   );
   const nameOf = (id: string | null) =>
-    id ? (doctorsById.get(id)?.name ?? 'compte supprimé') : '—';
+    id ? (doctorsById.get(id)?.name ?? t('assign.deletedAccount')) : '—';
 
   useEffect(() => {
     let alive = true;
@@ -145,7 +147,7 @@ export function AssignDialog({
         </div>
         <button
           onClick={onClose}
-          aria-label="Fermer"
+          aria-label={t('common.close')}
           className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
         >
           <X className="size-5" />
@@ -158,7 +160,7 @@ export function AssignDialog({
           disabled={busy || currentShift?.doctor_id === selfDoctorId}
           onClick={() => void run(() => onAssign(selfDoctorId))}
         >
-          <UserPlus className="size-4" /> M'assigner ce créneau
+          <UserPlus className="size-4" /> {t('assign.assignMe')}
         </Button>
         {currentShift && (
           <Button
@@ -168,15 +170,18 @@ export function AssignDialog({
             onClick={async () => {
               if (
                 await confirm({
-                  message: `Libérer le créneau ${shiftLabel(target.shiftType)} du ${dayLabel} ? Le médecin en sera retiré.`,
+                  message: t('assign.freeSlotConfirm', {
+                    shift: shiftLabel(target.shiftType),
+                    day: dayLabel,
+                  }),
                   danger: true,
-                  confirmLabel: 'Libérer',
+                  confirmLabel: t('assign.freeLabel'),
                 })
               )
                 void run(onClear);
             }}
           >
-            <Trash2 className="size-4" /> Libérer le créneau
+            <Trash2 className="size-4" /> {t('assign.freeSlot')}
           </Button>
         )}
 
@@ -186,7 +191,7 @@ export function AssignDialog({
             className="mt-2 w-full py-2"
             onClick={() => setSwapOpen(true)}
           >
-            <Repeat className="size-4" /> Proposer un échange
+            <Repeat className="size-4" /> {t('assign.proposeSwap')}
           </Button>
         )}
         {isMine && swapOpen && (
@@ -196,7 +201,7 @@ export function AssignDialog({
               onChange={e => setSwapTarget(e.target.value)}
               className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm dark:border-slate-600 dark:bg-slate-800"
             >
-              <option value="">Ouvert à tous</option>
+              <option value="">{t('assign.openToAll')}</option>
               {doctors
                 .filter(d => d.id !== selfDoctorId)
                 .map(d => (
@@ -208,7 +213,7 @@ export function AssignDialog({
             <input
               value={swapMsg}
               onChange={e => setSwapMsg(e.target.value)}
-              placeholder="Message (facultatif)"
+              placeholder={t('assign.messageOptional')}
               className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm dark:border-slate-600 dark:bg-slate-800"
             />
             <div className="flex gap-2">
@@ -218,7 +223,7 @@ export function AssignDialog({
                 className="flex-1"
                 onClick={() => setSwapOpen(false)}
               >
-                Annuler
+                {t('common.cancel')}
               </Button>
               <Button
                 size="sm"
@@ -228,7 +233,7 @@ export function AssignDialog({
                   void run(() => onPropose(swapTarget || null, swapMsg))
                 }
               >
-                Proposer
+                {t('assign.propose')}
               </Button>
             </div>
           </div>
@@ -243,7 +248,7 @@ export function AssignDialog({
           className="flex w-full items-center gap-2 text-xs font-medium text-slate-500 transition hover:text-slate-700 dark:hover:text-slate-300"
         >
           <History className="size-3.5" />
-          Historique des changements
+          {t('assign.historyTitle')}
           {history.length > 0 && (
             <span className="rounded-full bg-slate-100 px-1.5 text-[10px] font-semibold text-slate-500 dark:bg-slate-800">
               {history.length}
@@ -263,7 +268,7 @@ export function AssignDialog({
               </p>
             ) : history.length === 0 ? (
               <p className="py-1 text-xs text-slate-400">
-                Aucun changement enregistré.
+                {t('assign.noHistory')}
               </p>
             ) : (
               <ul className="flex max-h-40 flex-col gap-1.5 overflow-y-auto pr-1">
@@ -285,8 +290,8 @@ export function AssignDialog({
                       {h.action === 'assigned' && (
                         <>
                           {h.changed_by
-                            ? `${nameOf(h.changed_by)} a attribué à `
-                            : 'Attribué à '}
+                            ? `${nameOf(h.changed_by)} ${t('assign.assignedTo')}`
+                            : t('assign.assignedToShort')}
                           <span className="font-medium">
                             {nameOf(h.doctor_id)}
                           </span>
@@ -304,8 +309,8 @@ export function AssignDialog({
                       {h.action === 'removed' && (
                         <>
                           {h.changed_by
-                            ? `${nameOf(h.changed_by)} a libéré`
-                            : 'Libéré'}{' '}
+                            ? `${nameOf(h.changed_by)} ${t('assign.removedBy')}`
+                            : t('assign.removedShort')}{' '}
                           ({nameOf(h.prev_doctor_id)})
                         </>
                       )}
@@ -325,7 +330,7 @@ export function AssignDialog({
         <input
           value={query}
           onChange={e => setQuery(e.target.value)}
-          placeholder="Rechercher un médecin… (triés par charge)"
+          placeholder={t('assign.searchPlaceholder')}
           className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:border-slate-600 dark:bg-slate-800"
         />
       </div>
@@ -333,7 +338,7 @@ export function AssignDialog({
       <ul className="min-h-0 flex-1 overflow-y-auto px-3 pb-4">
         {filtered.length === 0 && (
           <li className="px-2 py-6 text-center text-sm text-slate-400">
-            Aucun médecin. Ajoutez le roster depuis l'onglet Admin.
+            {t('assign.noDoctors')}
           </li>
         )}
         {filtered.map(doc => {
@@ -357,44 +362,44 @@ export function AssignDialog({
                   {doc.name}
                   {doc.id === selfDoctorId && (
                     <span className="ml-1 text-[10px] font-semibold uppercase text-teal-600">
-                      moi
+                      {t('common.me')}
                     </span>
                   )}
                 </span>
                 {rest && (
                   <span
-                    title="Repos de sécurité (nuit la veille)"
+                    title={t('assign.restTitle')}
                     className="flex items-center gap-0.5 rounded bg-red-100 px-1 text-[10px] font-semibold text-red-700 dark:bg-red-950/50 dark:text-red-300"
                   >
-                    <Moon className="size-3" /> repos
+                    <Moon className="size-3" /> {t('assign.restBadge')}
                   </span>
                 )}
                 {leave && (
                   <span
-                    title="En absence ce jour"
+                    title={t('assign.leaveTitle')}
                     className="rounded bg-amber-100 px-1 text-[10px] font-semibold text-amber-700 dark:bg-amber-950/50 dark:text-amber-300"
                   >
-                    congé
+                    {t('assign.leaveBadge')}
                   </span>
                 )}
                 {busyDay && (
                   <span
-                    title="Déjà de garde ce jour"
+                    title={t('assign.onDutyTitle')}
                     className="rounded bg-slate-200 px-1 text-[10px] font-medium text-slate-600 dark:bg-slate-700 dark:text-slate-300"
                   >
-                    de garde
+                    {t('assign.onDutyBadge')}
                   </span>
                 )}
                 {dayWishes.get(doc.id) === 'prefer' && (
                   <ThumbsUp
                     className="size-3.5 text-emerald-500"
-                    aria-label="préfère ce jour"
+                    aria-label={t('assign.prefersDay')}
                   />
                 )}
                 {dayWishes.get(doc.id) === 'avoid' && (
                   <ThumbsDown
                     className="size-3.5 text-rose-500"
-                    aria-label="évite ce jour"
+                    aria-label={t('assign.avoidsDay')}
                   />
                 )}
                 <span className="tabular-nums text-[11px] text-slate-400">
@@ -418,7 +423,7 @@ export function AssignDialog({
         )) && (
         <p className="flex items-center gap-1 border-t border-slate-100 px-3 py-2 text-[11px] text-slate-400 dark:border-slate-800">
           <AlertTriangle className="size-3 shrink-0" />
-          Les badges signalent congés, gardes existantes et repos de sécurité.
+          {t('assign.badgeLegend')}
         </p>
       )}
     </Modal>

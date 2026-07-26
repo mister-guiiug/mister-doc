@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
 import { X, Clock3, Trash2 } from 'lucide-react';
-import { WEEKDAY_LABELS, fromISODate, mondayIndex } from '../../lib/dates.ts';
+import { fromISODate, mondayIndex } from '../../lib/dates.ts';
 import { HNC_MAX_HOURS } from '../../lib/hnc.ts';
 import type { Doctor, HncEntry } from '../../backend/types.ts';
 import { Modal } from '../../components/Modal.tsx';
 import { Button } from '../../components/ui/Button.tsx';
+import { useI18n } from '../../i18n/index.ts';
 
 /**
  * Saisie des Heures Non Cliniques d'un jour. Plusieurs médecins possibles ;
@@ -35,15 +36,16 @@ export function HncDialog({
   const [hours, setHours] = useState('8');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { t, m } = useI18n();
 
   const d = fromISODate(date);
-  const dayLabel = `${WEEKDAY_LABELS[mondayIndex(d)]} ${d.getDate()}`;
+  const dayLabel = `${m.common.weekdays[mondayIndex(d)]} ${d.getDate()}`;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const h = Number(hours);
     if (!Number.isFinite(h) || h <= 0 || h > HNC_MAX_HOURS) {
-      setError(`Nombre d’heures invalide (0 à ${HNC_MAX_HOURS}).`);
+      setError(t('hnc.invalidHours', { max: HNC_MAX_HOURS }));
       return;
     }
     setError(null);
@@ -53,7 +55,7 @@ export function HncDialog({
       // Prépare la saisie suivante (autre médecin), sans fermer.
       setHours('8');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur');
+      setError(err instanceof Error ? err.message : t('common.error'));
     } finally {
       setBusy(false);
     }
@@ -73,12 +75,12 @@ export function HncDialog({
       <div className="mb-3 flex items-center justify-between">
         <h3 className="flex items-center gap-2 font-semibold">
           <Clock3 className="size-5 text-sky-600" />
-          Heures non cliniques
+          {t('hnc.title')}
         </h3>
         <button
           type="button"
           onClick={onClose}
-          aria-label="Fermer"
+          aria-label={t('common.close')}
           className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
         >
           <X className="size-5" />
@@ -103,12 +105,12 @@ export function HncDialog({
                   type="button"
                   onClick={() => edit(entry)}
                   className="flex-1 truncate text-left hover:underline"
-                  title="Modifier"
+                  title={t('hnc.edit')}
                 >
                   {doc?.name ?? '?'}
                   {entry.doctor_id === selfDoctorId && (
                     <span className="ml-1 text-[10px] font-semibold uppercase text-sky-600">
-                      moi
+                      {t('common.me')}
                     </span>
                   )}
                 </button>
@@ -118,7 +120,7 @@ export function HncDialog({
                 <button
                   type="button"
                   onClick={() => void onRemove(entry.id)}
-                  aria-label="Supprimer"
+                  aria-label={t('hnc.delete')}
                   className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30"
                 >
                   <Trash2 className="size-4" />
@@ -132,7 +134,7 @@ export function HncDialog({
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium text-slate-600 dark:text-slate-300">
-            Médecin
+            {t('hnc.doctor')}
           </span>
           <select
             value={doctorId}
@@ -150,7 +152,7 @@ export function HncDialog({
 
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium text-slate-600 dark:text-slate-300">
-            Heures non cliniques
+            {t('hnc.hours')}
           </span>
           <input
             type="number"
@@ -176,10 +178,10 @@ export function HncDialog({
             className="flex-1"
             onClick={onClose}
           >
-            Fermer
+            {t('hnc.close')}
           </Button>
           <Button type="submit" loading={busy} className="flex-1">
-            Enregistrer
+            {t('hnc.save')}
           </Button>
         </div>
       </form>

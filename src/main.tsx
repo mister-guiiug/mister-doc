@@ -6,6 +6,7 @@ import {
 } from '@mister-guiiug/dev-wpa-config/react/observability';
 import App from './App.tsx';
 import { ErrorBoundary } from './components/ErrorBoundary.tsx';
+import { I18nProvider } from './i18n/index.ts';
 import './index.css';
 
 // Capture les erreurs globales (window.onerror / unhandledrejection) dans le
@@ -22,7 +23,9 @@ if (!root) throw new Error('Élément #root introuvable');
 createRoot(root).render(
   <StrictMode>
     <ErrorBoundary>
-      <App />
+      <I18nProvider>
+        <App />
+      </I18nProvider>
     </ErrorBoundary>
   </StrictMode>
 );

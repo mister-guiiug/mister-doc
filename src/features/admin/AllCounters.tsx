@@ -8,11 +8,11 @@ import {
   FileText,
 } from 'lucide-react';
 import {
-  MONTH_LABELS,
   quadrimesterBounds,
   quadrimesterIndex,
   toISODate,
 } from '../../lib/dates.ts';
+import { useI18n } from '../../i18n/index.ts';
 import { computeCounters } from '../../lib/shifts.ts';
 import { computeLeaveStats } from '../../lib/leaves.ts';
 import { sumHncHours } from '../../lib/hnc.ts';
@@ -50,31 +50,22 @@ interface Row {
   trainingHours: number;
 }
 
-function bounds(
-  period: Period,
-  year: number,
-  month: number
-): [string, string, string] {
+function bounds(period: Period, year: number, month: number): [string, string] {
   if (period === 'year') {
-    return [
-      toISODate(new Date(year, 0, 1)),
-      toISODate(new Date(year, 11, 31)),
-      `${year}`,
-    ];
+    return [toISODate(new Date(year, 0, 1)), toISODate(new Date(year, 11, 31))];
   }
   if (period === 'quadri') {
     // Quadrimestre : 3 périodes de 4 mois (janv.–avr., mai–août, sept.–déc.).
-    const [from, to] = quadrimesterBounds(year, month);
-    return [from, to, `Quad. ${quadrimesterIndex(month) + 1} ${year}`];
+    return quadrimesterBounds(year, month);
   }
   return [
     toISODate(new Date(year, month, 1)),
     toISODate(new Date(year, month + 1, 0)),
-    `${MONTH_LABELS[month]} ${year}`,
   ];
 }
 
 export function AllCounters() {
+  const { t, m } = useI18n();
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
@@ -87,10 +78,19 @@ export function AllCounters() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [from, to, label] = useMemo(
+  const [from, to] = useMemo(
     () => bounds(period, year, month),
     [period, year, month]
   );
+  const label = useMemo(() => {
+    if (period === 'year') return `${year}`;
+    if (period === 'quadri')
+      return t('counters.quadLabel', {
+        n: quadrimesterIndex(month) + 1,
+        year,
+      });
+    return `${m.common.months[month]} ${year}`;
+  }, [period, year, month, t, m]);
 
   const load = useCallback(async () => {
     try {
@@ -106,9 +106,9 @@ export function AllCounters() {
       setHnc(h);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur');
+      setError(err instanceof Error ? err.message : t('common.error'));
     }
-  }, [from, to]);
+  }, [from, to, t]);
 
   useEffect(() => {
     setLoading(true);
@@ -195,36 +195,36 @@ export function AllCounters() {
     [rows]
   );
 
-  if (loading) return <FullScreenSpinner label="Chargement…" />;
+  if (loading) return <FullScreenSpinner label={t('common.loading')} />;
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-4 px-3 py-4 sm:px-4">
       <div className="flex flex-wrap items-center gap-2">
         <h1 className="flex items-center gap-2 text-lg font-bold">
-          <Users className="size-5 text-teal-600" /> Compteurs de l'équipe
+          <Users className="size-5 text-teal-600" /> {t('counters.team')}
         </h1>
 
         <SegmentedControl
           size="sm"
-          ariaLabel="Vue tableau ou équité"
+          ariaLabel={t('counters.viewAria')}
           value={view}
           onChange={setView}
           options={[
-            { value: 'table', label: 'Tableau' },
-            { value: 'equity', label: 'Équité' },
+            { value: 'table', label: t('counters.table') },
+            { value: 'equity', label: t('counters.equity') },
           ]}
         />
 
         <SegmentedControl
           className="ml-auto"
           size="sm"
-          ariaLabel="Période"
+          ariaLabel={t('counters.periodAria')}
           value={period}
           onChange={setPeriod}
           options={[
-            { value: 'month', label: 'Mois' },
-            { value: 'quadri', label: 'Quadrimestre' },
-            { value: 'year', label: 'Année' },
+            { value: 'month', label: t('counters.periodMonth') },
+            { value: 'quadri', label: t('counters.periodQuad') },
+            { value: 'year', label: t('counters.periodYear') },
           ]}
         />
 
@@ -232,7 +232,7 @@ export function AllCounters() {
           <button
             onClick={() => shiftPeriod(-1)}
             className="rounded-lg p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800"
-            aria-label="Précédent"
+            aria-label={t('common.previous')}
           >
             <ChevronLeft className="size-5" />
           </button>
@@ -242,7 +242,7 @@ export function AllCounters() {
           <button
             onClick={() => shiftPeriod(1)}
             className="rounded-lg p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800"
-            aria-label="Suivant"
+            aria-label={t('common.next')}
           >
             <ChevronRight className="size-5" />
           </button>
@@ -253,23 +253,23 @@ export function AllCounters() {
             <ExportButton
               onClick={() => exportCountersCsv(exportRows, label)}
               disabled={exportRows.length === 0}
-              title="Exporter en CSV"
+              title={t('counters.exportCsv')}
               icon={<Download className="size-4" />}
-              label="CSV"
+              label={t('counters.csv')}
             />
             <ExportButton
               onClick={() => exportCountersXlsx(exportRows, label)}
               disabled={exportRows.length === 0}
-              title="Exporter en Excel (.xlsx)"
+              title={t('counters.exportExcel')}
               icon={<FileSpreadsheet className="size-4" />}
-              label="Excel"
+              label={t('counters.excel')}
             />
             <ExportButton
               onClick={() => exportCountersPdf(exportRows, label)}
               disabled={exportRows.length === 0}
-              title="Exporter en PDF"
+              title={t('counters.exportPdf')}
               icon={<FileText className="size-4" />}
-              label="PDF"
+              label={t('counters.pdf')}
             />
           </div>
         )}
@@ -289,15 +289,17 @@ export function AllCounters() {
             <table className="w-full min-w-[34rem] text-sm">
               <thead>
                 <tr className="border-b border-slate-100 text-left text-xs uppercase text-slate-400 dark:border-slate-800">
-                  <th className="px-3 py-2 font-semibold">Médecin</th>
-                  <Th>Ven</Th>
-                  <Th>Sam</Th>
-                  <Th>Dim</Th>
-                  <Th>h WE</Th>
-                  <Th>HNC</Th>
-                  <Th>h Total</Th>
-                  <Th>Congés</Th>
-                  <Th>Format.</Th>
+                  <th className="px-3 py-2 font-semibold">
+                    {t('counters.doctor')}
+                  </th>
+                  <Th>{t('counters.fri')}</Th>
+                  <Th>{t('counters.sat')}</Th>
+                  <Th>{t('counters.sun')}</Th>
+                  <Th>{t('counters.hWe')}</Th>
+                  <Th>{t('counters.hnc')}</Th>
+                  <Th>{t('counters.hTotal')}</Th>
+                  <Th>{t('counters.leaveShort')}</Th>
+                  <Th>{t('counters.trainingShort')}</Th>
                 </tr>
               </thead>
               <tbody>
@@ -333,7 +335,7 @@ export function AllCounters() {
                       colSpan={9}
                       className="px-3 py-6 text-center text-slate-400"
                     >
-                      Aucun médecin.
+                      {t('counters.noDoctors')}
                     </td>
                   </tr>
                 )}
@@ -341,8 +343,7 @@ export function AllCounters() {
             </table>
           </div>
           <p className="text-xs text-slate-400">
-            Heures WE = créneaux du vendredi, samedi et dimanche. Période :{' '}
-            {label}.
+            {t('counters.weekendNote', { label })}
           </p>
         </>
       )}
@@ -381,6 +382,7 @@ function EquityView({
   report: EquityReport;
   label: string;
 }) {
+  const { t } = useI18n();
   const rows = [...report.rows].sort(
     (a, b) => b.totalHours - a.totalHours || a.name.localeCompare(b.name)
   );
@@ -411,14 +413,12 @@ function EquityView({
         ))}
         {rows.length === 0 && (
           <p className="px-3 py-6 text-center text-sm text-slate-400">
-            Aucun médecin.
+            {t('counters.noDoctors')}
           </p>
         )}
       </div>
       <p className="text-xs text-slate-400">
-        Charge comparée sur {label}. Barre = proportion du maximum de l'équipe ;
-        ▲/▼ = écart à la moyenne. Nuits = gardes S1N ; heures cliniques (hors
-        HNC).
+        {t('counters.equityNote', { label })}
       </p>
     </div>
   );

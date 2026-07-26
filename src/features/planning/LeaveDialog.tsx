@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { X, CalendarOff } from 'lucide-react';
-import { WEEKDAY_LABELS, fromISODate, mondayIndex } from '../../lib/dates.ts';
-import { LEAVE_KINDS, LEAVE_LABEL, type LeaveKind } from '../../lib/leaves.ts';
+import { fromISODate, mondayIndex } from '../../lib/dates.ts';
+import { LEAVE_KINDS, type LeaveKind } from '../../lib/leaves.ts';
 import type { Doctor } from '../../backend/types.ts';
 import { Modal } from '../../components/Modal.tsx';
 import { Button } from '../../components/ui/Button.tsx';
 import { SegmentedControl } from '../../components/ui/SegmentedControl.tsx';
+import { useI18n } from '../../i18n/index.ts';
 
 export function LeaveDialog({
   date,
@@ -33,19 +34,22 @@ export function LeaveDialog({
   const [hours, setHours] = useState('8');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { t, m } = useI18n();
 
   const d = fromISODate(date);
-  const dayLabel = `${WEEKDAY_LABELS[mondayIndex(d)]} ${d.getDate()}`;
+  const dayLabel = `${m.common.weekdays[mondayIndex(d)]} ${d.getDate()}`;
+  const leaveLabel = (k: LeaveKind) =>
+    k === 'annual' ? t('leaves.annual') : t('leaves.training');
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (to < from) {
-      setError('La date de fin doit suivre la date de début.');
+      setError(t('leaves.dateError'));
       return;
     }
     const h = kind === 'training' ? Number(hours) : null;
     if (kind === 'training' && (!Number.isFinite(h) || h! < 0 || h! > 24)) {
-      setError('Nombre d’heures de formation invalide (0 à 24).');
+      setError(t('leaves.hoursError'));
       return;
     }
     setError(null);
@@ -54,7 +58,7 @@ export function LeaveDialog({
       await onSubmit(doctorId, from, to, kind, h);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur');
+      setError(err instanceof Error ? err.message : t('common.error'));
     } finally {
       setBusy(false);
     }
@@ -69,7 +73,7 @@ export function LeaveDialog({
         <div className="mb-4 flex items-center justify-between">
           <h3 className="flex items-center gap-2 font-semibold">
             <CalendarOff className="size-5 text-violet-600" />
-            Poser une absence
+            {t('leaves.title')}
           </h3>
           <button
             type="button"
@@ -82,7 +86,7 @@ export function LeaveDialog({
 
         <label className="mb-3 flex flex-col gap-1 text-sm">
           <span className="font-medium text-slate-600 dark:text-slate-300">
-            Médecin
+            {t('leaves.doctor')}
           </span>
           <select
             value={doctorId}
@@ -92,7 +96,7 @@ export function LeaveDialog({
             {doctors.map(doc => (
               <option key={doc.id} value={doc.id}>
                 {doc.name}
-                {doc.id === selfDoctorId ? ' (moi)' : ''}
+                {doc.id === selfDoctorId ? ` (${t('common.me')})` : ''}
               </option>
             ))}
           </select>
@@ -101,16 +105,16 @@ export function LeaveDialog({
         <SegmentedControl
           className="mb-3"
           fullWidth
-          ariaLabel="Type d'absence"
+          ariaLabel={t('leaves.typeAria')}
           value={kind}
           onChange={setKind}
-          options={LEAVE_KINDS.map(k => ({ value: k, label: LEAVE_LABEL[k] }))}
+          options={LEAVE_KINDS.map(k => ({ value: k, label: leaveLabel(k) }))}
         />
 
         <div className="mb-3 grid grid-cols-2 gap-2">
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium text-slate-600 dark:text-slate-300">
-              Du
+              {t('leaves.from')}
             </span>
             <input
               type="date"
@@ -121,7 +125,7 @@ export function LeaveDialog({
           </label>
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium text-slate-600 dark:text-slate-300">
-              Au
+              {t('leaves.to')}
             </span>
             <input
               type="date"
@@ -136,7 +140,7 @@ export function LeaveDialog({
         {kind === 'training' && (
           <label className="mb-3 flex flex-col gap-1 text-sm">
             <span className="font-medium text-slate-600 dark:text-slate-300">
-              Heures de formation (par jour)
+              {t('leaves.trainingHours')}
             </span>
             <input
               type="number"
@@ -157,8 +161,9 @@ export function LeaveDialog({
         )}
 
         <p className="mb-3 text-xs text-slate-400">
-          Jour cliqué : <span className="capitalize">{dayLabel}</span>. Une
-          entrée sera créée pour chaque jour de la plage.
+          {t('leaves.clickedDay')}
+          <span className="capitalize">{dayLabel}</span>
+          {t('leaves.rangeNote')}
         </p>
 
         <div className="flex gap-2">
@@ -168,10 +173,10 @@ export function LeaveDialog({
             className="flex-1"
             onClick={onClose}
           >
-            Annuler
+            {t('common.cancel')}
           </Button>
           <Button type="submit" loading={busy} className="flex-1">
-            Poser
+            {t('leaves.submit')}
           </Button>
         </div>
       </form>

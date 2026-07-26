@@ -4,6 +4,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ConfirmProvider } from './ConfirmProvider.tsx';
 import { useConfirm } from './confirmContext.ts';
+import { I18nProvider } from '../../i18n/index.ts';
 
 /** Composant d'essai : déclenche une confirmation et affiche son résultat. */
 function Harness() {
@@ -29,10 +30,15 @@ function Harness() {
 }
 
 function setup() {
+  // Semé en français : jsdom rapporte navigator.language=en-US, ce qui
+  // rendrait sinon les libellés par défaut (Annuler…) en anglais.
+  localStorage.setItem('misterdoc_locale', 'fr');
   return render(
-    <ConfirmProvider>
-      <Harness />
-    </ConfirmProvider>
+    <I18nProvider>
+      <ConfirmProvider>
+        <Harness />
+      </ConfirmProvider>
+    </I18nProvider>
   );
 }
 

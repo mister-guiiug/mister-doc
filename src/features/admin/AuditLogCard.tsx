@@ -6,12 +6,14 @@ import { auditActionLabel, auditTargetLabel } from '../../lib/auditLabels.ts';
 import { timeAgo } from '../../lib/relativeTime.ts';
 import { SectionCard } from '../../components/ui/SectionCard.tsx';
 import { EmptyState } from '../../components/ui/EmptyState.tsx';
+import { useI18n } from '../../i18n/index.ts';
 
 /**
  * Journal d'audit (admin, lecture seule) : dernières actions sensibles
  * enregistrées par les triggers de la migration 0017.
  */
 export function AuditLogCard() {
+  const { t } = useI18n();
   const [entries, setEntries] = useState<AuditEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,18 +24,18 @@ export function AuditLogCard() {
         if (alive) setEntries(e);
       })
       .catch(e => {
-        if (alive) setError(e instanceof Error ? e.message : 'Erreur');
+        if (alive) setError(e instanceof Error ? e.message : t('common.error'));
       });
     return () => {
       alive = false;
     };
-  }, []);
+  }, [t]);
 
   return (
     <SectionCard
       icon={<ScrollText className="size-4" />}
-      title="Journal d'activité"
-      desc="Actions sensibles : approbations, rôles, suppressions, verrous"
+      title={t('audit.title')}
+      desc={t('audit.desc')}
       count={entries?.length}
     >
       {error ? (
@@ -41,9 +43,9 @@ export function AuditLogCard() {
           {error}
         </p>
       ) : entries === null ? (
-        <p className="py-2 text-sm text-slate-400">Chargement…</p>
+        <p className="py-2 text-sm text-slate-400">{t('audit.loading')}</p>
       ) : entries.length === 0 ? (
-        <Empty>Aucune action enregistrée pour le moment.</Empty>
+        <Empty>{t('audit.none')}</Empty>
       ) : (
         <ul className="flex flex-col divide-y divide-slate-100 text-sm dark:divide-slate-800">
           {entries.map(e => (

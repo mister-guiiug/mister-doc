@@ -10,6 +10,7 @@ import { clearWish, setWish } from '../../backend/wishes.ts';
 import { clearHnc, setHnc as saveHnc } from '../../backend/hnc.ts';
 import { proposeSwap } from '../../backend/swaps.ts';
 import { listLocks, lockMonth, unlockMonth } from '../../backend/locks.ts';
+import { useI18n } from '../../i18n/index.ts';
 import type { SlotTarget } from './AssignDialog.tsx';
 import type { PlanningData } from './usePlanningData.ts';
 
@@ -50,6 +51,7 @@ export function usePlanningMutations(data: PlanningData, ctx: MutationCtx) {
   } = data;
   const { doctor, year, month, toast } = ctx;
   const confirm = useConfirm();
+  const { t } = useI18n();
 
   const handleAssign = useCallback(
     async (slot: SlotTarget, doctorId: string) => {
@@ -71,13 +73,13 @@ export function usePlanningMutations(data: PlanningData, ctx: MutationCtx) {
       ]);
       try {
         await assignShift(slot.iso, slot.shiftType, doctorId, doctor.id);
-        toast.success('Garde attribuée.');
+        toast.success(t('planning.shiftAssigned'));
       } catch (e) {
         setShifts(prev);
-        toast.error(e instanceof Error ? e.message : 'Erreur');
+        toast.error(e instanceof Error ? e.message : t('common.error'));
       }
     },
-    [doctor, shifts, setShifts, toast]
+    [doctor, shifts, setShifts, toast, t]
   );
 
   const handleClearSlot = useCallback(
@@ -90,13 +92,13 @@ export function usePlanningMutations(data: PlanningData, ctx: MutationCtx) {
       );
       try {
         await clearShift(slot.iso, slot.shiftType);
-        toast.success('Créneau libéré.');
+        toast.success(t('planning.slotFreed'));
       } catch (e) {
         setShifts(prev);
-        toast.error(e instanceof Error ? e.message : 'Erreur');
+        toast.error(e instanceof Error ? e.message : t('common.error'));
       }
     },
-    [shifts, setShifts, toast]
+    [shifts, setShifts, toast, t]
   );
 
   const handleAddLeave = useCallback(
@@ -117,12 +119,12 @@ export function usePlanningMutations(data: PlanningData, ctx: MutationCtx) {
           doctor?.id ?? null
         );
         await loadData();
-        toast.success('Absence enregistrée.');
+        toast.success(t('planning.leaveSaved'));
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : 'Erreur');
+        toast.error(e instanceof Error ? e.message : t('common.error'));
       }
     },
-    [doctor, loadData, toast]
+    [doctor, loadData, toast, t]
   );
 
   const handleRemoveLeave = useCallback(
@@ -130,9 +132,12 @@ export function usePlanningMutations(data: PlanningData, ctx: MutationCtx) {
       const doc = doctorsById.get(leave.doctor_id);
       if (
         !(await confirm({
-          message: `Supprimer l'absence de ${doc?.name ?? 'ce médecin'} le ${frDate(leave.work_date)} ?`,
+          message: t('planning.removeLeaveConfirm', {
+            name: doc?.name ?? t('planning.thisDoctor'),
+            date: frDate(leave.work_date),
+          }),
           danger: true,
-          confirmLabel: 'Supprimer',
+          confirmLabel: t('common.delete'),
         }))
       )
         return;
@@ -142,10 +147,10 @@ export function usePlanningMutations(data: PlanningData, ctx: MutationCtx) {
         await clearLeave(leave.id);
       } catch (e) {
         setLeaves(prev);
-        toast.error(e instanceof Error ? e.message : 'Erreur');
+        toast.error(e instanceof Error ? e.message : t('common.error'));
       }
     },
-    [confirm, doctorsById, leaves, setLeaves, toast]
+    [confirm, doctorsById, leaves, setLeaves, toast, t]
   );
 
   const handleSaveNote = useCallback(
@@ -153,12 +158,12 @@ export function usePlanningMutations(data: PlanningData, ctx: MutationCtx) {
       try {
         await setNote(noteDate, text, doctor?.id ?? null);
         await loadData();
-        toast.success('Note enregistrée.');
+        toast.success(t('planning.noteSaved'));
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : 'Erreur');
+        toast.error(e instanceof Error ? e.message : t('common.error'));
       }
     },
-    [doctor, loadData, toast]
+    [doctor, loadData, toast, t]
   );
 
   const handleDeleteNote = useCallback(
@@ -167,10 +172,10 @@ export function usePlanningMutations(data: PlanningData, ctx: MutationCtx) {
         await clearNote(noteDate);
         await loadData();
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : 'Erreur');
+        toast.error(e instanceof Error ? e.message : t('common.error'));
       }
     },
-    [loadData, toast]
+    [loadData, toast, t]
   );
 
   const handleCycleWish = useCallback(
@@ -206,23 +211,23 @@ export function usePlanningMutations(data: PlanningData, ctx: MutationCtx) {
         if (next === null) await clearWish(doctor.id, iso);
         else await setWish(doctor.id, iso, next, null);
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : 'Erreur');
+        toast.error(e instanceof Error ? e.message : t('common.error'));
         await loadData();
       }
     },
-    [doctor, wishes, setWishes, toast, loadData]
+    [doctor, wishes, setWishes, toast, loadData, t]
   );
 
   const handlePropose = useCallback(
     async (slot: SlotTarget, toDoctor: string | null, message: string) => {
       try {
         await proposeSwap(slot.iso, slot.shiftType, toDoctor, message);
-        toast.success('Proposition d’échange envoyée.');
+        toast.success(t('planning.swapSent'));
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : 'Erreur');
+        toast.error(e instanceof Error ? e.message : t('common.error'));
       }
     },
-    [toast]
+    [toast, t]
   );
 
   const handleSetHnc = useCallback(
@@ -230,12 +235,12 @@ export function usePlanningMutations(data: PlanningData, ctx: MutationCtx) {
       try {
         await saveHnc(doctorId, iso, hours, doctor?.id ?? null);
         await loadData();
-        toast.success('Heures non cliniques enregistrées.');
+        toast.success(t('planning.hncSaved'));
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : 'Erreur');
+        toast.error(e instanceof Error ? e.message : t('common.error'));
       }
     },
-    [doctor, loadData, toast]
+    [doctor, loadData, toast, t]
   );
 
   const handleClearHnc = useCallback(
@@ -244,11 +249,14 @@ export function usePlanningMutations(data: PlanningData, ctx: MutationCtx) {
       const doc = entry ? doctorsById.get(entry.doctor_id) : undefined;
       if (
         !(await confirm({
-          message: `Supprimer les heures non cliniques${doc ? ` de ${doc.name}` : ''}${
-            entry ? ` le ${frDate(entry.work_date)}` : ''
-          } ?`,
+          message: t('planning.removeHncConfirm', {
+            who: doc ? t('planning.removeHncWho', { name: doc.name }) : '',
+            when: entry
+              ? t('planning.removeHncWhen', { date: frDate(entry.work_date) })
+              : '',
+          }),
           danger: true,
-          confirmLabel: 'Supprimer',
+          confirmLabel: t('common.delete'),
         }))
       )
         return;
@@ -258,10 +266,10 @@ export function usePlanningMutations(data: PlanningData, ctx: MutationCtx) {
         await clearHnc(id);
       } catch (e) {
         setHnc(prev);
-        toast.error(e instanceof Error ? e.message : 'Erreur');
+        toast.error(e instanceof Error ? e.message : t('common.error'));
       }
     },
-    [confirm, hnc, doctorsById, setHnc, toast]
+    [confirm, hnc, doctorsById, setHnc, toast, t]
   );
 
   const toggleLock = useCallback(async () => {
@@ -269,11 +277,15 @@ export function usePlanningMutations(data: PlanningData, ctx: MutationCtx) {
       if (locked) await unlockMonth(year, month);
       else await lockMonth(year, month, doctor?.id ?? null);
       setLocks(await listLocks());
-      toast.success(locked ? 'Mois déverrouillé.' : 'Mois verrouillé.');
+      toast.success(
+        locked
+          ? t('planning.monthUnlockedToast')
+          : t('planning.monthLockedToast')
+      );
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Erreur');
+      toast.error(e instanceof Error ? e.message : t('common.error'));
     }
-  }, [locked, year, month, doctor, setLocks, toast]);
+  }, [locked, year, month, doctor, setLocks, toast, t]);
 
   return {
     handleAssign,

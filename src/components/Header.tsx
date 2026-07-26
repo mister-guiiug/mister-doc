@@ -9,10 +9,12 @@ import {
   Repeat,
 } from 'lucide-react';
 import { useAuth } from '../auth/useAuth.ts';
+import { useI18n } from '../i18n/index.ts';
 import { NotificationsBell } from './NotificationsBell.tsx';
 
 export function Header() {
   const { doctor, isAdmin, previewMember, togglePreviewMember } = useAuth();
+  const { t } = useI18n();
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     `rounded-lg px-3 py-1.5 text-sm font-medium transition ${
@@ -34,40 +36,48 @@ export function Header() {
         {/* Navigation principale : en-tête sur ≥ sm, barre basse sur mobile. */}
         <nav className="hidden items-center gap-1 sm:flex">
           <NavLink to="/" end className={linkClass}>
-            Planning
+            {t('nav.planning')}
           </NavLink>
           {doctor && (
             <NavLink
               to="/mon-planning"
               className={linkClass}
-              title="Mon planning"
+              title={t('nav.myPlanning')}
             >
               <span className="flex items-center gap-1">
                 <CalendarCheck className="size-4" />
-                Moi
+                {t('nav.me')}
               </span>
             </NavLink>
           )}
           {doctor && (
-            <NavLink to="/echanges" className={linkClass} title="Échanges">
+            <NavLink
+              to="/echanges"
+              className={linkClass}
+              title={t('nav.swaps')}
+            >
               <span className="flex items-center gap-1">
                 <Repeat className="size-4" />
-                Échanges
+                {t('nav.swaps')}
               </span>
             </NavLink>
           )}
           {isAdmin && (
             <>
-              <NavLink to="/compteurs" className={linkClass} title="Compteurs">
+              <NavLink
+                to="/compteurs"
+                className={linkClass}
+                title={t('nav.counters')}
+              >
                 <span className="flex items-center gap-1">
                   <BarChart3 className="size-4" />
-                  Compteurs
+                  {t('nav.counters')}
                 </span>
               </NavLink>
-              <NavLink to="/admin" className={linkClass} title="Admin">
+              <NavLink to="/admin" className={linkClass} title={t('nav.admin')}>
                 <span className="flex items-center gap-1">
                   <Shield className="size-4" />
-                  Admin
+                  {t('nav.admin')}
                 </span>
               </NavLink>
             </>
@@ -81,8 +91,8 @@ export function Header() {
               aria-pressed={!previewMember}
               title={
                 previewMember
-                  ? 'Aperçu médecin actif — revenir en vue admin'
-                  : 'Voir le planning comme un médecin (sans les fonctions admin)'
+                  ? t('header.previewActive')
+                  : t('header.previewInactive')
               }
               className={`flex items-center gap-1 rounded-lg p-1.5 text-sm font-medium transition ${
                 previewMember
@@ -93,7 +103,9 @@ export function Header() {
               {previewMember ? (
                 <>
                   <ShieldOff className="size-5" />
-                  <span className="hidden sm:inline">Aperçu médecin</span>
+                  <span className="hidden sm:inline">
+                    {t('header.previewLabel')}
+                  </span>
                 </>
               ) : (
                 <ShieldCheck className="size-5" />
@@ -104,7 +116,7 @@ export function Header() {
           {doctor && (
             <NavLink
               to="/profil"
-              title="Mon profil"
+              title={t('header.myProfile')}
               className={({ isActive }) =>
                 `flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm transition ${
                   isActive

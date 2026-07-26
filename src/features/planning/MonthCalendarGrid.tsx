@@ -12,10 +12,9 @@ import {
 } from 'lucide-react';
 import type { MonthDay } from '../../lib/dates.ts';
 import { activeShiftTypes, shiftHours } from '../../lib/shifts.ts';
-import { LEAVE_SHORT } from '../../lib/leaves.ts';
+import type { LeaveKind } from '../../lib/leaves.ts';
 import type { PlanningGridProps, DayProps } from './gridTypes.ts';
-
-const DAY_HEADERS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'] as const;
+import { useI18n } from '../../i18n/index.ts';
 
 // Référence stable pour les jours sans absence/vœu/HNC (mémoïsation de DayCell).
 const EMPTY: never[] = [];
@@ -46,6 +45,7 @@ export function MonthCalendarGrid({
   onEditHnc,
   dayRefs,
 }: PlanningGridProps) {
+  const { m } = useI18n();
   const rows = weeks.map(({ week, days }) => {
     const cells: (MonthDay | null)[] = Array(7).fill(null);
     for (const d of days) cells[d.weekday] = d;
@@ -57,9 +57,9 @@ export function MonthCalendarGrid({
       {/* En-tête des colonnes */}
       <div className="grid grid-cols-[2.5rem_repeat(7,minmax(0,1fr))] border-b border-slate-200 bg-slate-50 text-center text-xs font-semibold text-slate-500 dark:border-slate-800 dark:bg-slate-900/60">
         <div className="py-1.5" />
-        {DAY_HEADERS.map((d, i) => (
+        {m.common.weekdaysShort.map((d, i) => (
           <div
-            key={d}
+            key={i}
             className={`py-1.5 ${i >= 5 ? 'text-teal-700 dark:text-teal-400' : ''}`}
           >
             {d}
@@ -133,9 +133,14 @@ const DayCell = memo(function DayCell({
   onEditHnc,
   dayRefs,
 }: DayProps) {
+  const { t } = useI18n();
   const types = activeShiftTypes(day.date);
-  const missing = types.filter(t => !shiftIndex.has(`${day.iso}|${t}`)).length;
+  const missing = types.filter(
+    ty => !shiftIndex.has(`${day.iso}|${ty}`)
+  ).length;
   const dim = (id?: string) => highlightId != null && id !== highlightId;
+  const leaveShort = (kind: LeaveKind) =>
+    kind === 'annual' ? t('leaves.annualShort') : t('leaves.trainingShort');
   const myWish = wishes.find(w => w.doctor_id === selfDoctorId)?.kind;
   const prefers = wishes.filter(w => w.kind === 'prefer').length;
   const avoids = wishes.filter(w => w.kind === 'avoid').length;
@@ -172,7 +177,7 @@ const DayCell = memo(function DayCell({
           {day.holiday && (
             <Star
               className="size-3.5 text-amber-500"
-              aria-label={day.holidayName ?? 'Férié'}
+              aria-label={day.holidayName ?? t('planning.holiday')}
             />
           )}
           {issues.length > 0 && (
@@ -190,7 +195,7 @@ const DayCell = memo(function DayCell({
           )}
           {missing > 0 && (
             <span
-              title={`${missing} créneau(x) à couvrir`}
+              title={t('planning.slotsToCover', { count: missing })}
               className="flex items-center gap-0.5 rounded bg-red-100 px-1 text-[10px] font-bold text-red-600 dark:bg-red-950/50 dark:text-red-300"
             >
               <AlertTriangle className="size-2.5" />
@@ -235,7 +240,7 @@ const DayCell = memo(function DayCell({
                 </>
               ) : (
                 <span className="text-slate-600 dark:text-slate-400">
-                  libre
+                  {t('common.free')}
                 </span>
               )}
             </button>
@@ -249,14 +254,25 @@ const DayCell = memo(function DayCell({
           {leaves.map(lv => {
             const doc = doctorsById.get(lv.doctor_id);
             const isTraining = lv.kind === 'training';
+            const short = `${leaveShort(lv.kind)}${
+              isTraining && lv.hours != null ? ` ${lv.hours}h` : ''
+            }`;
             return (
               <button
                 key={lv.id}
                 disabled={locked}
                 onClick={() => onRemoveLeave(lv)}
-                title={`${doc?.name ?? '?'} · ${LEAVE_SHORT[lv.kind]}${
-                  isTraining && lv.hours != null ? ` ${lv.hours}h` : ''
-                }${locked ? '' : ' — retirer'}`}
+                title={
+                  locked
+                    ? t('planning.leaveTitleLocked', {
+                        name: doc?.name ?? '?',
+                        short,
+                      })
+                    : t('planning.leaveTitleRemove', {
+                        name: doc?.name ?? '?',
+                        short,
+                      })
+                }
                 className={`flex items-center gap-0.5 rounded-full border px-1 text-[10px] disabled:cursor-default ${
                   dim(lv.doctor_id) ? 'opacity-30' : ''
                 } ${
@@ -269,7 +285,7 @@ const DayCell = memo(function DayCell({
                   className="inline-block size-1.5 shrink-0 rounded-full"
                   style={{ backgroundColor: doc?.color ?? '#999' }}
                 />
-                {LEAVE_SHORT[lv.kind]}
+                {leaveShort(lv.kind)}
               </button>
             );
           })}
@@ -286,7 +302,17 @@ const DayCell = memo(function DayCell({
                 key={entry.id}
                 disabled={locked}
                 onClick={() => onEditHnc(day.iso)}
-                title={`${doc?.name ?? '?'} · ${entry.hours} h non cliniques${locked ? '' : ' — modifier'}`}
+                title={
+                  locked
+                    ? t('planning.hncHoursTitle', {
+                        name: doc?.name ?? '?',
+                        hours: entry.hours,
+                      })
+                    : t('planning.hncHoursTitleEdit', {
+                        name: doc?.name ?? '?',
+                        hours: entry.hours,
+                      })
+                }
                 className={`flex items-center gap-0.5 rounded-full border border-sky-300 bg-sky-50 px-1 text-[10px] text-sky-800 disabled:cursor-default dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-200 ${
                   dim(entry.doctor_id) ? 'opacity-30' : ''
                 }`}
@@ -319,7 +345,9 @@ const DayCell = memo(function DayCell({
           <button
             onClick={() => !locked && onCycleWish(day.iso)}
             disabled={locked}
-            title={locked ? 'Mois verrouillé' : 'Mon vœu (clic pour changer)'}
+            title={
+              locked ? t('planning.monthLocked') : t('planning.wishShortTitle')
+            }
             className={`disabled:cursor-default ${
               myWish === 'prefer' ? 'text-emerald-500' : 'text-rose-500'
             }`}
@@ -354,7 +382,7 @@ const DayCell = memo(function DayCell({
           <span className="ml-auto flex items-center gap-1 opacity-0 transition group-hover/cell:opacity-100">
             <button
               onClick={() => onCycleWish(day.iso)}
-              title="Vœu / dispo / indispo"
+              title={t('planning.wishCycleTitle')}
               className="text-slate-400 hover:text-teal-600"
             >
               <Heart className="size-3.5" />
@@ -362,7 +390,7 @@ const DayCell = memo(function DayCell({
             {!note && (
               <button
                 onClick={() => onEditNote(day.iso)}
-                title="Ajouter une note"
+                title={t('planning.addNoteTitle')}
                 className="text-slate-400 hover:text-teal-600"
               >
                 <StickyNote className="size-3.5" />
@@ -370,14 +398,14 @@ const DayCell = memo(function DayCell({
             )}
             <button
               onClick={() => onAddLeave(day.iso)}
-              title="Congé / Formation"
+              title={t('planning.leaveOrTraining')}
               className="text-slate-400 hover:text-violet-600"
             >
               <Plus className="size-3.5" />
             </button>
             <button
               onClick={() => onEditHnc(day.iso)}
-              title="Heures non cliniques"
+              title={t('planning.hncTitle')}
               className="text-slate-400 hover:text-sky-600"
             >
               <Clock3 className="size-3.5" />

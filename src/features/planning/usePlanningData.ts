@@ -26,6 +26,7 @@ import {
   listLocks,
   subscribeLocks,
 } from '../../backend/locks.ts';
+import { useI18n } from '../../i18n/index.ts';
 
 /** Cliché des données d'un mois, conservé dans IndexedDB pour l'hors-ligne. */
 interface CachedMonth {
@@ -45,6 +46,7 @@ interface CachedMonth {
  * mutations optimistes (voir `usePlanningMutations`).
  */
 export function usePlanningData(year: number, month: number) {
+  const { t } = useI18n();
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [leaves, setLeaves] = useState<Leave[]>([]);
@@ -111,12 +113,12 @@ export function usePlanningData(year: number, month: number) {
         setOffline(true);
         setError(null);
       } else {
-        setError(err instanceof Error ? err.message : 'Erreur de chargement');
+        setError(err instanceof Error ? err.message : t('planning.loadError'));
       }
     } finally {
       setRefreshing(false);
     }
-  }, [year, month]);
+  }, [year, month, t]);
 
   // Peinture instantanée depuis le cache au changement de mois (avant le
   // réseau). `freshRef` est remis à zéro : si le réseau répond avant le cache,

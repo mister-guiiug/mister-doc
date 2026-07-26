@@ -11,11 +11,11 @@ import {
   Heart,
   Clock3,
 } from 'lucide-react';
-import { WEEKDAY_LABELS } from '../../lib/dates.ts';
 import { shiftLabel, shiftHours, activeShiftTypes } from '../../lib/shifts.ts';
-import { LEAVE_SHORT } from '../../lib/leaves.ts';
+import type { LeaveKind } from '../../lib/leaves.ts';
 import type { Wish } from '../../backend/types.ts';
 import type { PlanningGridProps, DayProps } from './gridTypes.ts';
+import { useI18n } from '../../i18n/index.ts';
 
 // Référence stable pour les jours sans absence/alerte/vœu/HNC : évite de créer
 // un nouveau `[]` à chaque rendu, ce qui casserait la mémoïsation de `DayRow`.
@@ -42,16 +42,19 @@ export function MonthGrid({
   onEditHnc,
   dayRefs,
 }: PlanningGridProps) {
+  const { t } = useI18n();
   return (
     <div className="flex flex-col gap-5">
       {weeks.map(({ week, days }) => (
         <section key={week}>
           <div className="mb-2 flex items-center gap-2">
             <span className="rounded-md bg-slate-800 px-2 py-0.5 text-xs font-bold text-white dark:bg-slate-200 dark:text-slate-900">
-              Semaine {week}
+              {t('planning.week', { week })}
             </span>
             <span className="text-xs text-slate-400">
-              {days.length} jour{days.length > 1 ? 's' : ''}
+              {days.length > 1
+                ? t('planning.dayCountMany', { count: days.length })
+                : t('planning.dayCountOne', { count: days.length })}
             </span>
           </div>
 
@@ -108,14 +111,19 @@ const DayRow = memo(function DayRow({
   onEditHnc,
   dayRefs,
 }: DayProps) {
+  const { t, m } = useI18n();
   const types = activeShiftTypes(day.date);
-  const missing = types.filter(t => !shiftIndex.has(`${day.iso}|${t}`)).length;
+  const missing = types.filter(
+    ty => !shiftIndex.has(`${day.iso}|${ty}`)
+  ).length;
   const dim = (id?: string) => highlightId != null && id !== highlightId;
   const myWish = wishes.find(w => w.doctor_id === selfDoctorId)?.kind;
   const prefers = wishes.filter(w => w.kind === 'prefer');
   const avoids = wishes.filter(w => w.kind === 'avoid');
   const wishNames = (arr: Wish[]) =>
     arr.map(w => doctorsById.get(w.doctor_id)?.name ?? '?').join(', ');
+  const leaveShort = (kind: LeaveKind) =>
+    kind === 'annual' ? t('leaves.annualShort') : t('leaves.trainingShort');
 
   return (
     <div
@@ -144,10 +152,10 @@ const DayRow = memo(function DayRow({
           </span>
           <div className="flex min-w-0 flex-col leading-tight">
             <span className="flex items-center gap-1.5 text-sm font-medium">
-              {WEEKDAY_LABELS[day.weekday]}
+              {m.common.weekdays[day.weekday]}
               {isToday && (
                 <span className="rounded bg-teal-600 px-1 py-px text-[9px] font-bold uppercase tracking-wide text-white">
-                  Auj.
+                  {t('common.today')}
                 </span>
               )}
             </span>
@@ -159,7 +167,8 @@ const DayRow = memo(function DayRow({
             )}
             {missing > 0 && (
               <span className="flex items-center gap-1 text-[11px] font-medium text-red-500">
-                <AlertTriangle className="size-3" /> {missing} à couvrir
+                <AlertTriangle className="size-3" />{' '}
+                {t('planning.toCover', { count: missing })}
               </span>
             )}
           </div>
@@ -202,7 +211,7 @@ const DayRow = memo(function DayRow({
                   </span>
                 ) : (
                   <span className="text-xs text-slate-500 dark:text-slate-500">
-                    libre
+                    {t('common.free')}
                   </span>
                 )}
               </button>
@@ -237,7 +246,7 @@ const DayRow = memo(function DayRow({
               key={lv.id}
               disabled={locked}
               onClick={() => onRemoveLeave(lv)}
-              title={locked ? undefined : 'Retirer cette absence'}
+              title={locked ? undefined : t('planning.removeLeave')}
               className={`group flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium disabled:cursor-default ${
                 dim(lv.doctor_id) ? 'opacity-30' : ''
               } ${
@@ -252,7 +261,7 @@ const DayRow = memo(function DayRow({
               />
               <span className="truncate">{doc?.name ?? '?'}</span>
               <span className="opacity-70">
-                · {LEAVE_SHORT[lv.kind]}
+                · {leaveShort(lv.kind)}
                 {isTraining && lv.hours != null ? ` ${lv.hours}h` : ''}
               </span>
               {!locked && (
@@ -268,7 +277,7 @@ const DayRow = memo(function DayRow({
             <button
               key={entry.id}
               onClick={() => onEditHnc(day.iso)}
-              title="Heures non cliniques (cliquer pour modifier)"
+              title={t('planning.hncEditTitle')}
               className={`flex items-center gap-1 rounded-full border border-sky-300 bg-sky-50 px-2 py-0.5 text-[11px] font-medium text-sky-800 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-200 ${
                 dim(entry.doctor_id) ? 'opacity-30' : ''
               }`}
@@ -307,7 +316,7 @@ const DayRow = memo(function DayRow({
               onClick={() => onEditNote(day.iso)}
               className="flex items-center gap-1 rounded-full border border-dashed border-slate-300 px-2 py-0.5 text-[11px] font-medium text-slate-500 transition hover:border-slate-400 dark:border-slate-600"
             >
-              <StickyNote className="size-3" /> Note
+              <StickyNote className="size-3" /> {t('planning.note')}
             </button>
           )
         )}
@@ -317,7 +326,7 @@ const DayRow = memo(function DayRow({
             onClick={() => onAddLeave(day.iso)}
             className="flex items-center gap-1 rounded-full border border-dashed border-slate-300 px-2 py-0.5 text-[11px] font-medium text-slate-500 transition hover:border-violet-400 hover:text-violet-600 dark:border-slate-600"
           >
-            <Plus className="size-3" /> Congé / Formation
+            <Plus className="size-3" /> {t('planning.leaveOrTraining')}
           </button>
         )}
 
@@ -326,11 +335,7 @@ const DayRow = memo(function DayRow({
           <button
             onClick={() => !locked && onCycleWish(day.iso)}
             disabled={locked}
-            title={
-              locked
-                ? 'Mois verrouillé'
-                : 'Mon vœu : dispo / indispo (clic pour changer)'
-            }
+            title={locked ? t('planning.monthLocked') : t('planning.wishTitle')}
             className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium transition disabled:cursor-default ${
               myWish === 'prefer'
                 ? 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
@@ -341,15 +346,16 @@ const DayRow = memo(function DayRow({
           >
             {myWish === 'prefer' ? (
               <>
-                <ThumbsUp className="size-3" /> Dispo
+                <ThumbsUp className="size-3" /> {t('planning.wishAvailable')}
               </>
             ) : myWish === 'avoid' ? (
               <>
-                <ThumbsDown className="size-3" /> Indispo
+                <ThumbsDown className="size-3" />{' '}
+                {t('planning.wishUnavailable')}
               </>
             ) : (
               <>
-                <Heart className="size-3" /> Vœu
+                <Heart className="size-3" /> {t('planning.wish')}
               </>
             )}
           </button>
@@ -359,7 +365,9 @@ const DayRow = memo(function DayRow({
           <span className="flex items-center gap-1.5 text-[11px] text-slate-400">
             {prefers.length > 0 && (
               <span
-                title={`Dispo : ${wishNames(prefers)}`}
+                title={t('planning.availableList', {
+                  names: wishNames(prefers),
+                })}
                 className="flex items-center gap-0.5"
               >
                 <ThumbsUp className="size-3 text-emerald-500" />
@@ -368,7 +376,9 @@ const DayRow = memo(function DayRow({
             )}
             {avoids.length > 0 && (
               <span
-                title={`Indispo : ${wishNames(avoids)}`}
+                title={t('planning.unavailableList', {
+                  names: wishNames(avoids),
+                })}
                 className="flex items-center gap-0.5"
               >
                 <ThumbsDown className="size-3 text-rose-500" />
@@ -380,7 +390,7 @@ const DayRow = memo(function DayRow({
 
         {locked && (
           <span className="flex items-center gap-1 text-[11px] font-medium text-slate-400">
-            <Lock className="size-3" /> verrouillé
+            <Lock className="size-3" /> {t('planning.locked')}
           </span>
         )}
       </div>

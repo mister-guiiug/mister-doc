@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ShieldCheck, LogOut, KeyRound } from 'lucide-react';
 import { useAuth } from './useAuth.ts';
+import { useI18n } from '../i18n/index.ts';
 import { Button } from '../components/ui/Button.tsx';
 
 /**
@@ -10,6 +11,7 @@ import { Button } from '../components/ui/Button.tsx';
  */
 export function MfaChallenge() {
   const { verifyMfa, recoverMfa, signOut } = useAuth();
+  const { t } = useI18n();
   const [mode, setMode] = useState<'totp' | 'recovery'>('totp');
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -49,19 +51,17 @@ export function MfaChallenge() {
             )}
           </div>
           <h1 className="text-xl font-bold">
-            {isTotp ? 'Vérification en deux étapes' : 'Code de secours'}
+            {isTotp ? t('mfa.verifyTitle') : t('mfa.recoveryTitle')}
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            {isTotp
-              ? "Saisissez le code à 6 chiffres affiché dans votre application d'authentification."
-              : "Saisissez l'un de vos codes de secours à usage unique. Votre double authentification sera désactivée."}
+            {isTotp ? t('mfa.verifyDesc') : t('mfa.recoveryDesc')}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium text-slate-600 dark:text-slate-300">
-              {isTotp ? 'Code à 6 chiffres' : 'Code de secours'}
+              {isTotp ? t('mfa.code6Label') : t('mfa.recoveryLabel')}
             </span>
             {isTotp ? (
               <input
@@ -105,7 +105,7 @@ export function MfaChallenge() {
             disabled={!ready}
             className="mt-1 w-full py-2.5"
           >
-            {isTotp ? 'Vérifier' : 'Récupérer mon accès'}
+            {isTotp ? t('mfa.verify') : t('mfa.recover')}
           </Button>
         </form>
 
@@ -116,7 +116,7 @@ export function MfaChallenge() {
               onClick={() => switchMode('recovery')}
               className="underline hover:text-slate-600 dark:hover:text-slate-200"
             >
-              Authentificateur perdu ? Utiliser un code de secours
+              {t('mfa.lostAuthenticator')}
             </button>
           ) : (
             <button
@@ -124,7 +124,7 @@ export function MfaChallenge() {
               onClick={() => switchMode('totp')}
               className="underline hover:text-slate-600 dark:hover:text-slate-200"
             >
-              Revenir au code à 6 chiffres
+              {t('mfa.backToCode')}
             </button>
           )}
         </div>
@@ -133,7 +133,7 @@ export function MfaChallenge() {
           onClick={() => void signOut()}
           className="mx-auto mt-3 flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
         >
-          <LogOut className="size-3.5" /> Se déconnecter
+          <LogOut className="size-3.5" /> {t('mfa.signOut')}
         </button>
       </div>
     </div>

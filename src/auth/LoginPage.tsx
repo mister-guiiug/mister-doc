@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { CalendarDays, Fingerprint } from 'lucide-react';
 import { useAuth } from './useAuth.ts';
+import { useI18n } from '../i18n/index.ts';
 import { Button } from '../components/ui/Button.tsx';
 import { Field } from '../components/ui/Field.tsx';
 import { SegmentedControl } from '../components/ui/SegmentedControl.tsx';
@@ -9,6 +10,7 @@ import { passkeysSupported } from '../backend/passkey.ts';
 
 export function LoginPage() {
   const { signIn, signUp, signInWithPasskey } = useAuth();
+  const { t } = useI18n();
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -47,47 +49,47 @@ export function LoginPage() {
           <div className="grid size-12 place-items-center rounded-xl bg-teal-600 text-white">
             <CalendarDays className="size-6" />
           </div>
-          <h1 className="text-xl font-bold">mister-doc</h1>
+          <h1 className="text-xl font-bold">{t('login.title')}</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            Planning de gardes des médecins d'un hôpital
+            {t('login.subtitle')}
           </p>
         </div>
 
         <SegmentedControl
           className="mb-4"
           fullWidth
-          ariaLabel="Connexion ou création de compte"
+          ariaLabel={t('login.modeAria')}
           value={mode}
           onChange={setMode}
           options={[
-            { value: 'signin', label: 'Connexion' },
-            { value: 'signup', label: 'Créer un compte' },
+            { value: 'signin', label: t('login.signin') },
+            { value: 'signup', label: t('login.signup') },
           ]}
         />
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           {mode === 'signup' && (
             <Field
-              label="Nom affiché"
+              label={t('login.displayName')}
               type="text"
               value={name}
               onChange={e => setName(e.target.value)}
-              placeholder="Dr Dupont"
+              placeholder={t('login.displayNamePlaceholder')}
               required
               autoComplete="name"
             />
           )}
           <Field
-            label="E-mail"
+            label={t('login.email')}
             type="email"
             value={email}
             onChange={e => setEmail(e.target.value)}
-            placeholder="prenom.nom@exemple.fr"
+            placeholder={t('login.emailPlaceholder')}
             required
             autoComplete="email"
           />
           <Field
-            label="Mot de passe"
+            label={t('login.password')}
             type="password"
             value={password}
             onChange={e => setPassword(e.target.value)}
@@ -100,7 +102,7 @@ export function LoginPage() {
           />
           {mode === 'signup' && (
             <p className="-mt-1 text-xs text-slate-500 dark:text-slate-400">
-              8 caractères minimum.
+              {t('login.minChars')}
             </p>
           )}
 
@@ -114,7 +116,9 @@ export function LoginPage() {
           )}
 
           <Button type="submit" loading={busy} className="mt-1 w-full py-2.5">
-            {mode === 'signin' ? 'Se connecter' : 'Créer mon compte'}
+            {mode === 'signin'
+              ? t('login.submitSignin')
+              : t('login.submitSignup')}
           </Button>
         </form>
 
@@ -122,7 +126,7 @@ export function LoginPage() {
           <>
             <div className="my-4 flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
               <span className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
-              ou
+              {t('login.or')}
               <span className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
             </div>
             <Button
@@ -133,15 +137,14 @@ export function LoginPage() {
               onClick={() => void handlePasskey()}
             >
               {!pkBusy && <Fingerprint className="size-4" />}
-              Se connecter avec l'empreinte
+              {t('login.passkey')}
             </Button>
           </>
         )}
 
         {mode === 'signup' && (
           <p className="mt-4 text-center text-xs text-slate-500 dark:text-slate-400">
-            Un nouveau compte est « en attente » jusqu'à validation par un
-            administrateur.
+            {t('login.signupPending')}
           </p>
         )}
 
@@ -151,7 +154,7 @@ export function LoginPage() {
             onClick={() => setPrivacy(true)}
             className="underline hover:text-slate-700 dark:hover:text-slate-200"
           >
-            Politique de confidentialité
+            {t('login.privacyLink')}
           </button>
         </p>
       </div>

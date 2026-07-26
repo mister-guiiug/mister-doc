@@ -11,6 +11,7 @@ import { useToast } from '../../components/Toast.tsx';
 import { Button } from '../../components/ui/Button.tsx';
 import { SectionCard } from '../../components/ui/SectionCard.tsx';
 import { useConfirm } from '../../components/ui/confirmContext.ts';
+import { useI18n } from '../../i18n/index.ts';
 import type { BackupMeta } from '../../backend/types.ts';
 import {
   adminBackup,
@@ -35,6 +36,7 @@ function download(payload: unknown, name: string) {
 export function BackupCard() {
   const toast = useToast();
   const confirm = useConfirm();
+  const { t, locale } = useI18n();
   const [backups, setBackups] = useState<BackupMeta[]>([]);
   const [busy, setBusy] = useState(false);
   const [pending, setPending] = useState<File | null>(null);
@@ -55,9 +57,9 @@ export function BackupCard() {
       const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
       download(snap, `mister-doc-backup-${stamp}.json`);
       await reload();
-      toast.success('Sauvegarde exportée.');
+      toast.success(t('backup.exported'));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Erreur');
+      toast.error(e instanceof Error ? e.message : t('common.error'));
     } finally {
       setBusy(false);
     }
@@ -69,10 +71,11 @@ export function BackupCard() {
       !(await confirm({
         message:
           mode === 'replace'
-            ? 'Remplacer TOUT le planning (gardes, absences, notes) par ce fichier ? Action irréversible.'
-            : 'Fusionner ce fichier avec le planning actuel ?',
+            ? t('backup.replaceConfirm')
+            : t('backup.mergeConfirm'),
         danger: mode === 'replace',
-        confirmLabel: mode === 'replace' ? 'Remplacer' : 'Fusionner',
+        confirmLabel:
+          mode === 'replace' ? t('backup.replace') : t('backup.merge'),
       }))
     )
       return;
@@ -80,11 +83,11 @@ export function BackupCard() {
     try {
       const payload = JSON.parse(await pending.text());
       await adminRestore(payload, mode);
-      toast.success('Restauration effectuée.');
+      toast.success(t('backup.restored'));
       setPending(null);
       if (fileRef.current) fileRef.current.value = '';
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Fichier invalide');
+      toast.error(e instanceof Error ? e.message : t('backup.invalidFile'));
     } finally {
       setBusy(false);
     }
@@ -93,10 +96,9 @@ export function BackupCard() {
   async function restoreSnapshot(id: string) {
     if (
       !(await confirm({
-        message:
-          'Restaurer cette sauvegarde ? Le planning actuel sera remplacé.',
+        message: t('backup.restoreConfirm'),
         danger: true,
-        confirmLabel: 'Restaurer',
+        confirmLabel: t('backup.restoreLabel'),
       }))
     )
       return;
@@ -104,9 +106,9 @@ export function BackupCard() {
     try {
       const payload = await getBackupPayload(id);
       await adminRestore(payload, 'replace');
-      toast.success('Sauvegarde restaurée.');
+      toast.success(t('backup.snapshotRestored'));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Erreur');
+      toast.error(e instanceof Error ? e.message : t('common.error'));
     } finally {
       setBusy(false);
     }
@@ -117,7 +119,7 @@ export function BackupCard() {
       const payload = await getBackupPayload(id);
       download(payload, `mister-doc-backup-${id.slice(0, 8)}.json`);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Erreur');
+      toast.error(e instanceof Error ? e.message : t('common.error'));
     }
   }
 
@@ -132,20 +134,20 @@ export function BackupCard() {
 
   return (
     <SectionCard
-      title="Sauvegarde & restauration"
+      title={t('backup.title')}
       icon={<DatabaseBackup className="size-4" />}
     >
       <div className="flex flex-wrap gap-2">
         <Button loading={busy} onClick={() => void handleExport()}>
           {!busy && <Download className="size-4" />}
-          Exporter (.json)
+          {t('backup.exportJson')}
         </Button>
         <Button
           variant="secondary"
           disabled={busy}
           onClick={() => fileRef.current?.click()}
         >
-          <Upload className="size-4" /> Importer un fichier…
+          <Upload className="size-4" /> {t('backup.importFile')}
         </Button>
         <input
           ref={fileRef}
@@ -167,7 +169,7 @@ export function BackupCard() {
             disabled={busy}
             onClick={() => void handleImport('merge')}
           >
-            Fusionner
+            {t('backup.merge')}
           </Button>
           <Button
             variant="dangerGhost"
@@ -175,7 +177,7 @@ export function BackupCard() {
             disabled={busy}
             onClick={() => void handleImport('replace')}
           >
-            Remplacer
+            {t('backup.replace')}
           </Button>
           <button
             onClick={() => {
@@ -184,20 +186,14 @@ export function BackupCard() {
             }}
             className="text-xs text-slate-400 hover:text-slate-600"
           >
-            Annuler
+            {t('common.cancel')}
           </button>
         </div>
       )}
 
       <p className="mt-3 flex items-start gap-1.5 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">
         <Info className="mt-0.5 size-3.5 shrink-0" />
-        <span>
-          Une <b>sauvegarde automatique</b> est réalisée chaque semaine
-          (conservées : 10 dernières). Déposez le fichier exporté dans votre
-          Google&nbsp;Drive ou iCloud (ou un dossier synchronisé). L'upload
-          Drive automatique nécessite des identifiants Google&nbsp;; iCloud
-          n'expose pas d'API serveur.
-        </span>
+        <span>{t('backup.note')}</span>
       </p>
 
       {backups.length > 0 && (
@@ -214,29 +210,35 @@ export function BackupCard() {
                     : 'bg-teal-100 text-teal-700 dark:bg-teal-900/50 dark:text-teal-300'
                 }`}
               >
-                {b.kind === 'auto' ? 'auto' : 'manuel'}
+                {b.kind === 'auto'
+                  ? t('backup.autoBadge')
+                  : t('backup.manualBadge')}
               </span>
               <span className="flex-1 truncate text-xs text-slate-500">
-                {new Date(b.created_at).toLocaleString('fr-FR')}
-                {b.size ? ` · ${Math.round(b.size / 1024)} Ko` : ''}
+                {new Date(b.created_at).toLocaleString(
+                  locale === 'en' ? 'en-GB' : 'fr-FR'
+                )}
+                {b.size
+                  ? ` · ${Math.round(b.size / 1024)} ${t('backup.koUnit')}`
+                  : ''}
               </span>
               <button
                 onClick={() => void downloadSnapshot(b.id)}
-                title="Télécharger"
+                title={t('backup.download')}
                 className="rounded p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
               >
                 <Download className="size-4" />
               </button>
               <button
                 onClick={() => void restoreSnapshot(b.id)}
-                title="Restaurer"
+                title={t('backup.restore')}
                 className="rounded p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
               >
                 <RotateCcw className="size-4" />
               </button>
               <button
                 onClick={() => void removeSnapshot(b.id)}
-                title="Supprimer"
+                title={t('backup.delete')}
                 className="rounded p-1 text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
               >
                 <Trash2 className="size-4" />

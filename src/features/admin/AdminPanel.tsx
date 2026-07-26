@@ -37,6 +37,7 @@ import { Button } from '../../components/ui/Button.tsx';
 import { EmptyState } from '../../components/ui/EmptyState.tsx';
 import { SectionCard } from '../../components/ui/SectionCard.tsx';
 import { useConfirm } from '../../components/ui/confirmContext.ts';
+import { useI18n } from '../../i18n/index.ts';
 import { BackupCard } from './BackupCard.tsx';
 import { ShiftTypesCard } from './ShiftTypesCard.tsx';
 import { AuditLogCard } from './AuditLogCard.tsx';
@@ -47,6 +48,7 @@ const COLORS = DOCTOR_COLORS;
 export function AdminPanel() {
   const { doctor: self, refreshDoctor } = useAuth();
   const confirm = useConfirm();
+  const { t } = useI18n();
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -71,7 +73,7 @@ export function AdminPanel() {
     try {
       await saveSettings(next);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur');
+      setError(err instanceof Error ? err.message : t('common.error'));
     }
   }
 
@@ -81,12 +83,10 @@ export function AdminPanel() {
     try {
       const n = await sendReminders();
       setReminderMsg(
-        n > 0
-          ? `${n} rappel(s) envoyé(s).`
-          : 'Aucun rappel à envoyer (déjà faits ou aucune garde concernée).'
+        n > 0 ? t('admin.remindersSent', { n }) : t('admin.remindersNone')
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur');
+      setError(err instanceof Error ? err.message : t('common.error'));
     } finally {
       setReminderBusy(false);
     }
@@ -97,9 +97,9 @@ export function AdminPanel() {
       setDoctors(await listDoctors());
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur');
+      setError(err instanceof Error ? err.message : t('common.error'));
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     reload().finally(() => setLoading(false));
@@ -113,7 +113,7 @@ export function AdminPanel() {
       await reload();
       await refreshDoctor();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur');
+      setError(err instanceof Error ? err.message : t('common.error'));
     } finally {
       setBusyId(null);
     }
@@ -128,7 +128,7 @@ export function AdminPanel() {
     });
   }
 
-  if (loading) return <FullScreenSpinner label="Chargement…" />;
+  if (loading) return <FullScreenSpinner label={t('common.loading')} />;
 
   const pending = doctors.filter(d => d.auth_id && !d.approved);
   const members = doctors.filter(d => d.approved);
@@ -143,7 +143,10 @@ export function AdminPanel() {
       )}
 
       {/* Réglages */}
-      <Card title="Réglages" icon={<Settings className="size-4" />}>
+      <Card
+        title={t('admin.settingsTitle')}
+        icon={<Settings className="size-4" />}
+      >
         <label className="flex items-start gap-3 text-sm">
           <input
             type="checkbox"
@@ -152,23 +155,18 @@ export function AdminPanel() {
             className="mt-0.5 size-4 accent-teal-600"
           />
           <span>
-            <span className="font-medium">
-              Compter le Lundi de Pentecôte comme férié
-            </span>
+            <span className="font-medium">{t('admin.pentecoteLabel')}</span>
             <span className="block text-xs text-slate-400">
-              Si décoché, ce jour a une couverture normale (4 créneaux). Effet
-              au prochain affichage du planning.
+              {t('admin.pentecoteDesc')}
             </span>
           </span>
         </label>
 
         <div className="mt-3 flex items-start justify-between gap-3 border-t border-slate-100 pt-3 dark:border-slate-800">
           <span className="text-sm">
-            <span className="font-medium">Rappels de garde</span>
+            <span className="font-medium">{t('admin.remindersTitle')}</span>
             <span className="block text-xs text-slate-400">
-              Envoyés automatiquement chaque soir (push « garde demain » / «
-              nuit ce soir »). Ce bouton les déclenche maintenant (test ou
-              rattrapage).
+              {t('admin.remindersDesc')}
             </span>
           </span>
           <Button
@@ -178,7 +176,7 @@ export function AdminPanel() {
             onClick={() => void handleReminders()}
           >
             {!reminderBusy && <AlarmClock className="size-4" />}
-            Envoyer
+            {t('admin.send')}
           </Button>
         </div>
         {reminderMsg && (
@@ -194,12 +192,12 @@ export function AdminPanel() {
 
       {/* Comptes en attente */}
       <Card
-        title="Comptes en attente"
+        title={t('admin.pendingTitle')}
         icon={<Clock className="size-4" />}
         count={pending.length}
       >
         {pending.length === 0 ? (
-          <Empty>Aucune demande en attente.</Empty>
+          <Empty>{t('admin.noPending')}</Empty>
         ) : (
           <ul className="flex flex-col gap-2">
             {pending.map(d => (
@@ -220,26 +218,29 @@ export function AdminPanel() {
                   }
                 >
                   {busyId !== d.id && <UserCheck className="size-4" />}
-                  Approuver
+                  {t('admin.approve')}
                 </Button>
                 <Button
                   variant="dangerGhost"
                   size="sm"
                   disabled={busyId === d.id}
-                  title="Rejeter la demande"
+                  title={t('admin.rejectTitle')}
                   onClick={async () => {
                     if (
                       await confirm({
-                        message: `Rejeter la demande de ${d.name}${d.email ? ` (${d.email})` : ''} ? Le compte sera supprimé.`,
+                        message: t('admin.rejectConfirm', {
+                          name: d.name,
+                          email: d.email ? ` (${d.email})` : '',
+                        }),
                         danger: true,
-                        confirmLabel: 'Rejeter',
+                        confirmLabel: t('admin.reject'),
                       })
                     )
                       void act(d.id, () => adminRejectDoctor(d.id));
                   }}
                 >
                   <UserX className="size-4" />
-                  Rejeter
+                  {t('admin.reject')}
                 </Button>
               </li>
             ))}
@@ -249,14 +250,14 @@ export function AdminPanel() {
 
       {/* Ajouter au roster */}
       <Card
-        title="Ajouter un médecin au roster"
+        title={t('admin.addRosterTitle')}
         icon={<UserPlus className="size-4" />}
       >
         <form onSubmit={handleAdd} className="flex flex-col gap-3">
           <input
             value={newName}
             onChange={e => setNewName(e.target.value)}
-            placeholder="Nom du médecin (ex. GUERIN)"
+            placeholder={t('admin.rosterNamePlaceholder')}
             className="rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:border-slate-600 dark:bg-slate-800"
           />
           <div className="flex flex-wrap items-center gap-2">
@@ -269,7 +270,7 @@ export function AdminPanel() {
                   newColor === c ? 'ring-2 ring-offset-2 ring-slate-400' : ''
                 }`}
                 style={{ backgroundColor: c }}
-                aria-label={`Couleur ${c}`}
+                aria-label={t('profile.colorAria', { color: c })}
               />
             ))}
             <Button
@@ -280,19 +281,16 @@ export function AdminPanel() {
               disabled={!newName.trim()}
             >
               {busyId !== 'new' && <UserPlus className="size-4" />}
-              Ajouter
+              {t('admin.add')}
             </Button>
           </div>
-          <p className="text-xs text-slate-400">
-            Une entrée de roster est assignable au planning même sans compte. Le
-            médecin pourra ensuite créer son compte pour voir ses compteurs.
-          </p>
+          <p className="text-xs text-slate-400">{t('admin.rosterNote')}</p>
         </form>
       </Card>
 
       {/* Membres */}
       <Card
-        title="Médecins"
+        title={t('admin.membersTitle')}
         icon={<Shield className="size-4" />}
         count={members.length + roster.length}
       >
@@ -311,12 +309,12 @@ export function AdminPanel() {
                     {d.name}
                     {d.is_admin && (
                       <span className="ml-2 rounded bg-teal-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-teal-700 dark:bg-teal-900/50 dark:text-teal-300">
-                        admin
+                        {t('admin.adminBadge')}
                       </span>
                     )}
                     {!hasAccount && (
                       <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 dark:bg-slate-700">
-                        roster
+                        {t('admin.rosterBadge')}
                       </span>
                     )}
                   </p>
@@ -327,7 +325,7 @@ export function AdminPanel() {
 
                 <button
                   onClick={() => setEditDoc(d)}
-                  title="Renommer"
+                  title={t('admin.rename')}
                   className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
                 >
                   <Pencil className="size-4" />
@@ -341,7 +339,9 @@ export function AdminPanel() {
                         adminSetDoctor(d.id, null, !d.is_admin)
                       )
                     }
-                    title={d.is_admin ? 'Retirer admin' : 'Nommer admin'}
+                    title={
+                      d.is_admin ? t('admin.removeAdmin') : t('admin.makeAdmin')
+                    }
                     className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
                   >
                     {d.is_admin ? (
@@ -358,15 +358,16 @@ export function AdminPanel() {
                     onClick={async () => {
                       if (
                         await confirm({
-                          title: `Réinitialiser la 2FA de « ${d.name} » ?`,
-                          message:
-                            'Supprime sa double authentification (authentificateur perdu). Il pourra se reconnecter avec son seul mot de passe, puis la réactiver.',
-                          confirmLabel: 'Réinitialiser',
+                          title: t('admin.resetMfaConfirmTitle', {
+                            name: d.name,
+                          }),
+                          message: t('admin.resetMfaConfirmMsg'),
+                          confirmLabel: t('admin.resetMfaLabel'),
                         })
                       )
                         void act(d.id, () => adminResetMfa(d.id));
                     }}
-                    title="Réinitialiser la 2FA (authentificateur perdu)"
+                    title={t('admin.resetMfaTitle')}
                     className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
                   >
                     <KeyRound className="size-4" />
@@ -379,16 +380,17 @@ export function AdminPanel() {
                     onClick={async () => {
                       if (
                         await confirm({
-                          title: `Anonymiser « ${d.name} » ?`,
-                          message:
-                            "L'identité (nom, e-mail, connexion) sera définitivement effacée. Les gardes passées restent au planning sous une identité anonymisée. Irréversible.",
+                          title: t('admin.anonymizeConfirmTitle', {
+                            name: d.name,
+                          }),
+                          message: t('admin.anonymizeConfirmMsg'),
                           danger: true,
-                          confirmLabel: 'Anonymiser',
+                          confirmLabel: t('admin.anonymizeLabel'),
                         })
                       )
                         void act(d.id, () => anonymizeDoctor(d.id));
                     }}
-                    title="Anonymiser / supprimer le compte (RGPD)"
+                    title={t('admin.anonymizeTitle')}
                     className="rounded-lg p-1.5 text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
                   >
                     {busyId === d.id ? (
@@ -405,14 +407,16 @@ export function AdminPanel() {
                     onClick={async () => {
                       if (
                         await confirm({
-                          message: `Supprimer « ${d.name} » du roster ?`,
+                          message: t('admin.removeRosterConfirm', {
+                            name: d.name,
+                          }),
                           danger: true,
-                          confirmLabel: 'Supprimer',
+                          confirmLabel: t('admin.removeRosterLabel'),
                         })
                       )
                         void act(d.id, () => adminDeleteDoctor(d.id));
                     }}
-                    title="Supprimer du roster"
+                    title={t('admin.removeRosterTitle')}
                     className="rounded-lg p-1.5 text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
                   >
                     {busyId === d.id ? (
@@ -432,7 +436,7 @@ export function AdminPanel() {
 
       {editDoc && (
         <ProfileDialog
-          title={`Renommer — ${editDoc.name}`}
+          title={t('admin.renameDialogTitle', { name: editDoc.name })}
           initialName={editDoc.name}
           initialColor={editDoc.color}
           onSave={async (name, color) => {

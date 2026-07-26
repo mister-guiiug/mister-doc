@@ -1,5 +1,6 @@
 import { X } from 'lucide-react';
 import { Modal } from '../../components/Modal.tsx';
+import { useI18n } from '../../i18n/index.ts';
 
 /**
  * Politique de confidentialité (RGPD). Les FAITS TECHNIQUES sont exacts ; les
@@ -8,16 +9,17 @@ import { Modal } from '../../components/Modal.tsx';
  * l'exploitant doit renseigner. Ne pas publier tel quel sans les compléter.
  */
 export function PrivacyDialog({ onClose }: { onClose: () => void }) {
+  const { t } = useI18n();
   return (
     <Modal
       onClose={onClose}
       className="flex max-h-[85dvh] max-w-lg flex-col rounded-t-2xl sm:rounded-2xl"
     >
       <div className="flex items-center justify-between border-b border-slate-100 p-4 dark:border-slate-800">
-        <h2 className="font-semibold">Politique de confidentialité</h2>
+        <h2 className="font-semibold">{t('privacy.title')}</h2>
         <button
           onClick={onClose}
-          aria-label="Fermer"
+          aria-label={t('common.close')}
           className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
         >
           <X className="size-5" />
@@ -30,94 +32,91 @@ export function PrivacyDialog({ onClose }: { onClose: () => void }) {
         className="space-y-4 overflow-y-auto p-4 text-sm leading-relaxed text-slate-600 dark:text-slate-300"
       >
         <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
-          Modèle à compléter par l'exploitant : les mentions entre crochets
-          <span className="font-mono"> [À compléter] </span> doivent être
-          renseignées avant mise en service.
+          {t('privacy.templateWarningBefore')}
+          <span className="font-mono">{t('privacy.templatePlaceholder')}</span>
+          {t('privacy.templateWarningAfter')}
         </p>
 
-        <Section title="Responsable du traitement">
-          [À compléter : nom de l'établissement / du responsable, adresse,
-          e-mail de contact, et le cas échéant délégué à la protection des
-          données (DPO)].
+        <Section title={t('privacy.controllerTitle')}>
+          {t('privacy.controllerBody')}
         </Section>
 
-        <Section title="Données collectées">
+        <Section title={t('privacy.collectedTitle')}>
           <ul className="list-disc space-y-1 pl-5">
             <li>
-              <b>Identité</b> : nom affiché, adresse e-mail (pour
-              l'authentification), couleur d'affichage.
+              <b>{t('privacy.collectedIdentity')}</b>
+              {t('privacy.collectedIdentityBody')}
             </li>
             <li>
-              <b>Données de planning</b> : gardes, absences (congés /
-              formations), heures non cliniques, vœux de disponibilité, notes de
-              jour rédigées, échanges de gardes.
+              <b>{t('privacy.collectedPlanning')}</b>
+              {t('privacy.collectedPlanningBody')}
             </li>
             <li>
-              <b>Données techniques</b> : session d'authentification et
-              préférences (thème) stockées dans votre navigateur ; abonnement
-              aux notifications push si vous l'activez.
+              <b>{t('privacy.collectedTechnical')}</b>
+              {t('privacy.collectedTechnicalBody')}
             </li>
           </ul>
         </Section>
 
-        <Section title="Finalités et base légale">
-          Les données servent uniquement à{' '}
-          <b>organiser et consulter le planning de gardes</b> de l'équipe. Base
-          légale : [À compléter — p. ex. exécution d'une mission / intérêt
-          légitime de l'établissement].
+        <Section title={t('privacy.purposeTitle')}>
+          {t('privacy.purposeBody1')}
+          <b>{t('privacy.purposeBold')}</b>
+          {t('privacy.purposeBody2')}
         </Section>
 
-        <Section title="Hébergement et destinataires">
-          Les données sont hébergées par <b>Supabase</b> (infrastructure dans
-          l'Union européenne). Elles ne sont <b>ni vendues, ni partagées</b>{' '}
-          avec des tiers, et l'application{' '}
-          <b>n'utilise aucun traceur publicitaire ni outil d'analyse</b>. Seuls
-          les membres approuvés de l'équipe et les administrateurs accèdent au
-          planning.
+        <Section title={t('privacy.hostingTitle')}>
+          {t('privacy.hostingBody1')}
+          <b>{t('privacy.hostingSupabase')}</b>
+          {t('privacy.hostingBody2')}
+          <b>{t('privacy.hostingBold1')}</b>
+          {t('privacy.hostingBody3')}
+          <b>{t('privacy.hostingBold2')}</b>
+          {t('privacy.hostingBody4')}
         </Section>
 
-        <Section title="Durée de conservation">
-          [À compléter : durée de conservation des comptes et des données de
-          planning]. Les données sont supprimées ou anonymisées à la clôture du
-          compte (voir « Vos droits »).
+        <Section title={t('privacy.retentionTitle')}>
+          {t('privacy.retentionBody')}
         </Section>
 
-        <Section title="Sécurité">
-          Accès protégé par mot de passe (8 caractères min.) et{' '}
-          <b>double authentification (TOTP)</b> optionnelle ; cloisonnement par{' '}
-          <b>règles RLS</b> côté serveur ; chiffrement en transit (HTTPS) ;
-          liens d'abonnement calendrier <b>hashés</b> au repos ; journal d'audit
-          des actions sensibles.
+        <Section title={t('privacy.securityTitle')}>
+          {t('privacy.securityBody1')}
+          <b>{t('privacy.securityBold1')}</b>
+          {t('privacy.securityBody2')}
+          <b>{t('privacy.securityBold2')}</b>
+          {t('privacy.securityBody3')}
+          <b>{t('privacy.securityBold3')}</b>
+          {t('privacy.securityBody4')}
         </Section>
 
-        <Section title="Vos droits">
-          Conformément au RGPD, vous disposez des droits d'<b>accès</b>, de{' '}
-          <b>rectification</b>, d'<b>effacement</b>, de <b>portabilité</b>,
-          d'opposition et de limitation.
+        <Section title={t('privacy.rightsTitle')}>
+          {t('privacy.rightsIntro')}
+          <b>{t('privacy.rightsAccess')}</b>,{' '}
+          <b>{t('privacy.rightsRectify')}</b>, <b>{t('privacy.rightsErase')}</b>
+          , <b>{t('privacy.rightsPortability')}</b>
+          {t('privacy.rightsIntroEnd')}
           <ul className="mt-1 list-disc space-y-1 pl-5">
             <li>
-              <b>Accès / portabilité</b> : « Télécharger mes données » depuis
-              votre profil (export JSON).
+              <b>{t('privacy.rightsAccessItem')}</b>
+              {t('privacy.rightsAccessBody')}
             </li>
             <li>
-              <b>Rectification</b> : modifiez votre nom et votre couleur depuis
-              votre profil.
+              <b>{t('privacy.rightsRectifyItem')}</b>
+              {t('privacy.rightsRectifyBody')}
             </li>
             <li>
-              <b>Effacement</b> : un compte <i>en attente</i> peut supprimer
-              lui-même sa demande. Pour un compte approuvé, contactez un
-              administrateur : vos données d'identité sont supprimées ou
-              anonymisées ; l'historique de planning peut être conservé sous
-              forme anonymisée au titre de l'intérêt légitime de
-              l'établissement.
+              <b>{t('privacy.rightsEraseItem')}</b>
+              {t('privacy.rightsEraseBody1')}
+              <i>{t('privacy.rightsEraseItalic')}</i>
+              {t('privacy.rightsEraseBody2')}
             </li>
           </ul>
-          Pour exercer ces droits ou une réclamation : [À compléter — contact].
-          Vous pouvez aussi saisir la <b>CNIL</b> (www.cnil.fr).
+          {t('privacy.rightsContact')}
+          <b>{t('privacy.rightsCnil')}</b>
+          {t('privacy.rightsCnilUrl')}
         </Section>
 
         <p className="pt-2 text-xs text-slate-500 dark:text-slate-400">
-          Dernière mise à jour : [À compléter].
+          {t('privacy.lastUpdate')}
         </p>
       </div>
     </Modal>

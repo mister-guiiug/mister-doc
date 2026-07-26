@@ -3,6 +3,7 @@ import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext.tsx';
 import { AuthGate } from './auth/AuthGate.tsx';
 import { useAuth } from './auth/useAuth.ts';
+import { useI18n } from './i18n/index.ts';
 import { ToastProvider } from './components/Toast.tsx';
 import { ConfirmProvider } from './components/ui/ConfirmProvider.tsx';
 import { Header } from './components/Header.tsx';
@@ -42,6 +43,7 @@ function AdminRoute({ children }: { children: ReactNode }) {
 }
 
 export default function App() {
+  const { t } = useI18n();
   return (
     <ToastProvider>
       <ConfirmProvider>
@@ -52,7 +54,7 @@ export default function App() {
                 <Header />
                 <main className="pb-24">
                   <Suspense
-                    fallback={<FullScreenSpinner label="Chargement…" />}
+                    fallback={<FullScreenSpinner label={t('common.loading')} />}
                   >
                     <Routes>
                       <Route path="/" element={<PlanningView />} />

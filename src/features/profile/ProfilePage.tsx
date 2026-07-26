@@ -18,9 +18,11 @@ import {
   Download,
   UserX,
   LayoutGrid,
+  Languages,
 } from 'lucide-react';
 import { FamilyApps } from '@mister-guiiug/dev-wpa-config/react';
 import { useAuth } from '../../auth/useAuth.ts';
+import { useI18n } from '../../i18n/index.ts';
 import { useToast } from '../../components/Toast.tsx';
 import { useTheme } from '../../lib/theme.ts';
 import { DOCTOR_COLORS } from '../../lib/colors.ts';
@@ -65,6 +67,7 @@ function Section({
 export function ProfilePage() {
   const { doctor, isAdmin, signOut, refreshDoctor } = useAuth();
   const { theme, setTheme } = useTheme();
+  const { t, locale, setLocale, locales } = useI18n();
   const toast = useToast();
   const confirm = useConfirm();
   const [name, setName] = useState(doctor?.name ?? '');
@@ -119,9 +122,9 @@ export function ProfilePage() {
     try {
       await updateMyProfile(name.trim(), color);
       await refreshDoctor();
-      toast.success('Profil mis à jour.');
+      toast.success(t('profile.profileUpdated'));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Erreur');
+      toast.error(e instanceof Error ? e.message : t('common.error'));
     } finally {
       setSaving(false);
     }
@@ -134,10 +137,10 @@ export function ProfilePage() {
       try {
         await disablePush();
         setPush('off');
-        toast.success('Notifications push désactivées.');
+        toast.success(t('profile.pushDisabled'));
       } catch {
         setPush('on');
-        toast.error('Erreur lors de la désactivation.');
+        toast.error(t('profile.pushDisableError'));
       }
       return;
     }
@@ -145,11 +148,11 @@ export function ProfilePage() {
     try {
       const r = await enablePush(doctor.id);
       setPush(r === 'on' ? 'on' : 'denied');
-      if (r === 'on') toast.success('Notifications push activées.');
-      else toast.error('Autorisation refusée dans le navigateur.');
+      if (r === 'on') toast.success(t('profile.pushEnabled'));
+      else toast.error(t('profile.pushDenied'));
     } catch {
       setPush('off');
-      toast.error('Activation impossible.');
+      toast.error(t('profile.pushEnableError'));
     }
   }
 
@@ -159,7 +162,7 @@ export function ProfilePage() {
       try {
         await navigator.share({
           title: 'mister-doc',
-          text: 'Planning des gardes — mister-doc',
+          text: t('profile.shareText'),
           url: appUrl,
         });
       } catch {
@@ -171,9 +174,9 @@ export function ProfilePage() {
       await navigator.clipboard.writeText(appUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
-      toast.success('Lien copié.');
+      toast.success(t('profile.linkCopiedToast'));
     } catch {
-      toast.error('Copie impossible — sélectionnez le lien manuellement.');
+      toast.error(t('profile.copyImpossible'));
     }
   }
 
@@ -181,18 +184,17 @@ export function ProfilePage() {
   async function handleDeleteAccount() {
     if (!doctor) return;
     const ok = await confirm({
-      title: 'Supprimer votre compte ?',
-      message:
-        'Votre identité (nom, e-mail, connexion) sera définitivement effacée. Vos gardes passées restent au planning sous une identité anonymisée. Action irréversible : vous serez déconnecté(e).',
+      title: t('profile.deleteConfirmTitle'),
+      message: t('profile.deleteConfirmMsg'),
       danger: true,
-      confirmLabel: 'Supprimer mon compte',
+      confirmLabel: t('profile.deleteConfirmLabel'),
     });
     if (!ok) return;
     try {
       await anonymizeDoctor(doctor.id);
       await signOut();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Suppression impossible.');
+      toast.error(e instanceof Error ? e.message : t('profile.deleteError'));
     }
   }
 
@@ -202,9 +204,9 @@ export function ProfilePage() {
     setExporting(true);
     try {
       downloadMyData(await exportMyData(doctor));
-      toast.success('Vos données ont été téléchargées.');
+      toast.success(t('profile.dataDownloaded'));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Export impossible.');
+      toast.error(e instanceof Error ? e.message : t('profile.exportError'));
     } finally {
       setExporting(false);
     }
@@ -230,7 +232,7 @@ export function ProfilePage() {
         </div>
         {isAdmin && (
           <span className="flex items-center gap-1 rounded-full bg-teal-50 px-2 py-1 text-xs font-semibold text-teal-700 dark:bg-teal-950/40 dark:text-teal-300">
-            <ShieldCheck className="size-3.5" /> Admin
+            <ShieldCheck className="size-3.5" /> {t('profile.admin')}
           </span>
         )}
       </div>
@@ -238,17 +240,17 @@ export function ProfilePage() {
       {/* Identité */}
       <Section
         icon={<UserRound className="size-4" />}
-        title="Identité"
-        desc="Votre nom et votre couleur dans le planning"
+        title={t('profile.identityTitle')}
+        desc={t('profile.identityDesc')}
       >
         <label className="mb-3 flex flex-col gap-1 text-sm">
           <span className="font-medium text-slate-600 dark:text-slate-300">
-            Nom affiché
+            {t('profile.displayName')}
           </span>
           <input
             value={name}
             onChange={e => setName(e.target.value)}
-            placeholder="Nom du médecin"
+            placeholder={t('profile.namePlaceholder')}
             className="rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:border-slate-600 dark:bg-slate-800"
           />
         </label>
@@ -267,7 +269,7 @@ export function ProfilePage() {
                     : ''
                 }`}
                 style={{ backgroundColor: c }}
-                aria-label={`Couleur ${c}`}
+                aria-label={t('profile.colorAria', { color: c })}
               >
                 {color === c && <Check className="size-4 text-white" />}
               </button>
@@ -282,19 +284,19 @@ export function ProfilePage() {
           onClick={() => void handleSave()}
         >
           {!saving && <Check className="size-4" />}
-          {dirty ? 'Enregistrer' : 'À jour'}
+          {dirty ? t('common.save') : t('common.saved')}
         </Button>
       </Section>
 
       {/* Apparence */}
       <Section
         icon={<SunMoon className="size-4" />}
-        title="Apparence"
-        desc="Thème clair ou sombre"
+        title={t('profile.appearanceTitle')}
+        desc={t('profile.appearanceDesc')}
       >
         <SegmentedControl
           fullWidth
-          ariaLabel="Thème clair ou sombre"
+          ariaLabel={t('profile.themeAria')}
           value={theme}
           onChange={setTheme}
           options={[
@@ -302,7 +304,7 @@ export function ProfilePage() {
               value: 'light',
               label: (
                 <span className="flex items-center justify-center gap-1.5">
-                  <Sun className="size-4" /> Clair
+                  <Sun className="size-4" /> {t('profile.light')}
                 </span>
               ),
             },
@@ -310,11 +312,29 @@ export function ProfilePage() {
               value: 'dark',
               label: (
                 <span className="flex items-center justify-center gap-1.5">
-                  <Moon className="size-4" /> Sombre
+                  <Moon className="size-4" /> {t('profile.dark')}
                 </span>
               ),
             },
           ]}
+        />
+      </Section>
+
+      {/* Langue */}
+      <Section
+        icon={<Languages className="size-4" />}
+        title={t('settings.languageTitle')}
+        desc={t('settings.languageDesc')}
+      >
+        <SegmentedControl
+          fullWidth
+          ariaLabel={t('settings.languageAria')}
+          value={locale}
+          onChange={setLocale}
+          options={locales.map(l => ({
+            value: l,
+            label: l === 'fr' ? t('settings.french') : t('settings.english'),
+          }))}
         />
       </Section>
 
@@ -327,23 +347,23 @@ export function ProfilePage() {
       {/* Calendrier */}
       <Section
         icon={<CalendarPlus className="size-4" />}
-        title="Calendrier"
-        desc="S'abonner au flux .ics (Apple, Google, Outlook)"
+        title={t('profile.calendarTitle')}
+        desc={t('profile.calendarDesc')}
       >
         <Button
           variant="secondary"
           className="w-full py-2.5"
           onClick={() => setCalendar(true)}
         >
-          <CalendarPlus className="size-4" /> Gérer mon abonnement
+          <CalendarPlus className="size-4" /> {t('profile.manageSubscription')}
         </Button>
       </Section>
 
       {/* Partager */}
       <Section
         icon={<Share2 className="size-4" />}
-        title="Partager"
-        desc="Envoyer le lien de l'application à un collègue"
+        title={t('profile.shareTitle')}
+        desc={t('profile.shareDesc')}
       >
         <div className="mb-3 flex items-center rounded-lg bg-slate-50 px-3 py-2 text-xs dark:bg-slate-800">
           <span className="truncate font-mono text-slate-500 dark:text-slate-400">
@@ -362,7 +382,7 @@ export function ProfilePage() {
           ) : (
             <Copy className="size-4" />
           )}
-          {copied ? 'Lien copié' : 'Partager l’application'}
+          {copied ? t('profile.linkCopied') : t('profile.shareApp')}
         </Button>
       </Section>
 
@@ -370,13 +390,12 @@ export function ProfilePage() {
       {pushOn && (
         <Section
           icon={<BellRing className="size-4" />}
-          title="Notifications push"
-          desc="Être prévenu même quand l'app est fermée"
+          title={t('profile.pushTitle')}
+          desc={t('profile.pushDesc')}
         >
           {push === 'denied' ? (
             <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
-              Les notifications sont bloquées pour ce site. Autorisez-les dans
-              les réglages du navigateur pour activer le push.
+              {t('profile.pushBlocked')}
             </p>
           ) : (
             <Button
@@ -389,8 +408,8 @@ export function ProfilePage() {
                 <BellRing className="size-4" />
               )}
               {push === 'on'
-                ? 'Désactiver les notifications push'
-                : 'Activer les notifications push'}
+                ? t('profile.pushDisable')
+                : t('profile.pushEnable')}
             </Button>
           )}
         </Section>
@@ -399,8 +418,8 @@ export function ProfilePage() {
       {/* Confidentialité & données (RGPD) */}
       <Section
         icon={<ShieldCheck className="size-4" />}
-        title="Confidentialité & mes données"
-        desc="Politique de confidentialité et export de vos données (RGPD)"
+        title={t('profile.privacyTitle')}
+        desc={t('profile.privacyDesc')}
       >
         <div className="flex flex-col gap-2">
           <Button
@@ -408,7 +427,7 @@ export function ProfilePage() {
             className="w-full py-2.5"
             onClick={() => setPrivacy(true)}
           >
-            <FileText className="size-4" /> Politique de confidentialité
+            <FileText className="size-4" /> {t('profile.privacyPolicy')}
           </Button>
           <Button
             variant="secondary"
@@ -416,19 +435,18 @@ export function ProfilePage() {
             loading={exporting}
             onClick={() => void handleExport()}
           >
-            {!exporting && <Download className="size-4" />} Télécharger mes
-            données
+            {!exporting && <Download className="size-4" />}{' '}
+            {t('profile.downloadData')}
           </Button>
           <Button
             variant="dangerGhost"
             className="w-full py-2.5"
             onClick={() => void handleDeleteAccount()}
           >
-            <UserX className="size-4" /> Supprimer mon compte
+            <UserX className="size-4" /> {t('profile.deleteAccount')}
           </Button>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Suppression = anonymisation : votre identité est effacée ; vos
-            gardes passées restent au planning sans votre nom.
+            {t('profile.deleteNote')}
           </p>
         </div>
       </Section>
@@ -436,11 +454,13 @@ export function ProfilePage() {
       {/* Application */}
       <Section
         icon={<Info className="size-4" />}
-        title="Application"
-        desc="Version installée et mise à jour"
+        title={t('profile.appTitle')}
+        desc={t('profile.appDesc')}
       >
         <div className="mb-3 flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm dark:bg-slate-800">
-          <span className="text-slate-500 dark:text-slate-400">Version</span>
+          <span className="text-slate-500 dark:text-slate-400">
+            {t('profile.version')}
+          </span>
           <span className="font-mono text-xs font-medium tabular-nums">
             {APP_BUILD}
           </span>
@@ -455,15 +475,15 @@ export function ProfilePage() {
           }}
         >
           <RefreshCw className={`size-4 ${updating ? 'animate-spin' : ''}`} />
-          Forcer la mise à jour
+          {t('profile.forceUpdate')}
         </Button>
       </Section>
 
       {/* Autres applications de la famille (composant partagé, catalogue) */}
       <Section
         icon={<LayoutGrid className="size-4" />}
-        title="Nos autres applications"
-        desc="Les applications gratuites de la même famille"
+        title={t('profile.otherAppsTitle')}
+        desc={t('profile.otherAppsDesc')}
       >
         <div className="family-apps">
           <FamilyApps currentAppId="mister-doc" showSponsor={false} />
@@ -475,7 +495,7 @@ export function ProfilePage() {
         className="mt-1 w-full py-2.5 font-semibold"
         onClick={() => void signOut()}
       >
-        <LogOut className="size-4" /> Se déconnecter
+        <LogOut className="size-4" /> {t('profile.signOut')}
       </Button>
 
       {calendar && <CalendarDialog onClose={() => setCalendar(false)} />}

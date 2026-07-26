@@ -1,5 +1,6 @@
 import { Modal } from '../Modal.tsx';
 import { Button } from './Button.tsx';
+import { useI18n } from '../../i18n/index.ts';
 import type { ConfirmOptions } from './confirmContext.ts';
 
 /**
@@ -16,11 +17,12 @@ export function ConfirmDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const { t } = useI18n();
   const {
     title,
     message,
-    confirmLabel = 'Confirmer',
-    cancelLabel = 'Annuler',
+    confirmLabel = t('confirm.confirm'),
+    cancelLabel = t('confirm.cancel'),
     danger = false,
   } = options;
   return (

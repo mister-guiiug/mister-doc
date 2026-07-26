@@ -4,6 +4,7 @@ import { useToast } from '../../components/Toast.tsx';
 import { useConfirm } from '../../components/ui/confirmContext.ts';
 import { Button } from '../../components/ui/Button.tsx';
 import { SectionCard } from '../../components/ui/SectionCard.tsx';
+import { useI18n } from '../../i18n/index.ts';
 import {
   deletePasskey,
   listPasskeys,
@@ -15,8 +16,8 @@ import {
 type Status = 'loading' | 'ready' | 'error' | 'unsupported';
 
 /** Date lisible (jj mois aaaa) à partir d'un ISO. */
-function frDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('fr-FR', {
+function fmtDate(iso: string, locale: string): string {
+  return new Date(iso).toLocaleDateString(locale === 'en' ? 'en-GB' : 'fr-FR', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
@@ -32,6 +33,7 @@ function frDate(iso: string): string {
 export function PasskeyCard() {
   const toast = useToast();
   const confirm = useConfirm();
+  const { t, locale } = useI18n();
   const supported = passkeysSupported();
   const [status, setStatus] = useState<Status>(
     supported ? 'loading' : 'unsupported'
@@ -65,12 +67,10 @@ export function PasskeyCard() {
     setBusy(true);
     try {
       await registerPasskey();
-      toast.success(
-        'Passkey enregistrée — vous pouvez désormais vous connecter avec l’empreinte.'
-      );
+      toast.success(t('passkey.registered'));
       await refresh();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Erreur');
+      toast.error(e instanceof Error ? e.message : t('common.error'));
     } finally {
       if (alive.current) setBusy(false);
     }
@@ -78,20 +78,19 @@ export function PasskeyCard() {
 
   async function remove(p: Passkey) {
     const ok = await confirm({
-      title: 'Retirer cette passkey ?',
-      message:
-        'Cet appareil ne pourra plus se connecter par empreinte. Vous pourrez en réenregistrer une à tout moment.',
-      confirmLabel: 'Retirer',
+      title: t('passkey.removeConfirmTitle'),
+      message: t('passkey.removeConfirmMsg'),
+      confirmLabel: t('passkey.removeLabel'),
       danger: true,
     });
     if (!ok) return;
     setBusy(true);
     try {
       await deletePasskey(p.id);
-      toast.success('Passkey retirée.');
+      toast.success(t('passkey.removed'));
       await refresh();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Erreur');
+      toast.error(e instanceof Error ? e.message : t('common.error'));
     } finally {
       if (alive.current) setBusy(false);
     }
@@ -100,24 +99,24 @@ export function PasskeyCard() {
   return (
     <SectionCard
       icon={<Fingerprint className="size-4" />}
-      title="Connexion par empreinte"
-      desc="Passkey (empreinte, Face ID, Windows Hello) pour se connecter sans mot de passe"
+      title={t('passkey.title')}
+      desc={t('passkey.desc')}
     >
       {status === 'unsupported' && (
         <p className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-          Cet appareil ou ce navigateur ne prend pas en charge les passkeys.
+          {t('passkey.unsupported')}
         </p>
       )}
 
       {status === 'loading' && (
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          Chargement…
+          {t('passkey.loading')}
         </p>
       )}
 
       {status === 'error' && (
         <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
-          État indisponible (hors ligne ?). Réessayez une fois connecté.
+          {t('passkey.unavailable')}
         </p>
       )}
 
@@ -126,7 +125,7 @@ export function PasskeyCard() {
           {passkeys.length === 0 ? (
             <p className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
               <Fingerprint className="size-4 shrink-0 text-slate-400" />
-              Aucune passkey enregistrée sur ce compte.
+              {t('passkey.none')}
             </p>
           ) : (
             <ul className="flex flex-col gap-2">
@@ -137,16 +136,21 @@ export function PasskeyCard() {
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">
-                      {p.friendlyName || 'Passkey'}
+                      {p.friendlyName || t('passkey.defaultName')}
                     </p>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Ajoutée le {frDate(p.createdAt)}
-                      {p.lastUsedAt && ` · utilisée le ${frDate(p.lastUsedAt)}`}
+                      {t('passkey.addedOn', {
+                        date: fmtDate(p.createdAt, locale),
+                      })}
+                      {p.lastUsedAt &&
+                        t('passkey.usedOn', {
+                          date: fmtDate(p.lastUsedAt, locale),
+                        })}
                     </p>
                   </div>
                   <button
                     type="button"
-                    aria-label="Retirer cette passkey"
+                    aria-label={t('passkey.removeAria')}
                     disabled={busy}
                     onClick={() => void remove(p)}
                     className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50 dark:hover:bg-red-950/40"
@@ -162,7 +166,7 @@ export function PasskeyCard() {
             loading={busy}
             onClick={() => void add()}
           >
-            {!busy && <Plus className="size-4" />} Ajouter une passkey
+            {!busy && <Plus className="size-4" />} {t('passkey.add')}
           </Button>
         </div>
       )}
