@@ -14,3 +14,11 @@ jobs:
   lighthouse:
     uses: mister-guiiug/dev-wpa-config/.github/workflows/pwa-lighthouse.yml@v3
     secrets: inherit
+    with:
+      # Valeurs FACTICES pour la validation d'env : `src/lib/env.ts` échoue au
+      # chargement du module sans elles → l'app rend une page blanche sous
+      # Lighthouse (« NO_FCP »). Alignées sur ci.yml ; aucun accès réseau. Le
+      # build déployé (deploy.yml) garde les vraies vars du dépôt.
+      build-env: |
+        VITE_SUPABASE_URL=https://placeholder.supabase.co
+        VITE_SUPABASE_ANON_KEY=placeholder-anon-key-0000000000000000
