@@ -27,7 +27,7 @@ import { listDoctors } from '../../backend/doctors.ts';
 import { listShiftsBetween } from '../../backend/planning.ts';
 import { listLeavesBetween } from '../../backend/leaves.ts';
 import { listHncBetween } from '../../backend/hnc.ts';
-import { FullScreenSpinner } from '../../components/Spinner.tsx';
+import { SkeletonTable } from '../../components/ui/Skeleton.tsx';
 import { SegmentedControl } from '../../components/ui/SegmentedControl.tsx';
 import {
   exportCountersCsv,
@@ -195,7 +195,9 @@ export function AllCounters() {
     [rows]
   );
 
-  if (loading) return <FullScreenSpinner label={t('common.loading')} />;
+  // Squelette plutôt qu'un spinner plein écran : l'écran charge 4 requêtes
+  // (médecins, gardes, absences, HNC) et la mise en page reste stable.
+  if (loading) return <SkeletonTable label={t('common.loading')} />;
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-4 px-3 py-4 sm:px-4">
