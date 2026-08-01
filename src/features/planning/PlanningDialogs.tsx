@@ -1,5 +1,6 @@
 import type { Doctor, Shift, WishKind } from '../../backend/types.ts';
 import { AssignDialog, type SlotTarget } from './AssignDialog.tsx';
+import { CopyMonthDialog } from './CopyMonthDialog.tsx';
 import { LeaveDialog } from './LeaveDialog.tsx';
 import { NoteDialog } from './NoteDialog.tsx';
 import { HncDialog } from './HncDialog.tsx';
@@ -21,16 +22,22 @@ interface PlanningDialogsProps {
   leaveDate: string | null;
   noteDate: string | null;
   hncDate: string | null;
+  /** Mois affiché : cible de la copie du mois précédent. */
+  year: number;
+  month: number;
+  copyMonthOpen: boolean;
   onCloseSlot: () => void;
   onCloseLeave: () => void;
   onCloseNote: () => void;
   onCloseHnc: () => void;
+  onCloseCopyMonth: () => void;
 }
 
 /**
- * Les quatre dialogues du planning (affectation, absence, note, HNC), montés
- * uniquement quand leur cible est renseignée. L'état d'ouverture et les
- * mutations restent dans `PlanningView` : ce composant ne fait que câbler.
+ * Les cinq dialogues du planning (affectation, absence, note, HNC, copie du
+ * mois précédent), montés uniquement quand leur cible est renseignée. L'état
+ * d'ouverture et les mutations restent dans `PlanningView` : ce composant ne
+ * fait que câbler.
  */
 export function PlanningDialogs({
   doctor,
@@ -42,10 +49,14 @@ export function PlanningDialogs({
   leaveDate,
   noteDate,
   hncDate,
+  year,
+  month,
+  copyMonthOpen,
   onCloseSlot,
   onCloseLeave,
   onCloseNote,
   onCloseHnc,
+  onCloseCopyMonth,
 }: PlanningDialogsProps) {
   return (
     <>
@@ -100,6 +111,16 @@ export function PlanningDialogs({
           }
           onRemove={mutations.handleClearHnc}
           onClose={onCloseHnc}
+        />
+      )}
+
+      {copyMonthOpen && (
+        <CopyMonthDialog
+          year={year}
+          month={month}
+          targetShifts={data.shifts}
+          onConfirm={mutations.handleCopyMonth}
+          onClose={onCloseCopyMonth}
         />
       )}
     </>

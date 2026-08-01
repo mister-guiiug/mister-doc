@@ -2,9 +2,14 @@ import { useCallback } from 'react';
 import type { useToast } from '../../components/Toast.tsx';
 import { useConfirm } from '../../components/ui/confirmContext.ts';
 import type { LeaveKind } from '../../lib/leaves.ts';
+import type { MonthCopyRow } from '../../lib/monthCopy.ts';
 import { planWeeklyRepeat } from '../../lib/repeatPlan.ts';
 import type { Doctor, Leave, Shift, WishKind } from '../../backend/types.ts';
-import { assignShift, clearShift } from '../../backend/planning.ts';
+import {
+  assignShift,
+  assignShiftsBulk,
+  clearShift,
+} from '../../backend/planning.ts';
 import { clearLeave, setLeaveRange } from '../../backend/leaves.ts';
 import { clearNote, setNote } from '../../backend/notes.ts';
 import { clearWish, setWish } from '../../backend/wishes.ts';
@@ -156,6 +161,32 @@ export function usePlanningMutations(data: PlanningData, ctx: MutationCtx) {
       }
     },
     [shifts, setShifts, toast, t, notifyError]
+  );
+
+  /**
+   * Écrit le plan de copie du mois précédent (cf. `CopyMonthDialog`) en UN
+   * appel : la RPC de lot insère tout dans la même transaction, sans écraser
+   * les créneaux déjà attribués. Pas d'écriture optimiste — un lot de ~90
+   * lignes se relit plus sûrement qu'il ne se simule, et `loadData` fait foi.
+   */
+  const handleCopyMonth = useCallback(
+    async (rows: MonthCopyRow[]) => {
+      // Garde-fou : le dialogue ne s'ouvre pas sur un mois verrouillé, mais la
+      // base refuserait de toute façon (trigger `assert_month_unlocked`).
+      if (locked) {
+        toast.error(t('copyMonth.lockedError'));
+        return;
+      }
+      if (rows.length === 0) return;
+      try {
+        const n = await assignShiftsBulk(rows);
+        await loadData();
+        toast.success(t('copyMonth.done', { n }));
+      } catch (e) {
+        notifyError(e);
+      }
+    },
+    [locked, loadData, toast, t, notifyError]
   );
 
   const handleAddLeave = useCallback(
@@ -347,6 +378,7 @@ export function usePlanningMutations(data: PlanningData, ctx: MutationCtx) {
   return {
     handleAssign,
     handleClearSlot,
+    handleCopyMonth,
     handleAddLeave,
     handleRemoveLeave,
     handleSaveNote,

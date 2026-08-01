@@ -204,6 +204,27 @@ export const messages = {
       removeHncWho: ' de {name}',
       removeHncWhen: ' le {date}',
     },
+    copyMonth: {
+      button: 'Copier le mois précédent',
+      buttonShort: 'Copier',
+      title: 'Copier le mois précédent',
+      intro:
+        'Les gardes de {source} sont reprises dans {target}, alignées sur le jour de semaine (un mardi reste un mardi).',
+      loading: 'Lecture de {source}…',
+      loadError: 'Impossible de lire les gardes de {source}.',
+      emptySource: 'Aucune garde à reprendre dans {source}.',
+      willCreate: '{n} garde(s) seront créées.',
+      nothingToCreate: 'Aucune garde à créer : tout est déjà écarté.',
+      skippedOutside: '{n} ignorée(s) : date hors de {target} (fin de mois).',
+      skippedInactive:
+        '{n} ignorée(s) : créneau non requis (week-end ou férié).',
+      skippedOccupied: '{n} ignorée(s) : créneau déjà attribué.',
+      note: 'Seules les gardes sont copiées : ni absences, ni heures non cliniques. Les créneaux déjà attribués ne sont jamais écrasés.',
+      confirm: 'Copier les gardes',
+      done: '{n} garde(s) copiées.',
+      lockedError:
+        'Mois verrouillé : impossible de copier le mois précédent. Déverrouillez-le d’abord.',
+    },
     counters: {
       mine: 'Mes compteurs',
       team: "Compteurs de l'équipe",
@@ -931,6 +952,26 @@ export const messages = {
       removeHncConfirm: 'Remove the non-clinical hours{who}{when}?',
       removeHncWho: ' for {name}',
       removeHncWhen: ' on {date}',
+    },
+    copyMonth: {
+      button: 'Copy the previous month',
+      buttonShort: 'Copy',
+      title: 'Copy the previous month',
+      intro:
+        'Shifts from {source} are carried over to {target}, aligned on the weekday (a Tuesday stays a Tuesday).',
+      loading: 'Reading {source}…',
+      loadError: 'Could not read the shifts of {source}.',
+      emptySource: 'No shift to carry over from {source}.',
+      willCreate: '{n} shift(s) will be created.',
+      nothingToCreate: 'No shift to create: everything was skipped.',
+      skippedOutside: '{n} skipped: date outside {target} (end of month).',
+      skippedInactive: '{n} skipped: slot not required (weekend or holiday).',
+      skippedOccupied: '{n} skipped: slot already assigned.',
+      note: 'Only shifts are copied: no absences, no non-clinical hours. Slots already assigned are never overwritten.',
+      confirm: 'Copy the shifts',
+      done: '{n} shift(s) copied.',
+      lockedError:
+        'Month locked: the previous month cannot be copied. Unlock it first.',
     },
     counters: {
       mine: 'My counters',

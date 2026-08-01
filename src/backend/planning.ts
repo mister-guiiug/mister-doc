@@ -1,5 +1,6 @@
 import { getSupabase, subscribeTable } from '../lib/supabase.ts';
 import { monthBounds } from '../lib/dates.ts';
+import type { MonthCopyRow } from '../lib/monthCopy.ts';
 import type { ShiftType } from '../lib/shifts.ts';
 import type { Shift } from './types.ts';
 
@@ -60,6 +61,22 @@ export async function assignShift(
     .single();
   if (error) throw new Error(error.message);
   return data as Shift;
+}
+
+/**
+ * Insère un lot de gardes en UNE transaction (copie de mois). La RPC ignore les
+ * créneaux déjà attribués (`on conflict do nothing`) : rien n'est écrasé. Elle
+ * reste en SECURITY INVOKER côté base — RLS, verrou de mois et historique
+ * s'appliquent — et renvoie le nombre de lignes réellement créées.
+ */
+export async function assignShiftsBulk(
+  rows: readonly MonthCopyRow[]
+): Promise<number> {
+  const { data, error } = await getSupabase().rpc('assign_shifts_bulk', {
+    p_rows: rows,
+  });
+  if (error) throw new Error(error.message);
+  return (data as number | null) ?? 0;
 }
 
 /** Libère un créneau (supprime l'affectation). */
