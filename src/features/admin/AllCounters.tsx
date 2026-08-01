@@ -1,13 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  ChevronLeft,
-  ChevronRight,
-  Users,
-  Download,
-  FileSpreadsheet,
-  FileText,
-} from 'lucide-react';
-import {
   quadrimesterBounds,
   quadrimesterIndex,
   toISODate,
@@ -16,39 +8,21 @@ import { useI18n } from '../../i18n/index.ts';
 import { computeCounters } from '../../lib/shifts.ts';
 import { computeLeaveStats } from '../../lib/leaves.ts';
 import { sumHncHours } from '../../lib/hnc.ts';
-import {
-  computeEquity,
-  EQUITY_METRICS,
-  type EquityMetricKey,
-  type EquityReport,
-} from '../../lib/equity.ts';
+import { computeEquity } from '../../lib/equity.ts';
 import type { Doctor, HncEntry, Leave, Shift } from '../../backend/types.ts';
 import { listDoctors } from '../../backend/doctors.ts';
 import { listShiftsBetween } from '../../backend/planning.ts';
 import { listLeavesBetween } from '../../backend/leaves.ts';
 import { listHncBetween } from '../../backend/hnc.ts';
 import { SkeletonTable } from '../../components/ui/Skeleton.tsx';
-import { SegmentedControl } from '../../components/ui/SegmentedControl.tsx';
 import {
-  exportCountersCsv,
-  exportCountersPdf,
-  exportCountersXlsx,
-  type CounterRow,
-} from './countersExport.ts';
-
-type Period = 'month' | 'quadri' | 'year';
-
-interface Row {
-  doctor: Doctor;
-  fridays: number;
-  saturdays: number;
-  sundays: number;
-  weekendHours: number;
-  hncHours: number;
-  totalHours: number;
-  annualDays: number;
-  trainingHours: number;
-}
+  CountersToolbar,
+  type CountersView,
+  type Period,
+} from './CountersToolbar.tsx';
+import { CountersTable, type Row } from './CountersTable.tsx';
+import { EquityView } from './EquityView.tsx';
+import type { CounterRow } from './countersExport.ts';
 
 function bounds(period: Period, year: number, month: number): [string, string] {
   if (period === 'year') {
@@ -70,7 +44,7 @@ export function AllCounters() {
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
   const [period, setPeriod] = useState<Period>('month');
-  const [view, setView] = useState<'table' | 'equity'>('table');
+  const [view, setView] = useState<CountersView>('table');
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [leaves, setLeaves] = useState<Leave[]>([]);
@@ -201,81 +175,15 @@ export function AllCounters() {
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-4 px-3 py-4 sm:px-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <h1 className="flex items-center gap-2 text-lg font-bold">
-          <Users className="size-5 text-teal-600" /> {t('counters.team')}
-        </h1>
-
-        <SegmentedControl
-          size="sm"
-          ariaLabel={t('counters.viewAria')}
-          value={view}
-          onChange={setView}
-          options={[
-            { value: 'table', label: t('counters.table') },
-            { value: 'equity', label: t('counters.equity') },
-          ]}
-        />
-
-        <SegmentedControl
-          className="ml-auto"
-          size="sm"
-          ariaLabel={t('counters.periodAria')}
-          value={period}
-          onChange={setPeriod}
-          options={[
-            { value: 'month', label: t('counters.periodMonth') },
-            { value: 'quadri', label: t('counters.periodQuad') },
-            { value: 'year', label: t('counters.periodYear') },
-          ]}
-        />
-
-        <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 dark:border-slate-800 dark:bg-slate-900">
-          <button
-            onClick={() => shiftPeriod(-1)}
-            className="rounded-lg p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800"
-            aria-label={t('common.previous')}
-          >
-            <ChevronLeft className="size-5" />
-          </button>
-          <span className="min-w-24 text-center text-sm font-semibold capitalize">
-            {label}
-          </span>
-          <button
-            onClick={() => shiftPeriod(1)}
-            className="rounded-lg p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800"
-            aria-label={t('common.next')}
-          >
-            <ChevronRight className="size-5" />
-          </button>
-        </div>
-
-        {view === 'table' && (
-          <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 dark:border-slate-800 dark:bg-slate-900">
-            <ExportButton
-              onClick={() => exportCountersCsv(exportRows, label)}
-              disabled={exportRows.length === 0}
-              title={t('counters.exportCsv')}
-              icon={<Download className="size-4" />}
-              label={t('counters.csv')}
-            />
-            <ExportButton
-              onClick={() => exportCountersXlsx(exportRows, label)}
-              disabled={exportRows.length === 0}
-              title={t('counters.exportExcel')}
-              icon={<FileSpreadsheet className="size-4" />}
-              label={t('counters.excel')}
-            />
-            <ExportButton
-              onClick={() => exportCountersPdf(exportRows, label)}
-              disabled={exportRows.length === 0}
-              title={t('counters.exportPdf')}
-              icon={<FileText className="size-4" />}
-              label={t('counters.pdf')}
-            />
-          </div>
-        )}
-      </div>
+      <CountersToolbar
+        view={view}
+        onViewChange={setView}
+        period={period}
+        onPeriodChange={setPeriod}
+        label={label}
+        onShiftPeriod={shiftPeriod}
+        exportRows={exportRows}
+      />
 
       {error && (
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">
@@ -286,210 +194,8 @@ export function AllCounters() {
       {view === 'equity' ? (
         <EquityView report={equity} label={label} />
       ) : (
-        <>
-          <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-            <table className="w-full min-w-[34rem] text-sm">
-              <thead>
-                <tr className="border-b border-slate-100 text-left text-xs uppercase text-slate-400 dark:border-slate-800">
-                  <th className="px-3 py-2 font-semibold">
-                    {t('counters.doctor')}
-                  </th>
-                  <Th>{t('counters.fri')}</Th>
-                  <Th>{t('counters.sat')}</Th>
-                  <Th>{t('counters.sun')}</Th>
-                  <Th>{t('counters.hWe')}</Th>
-                  <Th>{t('counters.hnc')}</Th>
-                  <Th>{t('counters.hTotal')}</Th>
-                  <Th>{t('counters.leaveShort')}</Th>
-                  <Th>{t('counters.trainingShort')}</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map(r => (
-                  <tr
-                    key={r.doctor.id}
-                    className="border-b border-slate-50 last:border-0 dark:border-slate-800/60"
-                  >
-                    <td className="px-3 py-2">
-                      <span className="flex items-center gap-2">
-                        <span
-                          className="inline-block size-2.5 shrink-0 rounded-full"
-                          style={{ backgroundColor: r.doctor.color }}
-                        />
-                        <span className="truncate font-medium">
-                          {r.doctor.name}
-                        </span>
-                      </span>
-                    </td>
-                    <Td>{r.fridays}</Td>
-                    <Td>{r.saturdays}</Td>
-                    <Td>{r.sundays}</Td>
-                    <Td strong>{r.weekendHours} h</Td>
-                    <Td>{r.hncHours} h</Td>
-                    <Td strong>{r.totalHours} h</Td>
-                    <Td>{r.annualDays} j</Td>
-                    <Td>{r.trainingHours} h</Td>
-                  </tr>
-                ))}
-                {rows.length === 0 && (
-                  <tr>
-                    <td
-                      colSpan={9}
-                      className="px-3 py-6 text-center text-slate-400"
-                    >
-                      {t('counters.noDoctors')}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-          <p className="text-xs text-slate-400">
-            {t('counters.weekendNote', { label })}
-          </p>
-        </>
+        <CountersTable rows={rows} label={label} />
       )}
     </div>
-  );
-}
-
-function Th({ children }: { children: React.ReactNode }) {
-  return <th className="px-2 py-2 text-right font-semibold">{children}</th>;
-}
-function Td({
-  children,
-  strong,
-}: {
-  children: React.ReactNode;
-  strong?: boolean;
-}) {
-  return (
-    <td
-      className={`px-2 py-2 text-right tabular-nums ${strong ? 'font-semibold text-teal-700 dark:text-teal-300' : ''}`}
-    >
-      {children}
-    </td>
-  );
-}
-
-/**
- * Vue « Équité » : charge comparée par médecin. Chaque barre est proportionnelle
- * au maximum de l'équipe pour l'indicateur, et l'écart à la moyenne est indiqué
- * (▲ au-dessus, ▼ en dessous) pour repérer les déséquilibres.
- */
-function EquityView({
-  report,
-  label,
-}: {
-  report: EquityReport;
-  label: string;
-}) {
-  const { t } = useI18n();
-  const rows = [...report.rows].sort(
-    (a, b) => b.totalHours - a.totalHours || a.name.localeCompare(b.name)
-  );
-  return (
-    <div className="flex flex-col gap-2">
-      <div className="flex flex-col divide-y divide-slate-100 rounded-2xl border border-slate-200 bg-white dark:divide-slate-800 dark:border-slate-800 dark:bg-slate-900">
-        {rows.map(r => (
-          <div key={r.doctorId} className="flex flex-col gap-1.5 px-3 py-2.5">
-            <span className="flex items-center gap-2 text-sm font-medium">
-              <span
-                className="inline-block size-2.5 shrink-0 rounded-full"
-                style={{ backgroundColor: r.color ?? '#999' }}
-              />
-              <span className="truncate">{r.name}</span>
-            </span>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 sm:grid-cols-4">
-              {EQUITY_METRICS.map(m => (
-                <EquityBar
-                  key={m.key}
-                  label={m.short}
-                  value={r[m.key as EquityMetricKey]}
-                  mean={report.mean[m.key]}
-                  max={report.max[m.key]}
-                />
-              ))}
-            </div>
-          </div>
-        ))}
-        {rows.length === 0 && (
-          <p className="px-3 py-6 text-center text-sm text-slate-400">
-            {t('counters.noDoctors')}
-          </p>
-        )}
-      </div>
-      <p className="text-xs text-slate-400">
-        {t('counters.equityNote', { label })}
-      </p>
-    </div>
-  );
-}
-
-/** Une barre d'indicateur d'équité : valeur, jauge et écart à la moyenne. */
-function EquityBar({
-  label,
-  value,
-  mean,
-  max,
-}: {
-  label: string;
-  value: number;
-  mean: number;
-  max: number;
-}) {
-  const pct = max > 0 ? Math.round((value / max) * 100) : 0;
-  const delta = value - mean;
-  const over = delta > 0.5;
-  const under = delta < -0.5;
-  const bar = over ? 'bg-amber-500' : under ? 'bg-teal-500' : 'bg-slate-400';
-  return (
-    <div className="flex flex-col gap-0.5">
-      <div className="flex items-baseline justify-between text-[11px]">
-        <span className="uppercase text-slate-400">{label}</span>
-        <span className="tabular-nums">
-          <span className="font-semibold">{value}</span>
-          {(over || under) && (
-            <span
-              className={`ml-1 ${over ? 'text-amber-600' : 'text-teal-600'}`}
-            >
-              {over ? '▲' : '▼'} {Math.abs(Math.round(delta))}
-            </span>
-          )}
-        </span>
-      </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-        <div
-          className={`h-full rounded-full ${bar}`}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-    </div>
-  );
-}
-
-/** Bouton d'export compact (CSV / Excel / PDF) du groupe d'actions. */
-function ExportButton({
-  onClick,
-  disabled,
-  title,
-  icon,
-  label,
-}: {
-  onClick: () => void;
-  disabled?: boolean;
-  title: string;
-  icon: React.ReactNode;
-  label: string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      title={title}
-      className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-sm font-medium transition hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-transparent dark:hover:bg-slate-800"
-    >
-      {icon} {label}
-    </button>
   );
 }
