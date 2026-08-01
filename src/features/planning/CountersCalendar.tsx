@@ -121,9 +121,12 @@ export function CountersCalendar({
             <tr key={week}>
               {cells.map((day, i) => {
                 // Case de remplissage (avant le 1er, après le dernier jour du
-                // mois) : sans contenu ni rôle, elle est masquée aux lecteurs
-                // d'écran plutôt que d'être annoncée comme une cellule vide.
-                if (!day) return <td key={`empty-${week}-${i}`} aria-hidden />;
+                // mois). On la laisse VIDE plutôt que de la masquer : dans un
+                // tableau, un `aria-hidden` fausse le compte de cellules par
+                // ligne et casse la navigation en mode tableau, alors qu'une
+                // cellule vide est simplement annoncée « vide ».
+                // eslint-disable-next-line jsx-a11y/control-has-associated-label -- faux positif : un `td` n'est pas un contrôle.
+                if (!day) return <td key={`empty-${week}-${i}`} />;
                 const codes = byDate.get(day.iso) ?? [];
                 const onDuty = codes.length > 0;
                 const first = codes[0];
