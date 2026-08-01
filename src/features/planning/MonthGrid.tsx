@@ -11,10 +11,11 @@ import {
   Heart,
   Clock3,
 } from 'lucide-react';
-import { shiftLabel, shiftHours, activeShiftTypes } from '../../lib/shifts.ts';
+import { shiftLabel, shiftHours } from '../../lib/shifts.ts';
 import type { LeaveKind } from '../../lib/leaves.ts';
 import type { Wish } from '../../backend/types.ts';
 import type { PlanningGridProps, DayProps } from './gridTypes.ts';
+import { computeDayInfo } from './dayInfo.ts';
 import { useI18n } from '../../i18n/index.ts';
 
 // Référence stable pour les jours sans absence/alerte/vœu/HNC : évite de créer
@@ -112,14 +113,15 @@ const DayRow = memo(function DayRow({
   dayRefs,
 }: DayProps) {
   const { t, m } = useI18n();
-  const types = activeShiftTypes(day.date);
-  const missing = types.filter(
-    ty => !shiftIndex.has(`${day.iso}|${ty}`)
-  ).length;
-  const dim = (id?: string) => highlightId != null && id !== highlightId;
-  const myWish = wishes.find(w => w.doctor_id === selfDoctorId)?.kind;
-  const prefers = wishes.filter(w => w.kind === 'prefer');
-  const avoids = wishes.filter(w => w.kind === 'avoid');
+  // Lecture métier du jour : partagée avec MonthCalendarGrid (cf. dayInfo.ts).
+  const { types, missing, dim, myWish, prefers, avoids } = computeDayInfo({
+    day,
+    shiftIndex,
+    issues,
+    wishes,
+    selfDoctorId,
+    highlightId,
+  });
   const wishNames = (arr: Wish[]) =>
     arr.map(w => doctorsById.get(w.doctor_id)?.name ?? '?').join(', ');
   const leaveShort = (kind: LeaveKind) =>
