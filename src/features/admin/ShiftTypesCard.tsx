@@ -22,6 +22,7 @@ import {
 import { setShiftTypes, type ShiftTypeDef } from '../../lib/shifts.ts';
 import { SectionCard } from '../../components/ui/SectionCard.tsx';
 import { Button } from '../../components/ui/Button.tsx';
+import { Badge } from '../../components/ui/Badge.tsx';
 import { Field } from '../../components/ui/Field.tsx';
 import { Modal } from '../../components/Modal.tsx';
 import { useConfirm } from '../../components/ui/confirmContext.ts';
@@ -155,17 +156,19 @@ export function ShiftTypesCard() {
                   · {t.hours} h
                 </span>
                 {t.isNight && (
-                  <Badge>
-                    <Moon className="size-3" /> {tr('shiftTypes.nightBadge')}
+                  <Badge size="xs" icon={<Moon className="size-3" />}>
+                    {tr('shiftTypes.nightBadge')}
                   </Badge>
                 )}
                 {!t.clinical && (
-                  <Badge>{tr('shiftTypes.nonClinicalBadge')}</Badge>
+                  <Badge size="xs">{tr('shiftTypes.nonClinicalBadge')}</Badge>
                 )}
                 {t.clinical && !t.weekend && (
-                  <Badge>{tr('shiftTypes.weekBadge')}</Badge>
+                  <Badge size="xs">{tr('shiftTypes.weekBadge')}</Badge>
                 )}
-                {!t.active && <Badge>{tr('shiftTypes.inactiveBadge')}</Badge>}
+                {!t.active && (
+                  <Badge size="xs">{tr('shiftTypes.inactiveBadge')}</Badge>
+                )}
               </p>
             </div>
 
@@ -252,14 +255,6 @@ export function ShiftTypesCard() {
         />
       )}
     </SectionCard>
-  );
-}
-
-function Badge({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="inline-flex items-center gap-0.5 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 dark:bg-slate-700 dark:text-slate-300">
-      {children}
-    </span>
   );
 }
 

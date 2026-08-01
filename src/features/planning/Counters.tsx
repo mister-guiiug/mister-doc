@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { CalendarHeart, Loader2 } from 'lucide-react';
 import { computeCounters, type CountableShift } from '../../lib/shifts.ts';
+import { TONE_CLASSES, type Tone } from '../../lib/tones.ts';
 import { computeLeaveStats, type CountableLeave } from '../../lib/leaves.ts';
 import { sumHncHours } from '../../lib/hnc.ts';
 import { quadrimesterBounds, quadrimesterIndex } from '../../lib/dates.ts';
@@ -148,7 +149,7 @@ export function Counters({
         <Pill
           label={t('counters.we')}
           value={`${c.weekendHours} ${t('common.hoursUnit')}`}
-          accent
+          tone="teal"
         />
         <Pill
           label={t('counters.hnc')}
@@ -158,7 +159,7 @@ export function Counters({
         <Pill
           label={t('counters.total')}
           value={`${totalHours} ${t('common.hoursUnit')}`}
-          accent
+          tone="teal"
         />
         <Pill
           label={t('counters.leave')}
@@ -204,26 +205,15 @@ function ScopeButton({
 function Pill({
   label,
   value,
-  accent,
-  tone,
+  tone = 'neutral',
 }: {
   label: string;
   value: number | string;
-  accent?: boolean;
-  tone?: 'violet' | 'amber' | 'sky';
+  tone?: Tone;
 }) {
-  const cls = tone
-    ? tone === 'violet'
-      ? 'border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-900 dark:bg-violet-950/40 dark:text-violet-300'
-      : tone === 'sky'
-        ? 'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900 dark:bg-sky-950/40 dark:text-sky-300'
-        : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300'
-    : accent
-      ? 'border-teal-200 bg-teal-50 text-teal-800 dark:border-teal-900 dark:bg-teal-950/40 dark:text-teal-200'
-      : 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-200';
   return (
     <span
-      className={`inline-flex items-baseline gap-1 rounded-lg border px-2 py-1 text-xs ${cls}`}
+      className={`inline-flex items-baseline gap-1 rounded-lg border px-2 py-1 text-xs ${TONE_CLASSES[tone]}`}
     >
       {/* Sans opacité réduite : le ratio de contraste AA doit rester ≥ 4.5. */}
       <span className="text-[10px] uppercase">{label}</span>

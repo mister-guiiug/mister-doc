@@ -16,6 +16,14 @@ coverage
 dev-dist
 *.tsbuildinfo
 
+# JS émis par erreur à côté des sources TS (un `tsc` sans --noEmit, ex. quand
+# node_modules est incomplet). Ces fichiers cassent le lint ET le build : Vite
+# charge `vite.config.js` au lieu du `.ts`. Ignorés pour ne jamais être commités.
+src/**/*.js
+src/**/*.jsx
+/vite.config.js
+/vitest.config.js
+
 # Playwright (E2E)
 test-results
 playwright-report

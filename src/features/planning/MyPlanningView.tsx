@@ -1,10 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -27,6 +21,7 @@ import { listMonthShifts, subscribeShifts } from '../../backend/planning.ts';
 import { listMonthLeaves, subscribeLeaves } from '../../backend/leaves.ts';
 import { listMonthHnc, subscribeHnc } from '../../backend/hnc.ts';
 import { Counters } from './Counters.tsx';
+import { Badge } from '../../components/ui/Badge.tsx';
 import { CalendarDialog } from '../../components/CalendarDialog.tsx';
 import { FullScreenSpinner } from '../../components/Spinner.tsx';
 
@@ -231,35 +226,5 @@ function DayCard({ item }: { item: DayItem }) {
         ))}
       </div>
     </li>
-  );
-}
-
-const TONES: Record<string, string> = {
-  teal: 'border-teal-200 bg-teal-50 text-teal-800 dark:border-teal-900 dark:bg-teal-950/40 dark:text-teal-200',
-  indigo:
-    'border-indigo-200 bg-indigo-50 text-indigo-800 dark:border-indigo-900 dark:bg-indigo-950/40 dark:text-indigo-200',
-  violet:
-    'border-violet-200 bg-violet-50 text-violet-800 dark:border-violet-900 dark:bg-violet-950/40 dark:text-violet-200',
-  amber:
-    'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200',
-  sky: 'border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-900 dark:bg-sky-950/40 dark:text-sky-200',
-};
-
-function Badge({
-  tone,
-  icon,
-  children,
-}: {
-  tone: keyof typeof TONES | string;
-  icon?: ReactNode;
-  children: ReactNode;
-}) {
-  return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${TONES[tone] ?? TONES.teal}`}
-    >
-      {icon}
-      {children}
-    </span>
   );
 }
