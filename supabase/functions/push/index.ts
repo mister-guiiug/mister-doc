@@ -14,6 +14,9 @@
 // SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY sont fournis automatiquement.
 
 import webpush from 'npm:web-push@3.6.7';
+import { createLogger, errMessage } from '../_shared/log.ts';
+
+const log = createLogger('push');
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -64,6 +67,19 @@ function targetUrl(rec: NotificationRecord): string {
   return `${base}#/`;
 }
 
+/**
+ * Origine d'un endpoint push (`https://fcm.googleapis.com`) — suffit à
+ * identifier le service fautif (FCM, Mozilla, WNS) sans journaliser l'endpoint
+ * complet, qui est un identifiant d'appareil (donnée personnelle).
+ */
+function originOf(endpoint: string): string {
+  try {
+    return new URL(endpoint).origin;
+  } catch {
+    return 'inconnu';
+  }
+}
+
 /** Comparaison à temps constant (évite un oracle temporel sur le secret). */
 function timingSafeEqual(a: string, b: string): boolean {
   const enc = new TextEncoder();
@@ -81,14 +97,18 @@ Deno.serve(async req => {
   // avec le webhook base de données est OBLIGATOIRE. Sans lui, la fonction est
   // refusée (sinon n'importe quel POST anonyme enverrait des push arbitraires).
   if (!WEBHOOK_SECRET) {
+    log.error('config_missing', { secret: 'WEBHOOK_SECRET' });
     return new Response('WEBHOOK_SECRET non configuré', { status: 500 });
   }
   if (
     !timingSafeEqual(req.headers.get('x-webhook-secret') ?? '', WEBHOOK_SECRET)
   ) {
+    // Appel non authentifié : webhook mal configuré, ou sondage extérieur.
+    log.warn('forbidden');
     return new Response('forbidden', { status: 401 });
   }
   if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
+    log.error('config_missing', { secret: 'VAPID' });
     return new Response('VAPID non configuré', { status: 500 });
   }
 
@@ -97,9 +117,13 @@ Deno.serve(async req => {
     const body = await req.json();
     rec = (body.record ?? body) as NotificationRecord;
   } catch {
+    log.warn('bad_request');
     return new Response('bad request', { status: 400 });
   }
-  if (!rec?.doctor_id) return new Response('no record', { status: 200 });
+  if (!rec?.doctor_id) {
+    log.warn('no_record');
+    return new Response('no record', { status: 200 });
+  }
 
   const subs =
     (await rest<SubRow[]>(
@@ -113,6 +137,13 @@ Deno.serve(async req => {
     tag: rec.type,
   });
 
+  // Bilan d'envoi : jusqu'ici toute erreur était avalée silencieusement, donc
+  // une panne de masse (VAPID invalide, quota du service de push) restait
+  // invisible. On compte désormais chaque issue et on journalise les échecs.
+  let sent = 0;
+  let expired = 0;
+  let failed = 0;
+
   await Promise.all(
     subs.map(async s => {
       try {
@@ -120,19 +151,38 @@ Deno.serve(async req => {
           { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
           payload
         );
+        sent++;
       } catch (e) {
         const code = (e as { statusCode?: number }).statusCode;
         if (code === 404 || code === 410) {
+          // Abonnement révoqué côté navigateur : purge normale, pas une panne.
+          expired++;
           await rest(
             `push_subscriptions?endpoint=eq.${encodeURIComponent(s.endpoint)}`,
             { method: 'DELETE' }
-          ).catch(() => undefined);
+          ).catch(err => log.warn('purge_failed', { reason: errMessage(err) }));
+        } else {
+          failed++;
+          // `origin` seul : l'endpoint complet est un identifiant d'appareil.
+          log.error('send_failed', {
+            status: code ?? null,
+            origin: originOf(s.endpoint),
+            reason: errMessage(e),
+          });
         }
       }
     })
   );
 
-  return new Response(JSON.stringify({ sent: subs.length }), {
+  log.info('delivered', {
+    type: rec.type,
+    subs: subs.length,
+    sent,
+    expired,
+    failed,
+  });
+
+  return new Response(JSON.stringify({ sent, expired, failed }), {
     headers: { 'Content-Type': 'application/json' },
   });
 });
