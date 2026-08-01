@@ -1,19 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import {
-  ChevronLeft,
-  ChevronRight,
-  CalendarDays,
-  RefreshCw,
-  Lock,
-  LockOpen,
-  Eye,
-  AlertTriangle,
-  List,
-  LayoutGrid,
-  FileDown,
-  WifiOff,
-} from 'lucide-react';
 import { useAuth } from '../../auth/useAuth.ts';
 import { useToast } from '../../components/Toast.tsx';
 import { useI18n } from '../../i18n/index.ts';
@@ -21,48 +7,21 @@ import { fromISODate, toISODate } from '../../lib/dates.ts';
 import type { ShiftType } from '../../lib/shifts.ts';
 import type { Leave, WishKind } from '../../backend/types.ts';
 import { Counters } from './Counters.tsx';
-import { MonthGrid } from './MonthGrid.tsx';
-import { MonthCalendarGrid } from './MonthCalendarGrid.tsx';
 import { exportMonthPdf } from './monthPdf.ts';
-import { AssignDialog, type SlotTarget } from './AssignDialog.tsx';
-import { LeaveDialog } from './LeaveDialog.tsx';
-import { NoteDialog } from './NoteDialog.tsx';
-import { HncDialog } from './HncDialog.tsx';
+import type { SlotTarget } from './AssignDialog.tsx';
+import { monthParam, parseMonthParam } from './monthUrl.ts';
+import { PlanningToolbar } from './PlanningToolbar.tsx';
+import { PlanningBanners } from './PlanningBanners.tsx';
+import { PlanningGrids } from './PlanningGrids.tsx';
+import { PlanningDialogs } from './PlanningDialogs.tsx';
 import { FullScreenSpinner } from '../../components/Spinner.tsx';
 import { usePlanningData } from './usePlanningData.ts';
 import { usePlanningMutations } from './usePlanningMutations.ts';
 
-/** Sérialise un mois affiché pour l'URL (`?m=YYYY-MM`). */
-function monthParam(year: number, month: number): string {
-  return `${year}-${String(month + 1).padStart(2, '0')}`;
-}
-
-/** Horodatage court `DD/MM HH:MM` (dernière synchro affichée hors-ligne). */
-function syncLabel(ts: number, locale: string): string {
-  return new Date(ts).toLocaleString(locale === 'en' ? 'en-GB' : 'fr-FR', {
-    day: '2-digit',
-    month: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-/** Lit un paramètre `?m=YYYY-MM` ; renvoie null si absent ou invalide. */
-function parseMonthParam(
-  v: string | null
-): { year: number; month: number } | null {
-  const match = v && /^(\d{4})-(\d{2})$/.exec(v);
-  if (!match) return null;
-  const year = Number(match[1]);
-  const month = Number(match[2]) - 1;
-  if (month < 0 || month > 11) return null;
-  return { year, month };
-}
-
 export function PlanningView() {
   const { doctor, isAdmin } = useAuth();
   const toast = useToast();
-  const { t, m, locale } = useI18n();
+  const { t, m } = useI18n();
   const [searchParams, setSearchParams] = useSearchParams();
   const today = new Date();
   const todayIso = toISODate(today);
@@ -93,19 +52,11 @@ export function PlanningView() {
   const touchX = useRef<number | null>(null);
 
   const data = usePlanningData(year, month);
-  const {
-    handleAssign,
-    handleClearSlot,
-    handleAddLeave,
-    handleRemoveLeave,
-    handleSaveNote,
-    handleDeleteNote,
-    handleCycleWish,
-    handlePropose,
-    handleSetHnc,
-    handleClearHnc,
-    toggleLock,
-  } = usePlanningMutations(data, { doctor, year, month, toast });
+  const mutations = usePlanningMutations(data, { doctor, year, month, toast });
+  // Extraites de `mutations` : ces deux-là alimentent des `useCallback`, dont la
+  // liste de dépendances doit porter la FONCTION elle-même (et non l'objet qui
+  // la contient) pour rester juste — et vérifiable par le lint.
+  const { handleRemoveLeave, handleCycleWish } = mutations;
 
   // Navigue vers un mois en reflétant le choix dans l'URL (`?m=YYYY-MM`) : le
   // lien devient partageable et le mois est conservé au rechargement.
@@ -276,253 +227,71 @@ export function PlanningView() {
         />
       )}
 
-      <div className="print-hide flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 dark:border-slate-800 dark:bg-slate-900">
-          <button
-            onClick={() => shiftMonth(-1)}
-            className="rounded-lg p-2 hover:bg-slate-100 dark:hover:bg-slate-800"
-            aria-label={t('common.prevMonth')}
-          >
-            <ChevronLeft className="size-5" />
-          </button>
-          <span className="flex min-w-32 items-center justify-center gap-2 px-1 text-sm font-semibold capitalize sm:min-w-40 sm:text-base">
-            <CalendarDays className="size-4 shrink-0 text-teal-600" />
-            {monthTitle}
-            {data.locked && <Lock className="size-4 text-slate-400" />}
-          </span>
-          <button
-            onClick={() => shiftMonth(1)}
-            className="rounded-lg p-2 hover:bg-slate-100 dark:hover:bg-slate-800"
-            aria-label={t('common.nextMonth')}
-          >
-            <ChevronRight className="size-5" />
-          </button>
-        </div>
-        <button
-          onClick={() => goToMonth(today.getFullYear(), today.getMonth())}
-          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800"
-        >
-          {t('common.today')}
-        </button>
+      <PlanningToolbar
+        monthTitle={monthTitle}
+        locked={data.locked}
+        isAdmin={isAdmin}
+        doctors={data.doctors}
+        highlightId={highlightId}
+        view={view}
+        refreshing={data.refreshing}
+        onShiftMonth={shiftMonth}
+        onToday={() => goToMonth(today.getFullYear(), today.getMonth())}
+        onHighlightChange={setHighlightId}
+        onToggleLock={() => void mutations.toggleLock()}
+        onChangeView={changeView}
+        onExportPdf={handleExportPdf}
+        onRefresh={() => void data.loadData()}
+      />
 
-        <label className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-2 py-1.5 text-sm dark:border-slate-800 dark:bg-slate-900">
-          <Eye className="size-4 text-slate-400" />
-          <select
-            value={highlightId ?? ''}
-            onChange={e => setHighlightId(e.target.value || null)}
-            className="max-w-28 bg-transparent text-sm outline-none"
-            aria-label={t('planning.highlightDoctor')}
-          >
-            <option value="">{t('common.all')}</option>
-            {data.doctors.map(d => (
-              <option key={d.id} value={d.id}>
-                {d.name}
-              </option>
-            ))}
-          </select>
-        </label>
+      <PlanningBanners
+        error={data.error}
+        offline={data.offline}
+        lastSync={data.lastSync}
+        uncoveredCount={data.uncovered.length}
+        onSeeUncovered={jumpToFirstUncovered}
+      />
 
-        {isAdmin && (
-          <button
-            onClick={() => void toggleLock()}
-            className={`flex items-center gap-1 rounded-xl border px-3 py-2 text-sm font-medium ${
-              data.locked
-                ? 'border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300'
-                : 'border-slate-200 bg-white hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800'
-            }`}
-          >
-            {data.locked ? (
-              <LockOpen className="size-4" />
-            ) : (
-              <Lock className="size-4" />
-            )}
-            <span className="hidden sm:inline">
-              {data.locked ? t('planning.unlock') : t('planning.lock')}
-            </span>
-          </button>
-        )}
-
-        <div className="ml-auto flex items-center gap-2">
-          {/* Bascule liste / grille (desktop uniquement — la grille 7 colonnes
-              n'a pas de sens sur petit écran). */}
-          <div className="hidden items-center rounded-xl border border-slate-200 bg-white p-1 lg:flex dark:border-slate-800 dark:bg-slate-900">
-            <button
-              onClick={() => changeView('list')}
-              aria-pressed={view === 'list'}
-              title={t('planning.listViewTitle')}
-              className={`flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-medium transition ${
-                view === 'list'
-                  ? 'bg-teal-700 text-white'
-                  : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`}
-            >
-              <List className="size-4" /> {t('planning.list')}
-            </button>
-            <button
-              onClick={() => changeView('grid')}
-              aria-pressed={view === 'grid'}
-              title={t('planning.gridViewTitle')}
-              className={`flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-medium transition ${
-                view === 'grid'
-                  ? 'bg-teal-700 text-white'
-                  : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`}
-            >
-              <LayoutGrid className="size-4" /> {t('planning.grid')}
-            </button>
-          </div>
-          <button
-            onClick={handleExportPdf}
-            title={t('planning.exportPdfTitle')}
-            className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800"
-          >
-            <FileDown className="size-4" /> {t('counters.pdf')}
-          </button>
-          <button
-            onClick={() => void data.loadData()}
-            className="rounded-xl border border-slate-200 bg-white p-2 text-slate-500 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800"
-            aria-label={t('planning.refresh')}
-            title={t('planning.refresh')}
-          >
-            <RefreshCw
-              className={`size-5 ${data.refreshing ? 'animate-spin' : ''}`}
-            />
-          </button>
-        </div>
-      </div>
-
-      {data.error && (
-        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">
-          {data.error}
-        </p>
-      )}
-
-      {data.offline && (
-        <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-300">
-          <WifiOff className="size-4 shrink-0" />
-          <span className="flex-1">
-            {t('planning.offlinePrefix')}
-            {data.lastSync
-              ? t('planning.offlineSynced', {
-                  date: syncLabel(data.lastSync, locale),
-                })
-              : ''}
-            {t('planning.offlineSuffix')}
-          </span>
-        </div>
-      )}
-
-      {data.uncovered.length > 0 && (
-        <button
-          onClick={jumpToFirstUncovered}
-          className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-left text-sm text-red-700 hover:bg-red-100 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300"
-        >
-          <AlertTriangle className="size-4 shrink-0" />
-          <span className="flex-1">
-            {data.uncovered.length > 1
-              ? t('planning.uncoveredMany', { count: data.uncovered.length })
-              : t('planning.uncoveredOne', { count: data.uncovered.length })}
-          </span>
-          <span className="font-semibold underline">{t('planning.see')}</span>
-        </button>
-      )}
-
-      {doctor &&
-        (isDesktop && view === 'grid' ? (
-          <MonthCalendarGrid
-            weeks={data.weeks}
-            shiftIndex={data.shiftIndex}
-            leavesByDate={data.leavesByDate}
-            notesByDate={data.notesByDate}
-            issuesByDate={data.issuesByDate}
-            wishesByDate={data.wishesByDate}
-            hncByDate={data.hncByDate}
-            doctorsById={data.doctorsById}
-            selfDoctorId={doctor.id}
-            highlightId={highlightId}
-            todayIso={todayIso}
-            locked={data.locked}
-            onSlotClick={onSlotClick}
-            onAddLeave={onAddLeaveClick}
-            onRemoveLeave={onRemoveLeaveClick}
-            onEditNote={onEditNoteClick}
-            onCycleWish={onCycleWishClick}
-            onEditHnc={onEditHncClick}
-            dayRefs={dayRefs}
-          />
-        ) : (
-          <MonthGrid
-            weeks={data.weeks}
-            shiftIndex={data.shiftIndex}
-            leavesByDate={data.leavesByDate}
-            notesByDate={data.notesByDate}
-            issuesByDate={data.issuesByDate}
-            wishesByDate={data.wishesByDate}
-            hncByDate={data.hncByDate}
-            doctorsById={data.doctorsById}
-            selfDoctorId={doctor.id}
-            highlightId={highlightId}
-            todayIso={todayIso}
-            locked={data.locked}
-            onSlotClick={onSlotClick}
-            onAddLeave={onAddLeaveClick}
-            onRemoveLeave={onRemoveLeaveClick}
-            onEditNote={onEditNoteClick}
-            onCycleWish={onCycleWishClick}
-            onEditHnc={onEditHncClick}
-            dayRefs={dayRefs}
-          />
-        ))}
-
-      {slot && doctor && (
-        <AssignDialog
-          target={slot}
-          currentShift={currentShift}
-          doctors={data.doctors}
+      {doctor && (
+        <PlanningGrids
+          calendar={isDesktop && view === 'grid'}
+          weeks={data.weeks}
+          shiftIndex={data.shiftIndex}
+          leavesByDate={data.leavesByDate}
+          notesByDate={data.notesByDate}
+          issuesByDate={data.issuesByDate}
+          wishesByDate={data.wishesByDate}
+          hncByDate={data.hncByDate}
+          doctorsById={data.doctorsById}
           selfDoctorId={doctor.id}
-          monthShifts={data.shifts}
-          leaves={data.leaves}
-          dayWishes={slotDayWishes}
-          onAssign={doctorId => handleAssign(slot, doctorId)}
-          onClear={() => handleClearSlot(slot)}
-          onPropose={(toDoctor, message) =>
-            handlePropose(slot, toDoctor, message)
-          }
-          onClose={() => setSlot(null)}
+          highlightId={highlightId}
+          todayIso={todayIso}
+          locked={data.locked}
+          onSlotClick={onSlotClick}
+          onAddLeave={onAddLeaveClick}
+          onRemoveLeave={onRemoveLeaveClick}
+          onEditNote={onEditNoteClick}
+          onCycleWish={onCycleWishClick}
+          onEditHnc={onEditHncClick}
+          dayRefs={dayRefs}
         />
       )}
 
-      {leaveDate && doctor && (
-        <LeaveDialog
-          date={leaveDate}
-          doctors={data.doctors}
-          selfDoctorId={doctor.id}
-          onSubmit={handleAddLeave}
-          onClose={() => setLeaveDate(null)}
-        />
-      )}
-
-      {noteDate && (
-        <NoteDialog
-          date={noteDate}
-          initialNote={data.notesByDate.get(noteDate)?.note ?? ''}
-          onSave={text => handleSaveNote(noteDate, text)}
-          onDelete={() => handleDeleteNote(noteDate)}
-          onClose={() => setNoteDate(null)}
-        />
-      )}
-
-      {hncDate && doctor && (
-        <HncDialog
-          date={hncDate}
-          doctors={data.doctors}
-          selfDoctorId={doctor.id}
-          dayEntries={data.hncByDate.get(hncDate) ?? []}
-          onSubmit={(doctorId, hours) => handleSetHnc(hncDate, doctorId, hours)}
-          onRemove={handleClearHnc}
-          onClose={() => setHncDate(null)}
-        />
-      )}
+      <PlanningDialogs
+        doctor={doctor}
+        data={data}
+        mutations={mutations}
+        slot={slot}
+        currentShift={currentShift}
+        slotDayWishes={slotDayWishes}
+        leaveDate={leaveDate}
+        noteDate={noteDate}
+        hncDate={hncDate}
+        onCloseSlot={() => setSlot(null)}
+        onCloseLeave={() => setLeaveDate(null)}
+        onCloseNote={() => setNoteDate(null)}
+        onCloseHnc={() => setHncDate(null)}
+      />
     </div>
   );
 }
