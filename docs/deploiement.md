@@ -12,14 +12,14 @@ documentée en repli.
 
 ## État
 
-| Élément                                                 | État                                                                                                              |
-| ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| Front (GitHub Pages)                                    | ✅ à jour, en prod — <https://mister-guiiug.github.io/mister-doc/>                                                |
-| Variables Actions `VITE_SUPABASE_*`                     | ✅ déjà posées                                                                                                    |
-| Secrets CI (`SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_URL`) | ✅ posés (déploiement Supabase automatisé)                                                                        |
-| Schéma de base                                          | ✅ migrations `0014`→`0021` **appliquées** (via CI, 2026-07-18) ; `0022`→`0025` suivent le même chemin automatisé |
-| Edge Functions `calendar` / `push`                      | ✅ **déployées** (rate-limit + lookup par hash)                                                                   |
-| Passkeys (connexion par empreinte)                      | ✅ activées côté dashboard (RP ID `mister-guiiug.github.io`)                                                      |
+| Élément                                                 | État                                                                                                                                 |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Front (GitHub Pages)                                    | ✅ à jour, en prod — <https://mister-guiiug.github.io/mister-doc/>                                                                   |
+| Variables Actions `VITE_SUPABASE_*`                     | ✅ déjà posées                                                                                                                       |
+| Secrets CI (`SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_URL`) | ✅ posés (déploiement Supabase automatisé)                                                                                           |
+| Schéma de base                                          | ✅ migrations `0014`→`0026` **appliquées** (via CI) ; `0001`→`0013` posées à la main, hors CI (dont `0013`, appliquée le 2026-08-02) |
+| Edge Functions `calendar` / `push`                      | ✅ **déployées** (rate-limit + lookup par hash)                                                                                      |
+| Passkeys (connexion par empreinte)                      | ✅ activées côté dashboard (RP ID `mister-guiiug.github.io`)                                                                         |
 
 Le front est **rétro-compatible** : il fonctionne avant comme après ces migrations
 (double-mode calendrier, génération de codes non bloquante, etc.). On peut donc
@@ -38,13 +38,28 @@ Ce qu'il fait, dans l'ordre (le même job, séquentiel) :
 1. **Déploie les Edge Functions** `calendar` + `push` (`supabase functions deploy
 --use-api`, sans Docker). Le `verify_jwt = false` de chaque fonction est
    déclaré dans [`supabase/config.toml`](../supabase/config.toml).
-2. **Applique les migrations** de préfixe **≥ 0014** via `psql`, **en une seule
+2. **Vérifie** que les tables des migrations `0001`→`0013` sont bien en base
+   (garde-fou, cf. encadré ci-dessous) et **échoue en les nommant** sinon, avant
+   d'appliquer quoi que ce soit.
+3. **Applique les migrations** de préfixe **≥ 0014** via `psql`, **en une seule
    transaction atomique** (tout ou rien). Les migrations `0001`→`0013`, posées hors
    CLI (dont la suppression destructive S3 de `0009`), ne sont **jamais** rejouées.
 
 L'ordre fonction-puis-migrations est **garanti par construction** — il résout la
 contrainte de `0018` (cf. encadré plus bas). Les migrations étant **idempotentes**,
-chaque exécution est sûre à rejouer.
+chaque exécution est sûre à rejouer : à chaque déclenchement, la CI ré-applique
+**toute** la série `0014`→dernière, et déploie **toutes** les Edge Functions du
+dossier `supabase/functions/` (`calendar` et `push`).
+
+> ⚠️ **Angle mort à connaître : les migrations `0001`→`0013`.** Elles sont
+> **hors CI** et doivent être appliquées **à la main** dans l'éditeur SQL. Rien ne
+> le rappelait, et ça s'est vu : `0013_push_subscriptions` n'a jamais été posée sur
+> la base réelle, si bien que l'Edge Function `push` répondait `500` à chaque
+> notification. Les migrations suivantes ne citent cette table que dans un **corps
+> de fonction plpgsql** — dont l'analyse est différée par Postgres — donc `psql`
+> passait sans rien signaler. Le workflow embarque désormais un **contrôle de
+> présence** des 13 tables concernées, qui échoue avec le nom de la manquante.
+> Ce contrôle est à **étendre** si une table est un jour ajoutée sous le seuil.
 
 ### Secrets à créer (une fois)
 
@@ -89,7 +104,7 @@ optionnels du rate-limit : variables d'environnement `CALENDAR_RATE_MAX` (défau
 > clair pendant la transition) : elle fonctionne donc **avant comme après** `0018`.
 > D'où l'ordre : fonction d'abord, migrations ensuite.
 
-### 2) Appliquer les migrations `0014` → `0025` **dans l'ordre**
+### 2) Appliquer les migrations `0014` → `0026` **dans l'ordre**
 
 Via **SQL Editor** du tableau de bord Supabase, copier-coller chaque fichier de
 [`supabase/migrations/`](../supabase/migrations/) dans l'ordre croissant. Toutes
@@ -97,20 +112,25 @@ sont **idempotentes** (ré-applicables sans risque). Une fois la fonction redép
 (étape 1), il n'y a **plus aucune contrainte d'ordre** entre elles au-delà de la
 numérotation.
 
-| #                             | Contenu                                                                | Remarque                                            |
-| ----------------------------- | ---------------------------------------------------------------------- | --------------------------------------------------- |
-| `0014_calendar_rate_limit`    | rate-limit par IP de la fonction calendrier                            | la fonction est _fail-open_ si la RPC manque → sûre |
-| `0015_calendar_token_privacy` | `calendar_token` illisible par les autres médecins (privilège colonne) | le front (colonnes explicites) est déjà en prod     |
-| `0016_extend_month_lock`      | verrou de mois étendu aux HNC / notes / vœux                           | sûre à tout moment                                  |
-| `0017_audit_log`              | journal d'audit admin                                                  | sûre à tout moment                                  |
-| `0018_calendar_token_hash`    | tokens calendrier **hashés au repos** (efface le clair)                | **exige l'étape 1 faite avant**                     |
-| `0019_anonymize_doctor`       | effacement RGPD par anonymisation                                      | sûre à tout moment                                  |
-| `0020_admin_reset_mfa`        | réinitialisation 2FA par un admin                                      | sûre à tout moment                                  |
-| `0021_mfa_recovery_codes`     | codes de secours 2FA self-service                                      | sûre à tout moment                                  |
-| `0022_shift_types`            | créneaux configurables (table `shift_types`, CHECK → FK)               | seed = comportement historique à l'identique        |
-| `0023_shift_reminders`        | rappels de garde quotidiens (job pg_cron)                              | **exige `0022`** (attribut « nuit »)                |
-| `0024_weekly_digest`          | récapitulatif hebdomadaire (job pg_cron)                               | sûre à tout moment                                  |
-| `0025_copy_previous_month`    | copie de mois (`assign_shifts_bulk`) + notifs d'affectation groupées   | remplace le trigger `shifts_notify` de `0006`       |
+> **Première mise en service d'une base vierge** : commencer par `0001`→`0013`, du
+> même geste (éditeur SQL, ordre croissant). La CI ne les applique jamais — elle se
+> contente d'en vérifier le résultat. Ne **pas** passer par `supabase db push`.
+
+| #                                | Contenu                                                                | Remarque                                            |
+| -------------------------------- | ---------------------------------------------------------------------- | --------------------------------------------------- |
+| `0014_calendar_rate_limit`       | rate-limit par IP de la fonction calendrier                            | la fonction est _fail-open_ si la RPC manque → sûre |
+| `0015_calendar_token_privacy`    | `calendar_token` illisible par les autres médecins (privilège colonne) | le front (colonnes explicites) est déjà en prod     |
+| `0016_extend_month_lock`         | verrou de mois étendu aux HNC / notes / vœux                           | sûre à tout moment                                  |
+| `0017_audit_log`                 | journal d'audit admin                                                  | sûre à tout moment                                  |
+| `0018_calendar_token_hash`       | tokens calendrier **hashés au repos** (efface le clair)                | **exige l'étape 1 faite avant**                     |
+| `0019_anonymize_doctor`          | effacement RGPD par anonymisation                                      | sûre à tout moment                                  |
+| `0020_admin_reset_mfa`           | réinitialisation 2FA par un admin                                      | sûre à tout moment                                  |
+| `0021_mfa_recovery_codes`        | codes de secours 2FA self-service                                      | sûre à tout moment                                  |
+| `0022_shift_types`               | créneaux configurables (table `shift_types`, CHECK → FK)               | seed = comportement historique à l'identique        |
+| `0023_shift_reminders`           | rappels de garde quotidiens (job pg_cron)                              | **exige `0022`** (attribut « nuit »)                |
+| `0024_weekly_digest`             | récapitulatif hebdomadaire (job pg_cron)                               | sûre à tout moment                                  |
+| `0025_copy_previous_month`       | copie de mois (`assign_shifts_bulk`) + notifs d'affectation groupées   | remplace le trigger `shifts_notify` de `0006`       |
+| `0026_weekly_digest_idempotence` | clé d'idempotence du récapitulatif ancrée sur le lundi de la semaine   | corrige un doublon possible au rattrapage manuel    |
 
 ## Jobs pg_cron
 

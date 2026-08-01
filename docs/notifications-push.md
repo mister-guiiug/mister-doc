@@ -40,10 +40,24 @@ profil reste invisible** : la fonctionnalité paraît absente alors que tout le
 reste (secrets Supabase, webhook) est correctement configuré. C'est une
 _variable_, pas un secret : la clé publique est destinée au bundle.
 
-### 3. Appliquer la migration
+### 3. Appliquer la migration — **à la main**
 
-`supabase/migrations/0013_push_subscriptions.sql` (table + RLS). Via
-`supabase db push` ou l'éditeur SQL.
+`supabase/migrations/0013_push_subscriptions.sql` (table + RLS), à copier dans
+l'**éditeur SQL** du tableau de bord.
+
+⚠️ Cette migration est **sous le seuil de la CI** : le workflow
+[`supabase.yml`](../.github/workflows/supabase.yml) n'applique que les préfixes
+`>= 0014` (`MIN_MIGRATION`), les précédentes étant réputées déjà posées. C'est une
+étape facile à oublier, et son oubli est **silencieux** : sans la table
+`push_subscriptions`, l'Edge Function répond `500` à chaque notification et
+l'activation du push échoue depuis le profil, sans que rien ne l'explique. Le
+fichier est idempotent (`create table if not exists`, `drop policy if exists`) :
+le rejouer ne coûte rien. Depuis, le workflow **vérifie la présence de ces tables
+avant toute migration** et échoue en nommant celle qui manque.
+
+> **N'utilisez pas `supabase db push` sur ce projet.** Le CLI, ne voyant aucune
+> migration appliquée, rejouerait `0001`→`0013` sur la base réelle — dont la
+> suppression destructive de `0009` (cf. [`supabase/config.toml`](../supabase/config.toml)).
 
 ### 4. Déployer l'Edge Function
 

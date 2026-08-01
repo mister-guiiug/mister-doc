@@ -111,6 +111,30 @@ jobs:
             echo "::error::SUPABASE_DB_URL pointe vers la connexion DIRECTE ($db_host), en IPv6 et injoignable par le runner GitHub. Utilisez l'URI du « Session pooler » : hôte *.pooler.supabase.com, utilisateur postgres.<ref>, port 5432."
             exit 1
           fi
+          # Garde : les migrations SOUS le seuil ne sont jamais rejouées, mais rien
+          # ne vérifiait qu'elles avaient bien été posées à la main. `0013`
+          # (push_subscriptions) est ainsi resté absent de la base réelle : l'Edge
+          # Function « push » répondait 500 à chaque notification, sans le moindre
+          # signal. Les migrations suivantes ne citent cette table que dans un CORPS
+          # de fonction plpgsql (analyse différée), donc psql passait sans broncher.
+          # On échoue donc AVANT d'appliquer quoi que ce soit, en nommant le manquant.
+          echo "Vérification des objets posés hors CI (0001→$(printf '%04d' $((MIN_MIGRATION - 1))))…"
+          # Les 13 tables créées par 0001→0013 (aucun `drop table` dans le dépôt :
+          # la liste ne bouge que si l'on ajoute une table sous le seuil).
+          manquantes=$(psql "$SUPABASE_DB_URL" -Atq -v ON_ERROR_STOP=1 -c "
+            select coalesce(string_agg(t, ', ' order by t), '')
+            from unnest(array[
+              'app_config','backups','day_notes','doctors','hnc_hours','leaves',
+              'locked_months','notifications','push_subscriptions','shift_history',
+              'shifts','swap_requests','wishes'
+            ]) as t
+            where to_regclass('public.' || t) is null;
+          ")
+          if [ -n "$manquantes" ]; then
+            echo "::error::Tables absentes de la base : $manquantes. Elles viennent des migrations 0001→$(printf '%04d' $((MIN_MIGRATION - 1))), que la CI n'applique JAMAIS (cf. la suppression destructive S3 de 0009). Appliquez le(s) fichier(s) correspondant(s) à la main dans l'éditeur SQL Supabase — ils sont idempotents — puis relancez ce workflow."
+            exit 1
+          fi
+
           echo "Migrations appliquées (une seule transaction, tout ou rien) :"
           printf '  - %s\n' "${files[@]}"
           args=()

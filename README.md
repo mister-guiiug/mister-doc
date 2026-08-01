@@ -155,11 +155,16 @@ Scripts utiles : `npm run build`, `npm run preview`, `npm run test`,
 
 Le schéma versionné est découpé en migrations dans
 [`supabase/migrations/`](supabase/migrations/), appliquées **dans l'ordre**
-(`0001` → `0025`). Pour une instance existante, le déploiement (Edge Functions +
+(`0001` → `0026`). Pour une instance existante, le déploiement (Edge Functions +
 migrations `≥ 0014`) est **automatisé par la CI** — workflow
 [`.github/workflows/supabase.yml`](.github/workflows/supabase.yml), déclenché sur
 tout changement `supabase/**` sur `main`. Détails, secrets requis et procédure
 manuelle de repli : [`docs/deploiement.md`](docs/deploiement.md).
+
+> ⚠️ Les migrations **`0001`→`0013` ne sont jamais appliquées par la CI** (l'une
+> d'elles supprime des données) : sur une base neuve, il faut les passer **à la
+> main** dans l'éditeur SQL, sans `supabase db push`. La CI en vérifie ensuite la
+> présence et refuse de continuer s'il en manque une.
 
 | Migration                                  | Contenu                                                                                                                        |
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
@@ -187,6 +192,7 @@ manuelle de repli : [`docs/deploiement.md`](docs/deploiement.md).
 | `0023_shift_reminders`                     | **rappels de garde** quotidiens (`enqueue_shift_reminders` + job pg_cron, RPC `admin_send_reminders`)                          |
 | `0024_weekly_digest`                       | **récapitulatif hebdomadaire** (`enqueue_weekly_digest` + job pg_cron, RPC `admin_send_weekly_digest`)                         |
 | `0025_copy_previous_month`                 | **copie de mois** (RPC `assign_shifts_bulk`) + notifications d'affectation **groupées** à l'INSERT                             |
+| `0026_weekly_digest_idempotence`           | clé d'idempotence du récapitulatif ancrée sur le **lundi de la semaine** couverte (plus de doublon au rattrapage manuel)       |
 
 Après `0001`, renseignez le code de bootstrap :
 
