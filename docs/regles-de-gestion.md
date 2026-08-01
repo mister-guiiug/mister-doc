@@ -201,9 +201,11 @@ Signalées automatiquement (non bloquantes) :
 
 ## 11. Notifications
 
-- **In-app** (cloche, temps réel), destinées au médecin concerné :
-  garde attribuée / retirée, absence enregistrée, demande de compte (aux admins),
-  compte approuvé.
+- **In-app** (cloche, temps réel), destinées au médecin concerné : garde
+  attribuée / retirée, absence enregistrée / supprimée, heures non cliniques,
+  échange proposé / accepté / décliné, rappel de garde (« demain », « nuit ce
+  soir »), récapitulatif hebdomadaire, mois verrouillé / déverrouillé, demande
+  de compte (aux admins) et compte approuvé.
 - **Groupage à l'affectation** : une **insertion en lot** de gardes (copie de
   mois) ne produit qu'**une notification par médecin** — une garde isolée
   conserve le message habituel, un petit lot liste les dates, un gros lot donne

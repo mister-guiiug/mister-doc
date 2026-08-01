@@ -25,11 +25,20 @@ npx web-push generate-vapid-keys
 
 ### 2. Côté build (front)
 
-Dans `.env` (et le secret CI de déploiement) :
+Dans `.env` en local :
 
 ```
 VITE_VAPID_PUBLIC_KEY=BLxx...   # la clé PUBLIQUE uniquement
 ```
+
+⚠️ **Et en production** : cette valeur est lue **au moment du build**. Elle doit
+donc exister comme **variable Actions** (Settings → Secrets and variables →
+Actions → _Variables_, nom `VITE_VAPID_PUBLIC_KEY`), car
+[`deploy.yml`](../.github/workflows/deploy.yml) l'injecte à `npm run build`.
+Sans elle, `pushConfigured()` est faux et **la carte « Notifications push » du
+profil reste invisible** : la fonctionnalité paraît absente alors que tout le
+reste (secrets Supabase, webhook) est correctement configuré. C'est une
+_variable_, pas un secret : la clé publique est destinée au bundle.
 
 ### 3. Appliquer la migration
 
