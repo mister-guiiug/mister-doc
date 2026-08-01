@@ -12,14 +12,14 @@ documentée en repli.
 
 ## État
 
-| Élément                                                 | État                                                               |
-| ------------------------------------------------------- | ------------------------------------------------------------------ |
-| Front (GitHub Pages)                                    | ✅ à jour, en prod — <https://mister-guiiug.github.io/mister-doc/> |
-| Variables Actions `VITE_SUPABASE_*`                     | ✅ déjà posées                                                     |
-| Secrets CI (`SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_URL`) | ✅ posés (déploiement Supabase automatisé)                         |
-| Schéma de base                                          | ✅ migrations `0014`→`0021` **appliquées** (via CI, 2026-07-18)    |
-| Edge Functions `calendar` / `push`                      | ✅ **déployées** (rate-limit + lookup par hash)                    |
-| Passkeys (connexion par empreinte)                      | ✅ activées côté dashboard (RP ID `mister-guiiug.github.io`)       |
+| Élément                                                 | État                                                                                                              |
+| ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Front (GitHub Pages)                                    | ✅ à jour, en prod — <https://mister-guiiug.github.io/mister-doc/>                                                |
+| Variables Actions `VITE_SUPABASE_*`                     | ✅ déjà posées                                                                                                    |
+| Secrets CI (`SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_URL`) | ✅ posés (déploiement Supabase automatisé)                                                                        |
+| Schéma de base                                          | ✅ migrations `0014`→`0021` **appliquées** (via CI, 2026-07-18) ; `0022`→`0025` suivent le même chemin automatisé |
+| Edge Functions `calendar` / `push`                      | ✅ **déployées** (rate-limit + lookup par hash)                                                                   |
+| Passkeys (connexion par empreinte)                      | ✅ activées côté dashboard (RP ID `mister-guiiug.github.io`)                                                      |
 
 Le front est **rétro-compatible** : il fonctionne avant comme après ces migrations
 (double-mode calendrier, génération de codes non bloquante, etc.). On peut donc
@@ -89,7 +89,7 @@ optionnels du rate-limit : variables d'environnement `CALENDAR_RATE_MAX` (défau
 > clair pendant la transition) : elle fonctionne donc **avant comme après** `0018`.
 > D'où l'ordre : fonction d'abord, migrations ensuite.
 
-### 2) Appliquer les migrations `0014` → `0021` **dans l'ordre**
+### 2) Appliquer les migrations `0014` → `0025` **dans l'ordre**
 
 Via **SQL Editor** du tableau de bord Supabase, copier-coller chaque fichier de
 [`supabase/migrations/`](../supabase/migrations/) dans l'ordre croissant. Toutes
@@ -107,6 +107,29 @@ numérotation.
 | `0019_anonymize_doctor`       | effacement RGPD par anonymisation                                      | sûre à tout moment                                  |
 | `0020_admin_reset_mfa`        | réinitialisation 2FA par un admin                                      | sûre à tout moment                                  |
 | `0021_mfa_recovery_codes`     | codes de secours 2FA self-service                                      | sûre à tout moment                                  |
+| `0022_shift_types`            | créneaux configurables (table `shift_types`, CHECK → FK)               | seed = comportement historique à l'identique        |
+| `0023_shift_reminders`        | rappels de garde quotidiens (job pg_cron)                              | **exige `0022`** (attribut « nuit »)                |
+| `0024_weekly_digest`          | récapitulatif hebdomadaire (job pg_cron)                               | sûre à tout moment                                  |
+| `0025_copy_previous_month`    | copie de mois (`assign_shifts_bulk`) + notifs d'affectation groupées   | remplace le trigger `shifts_notify` de `0006`       |
+
+## Jobs pg_cron
+
+Les migrations planifient elles-mêmes leurs jobs (**best-effort** : si `pg_cron`
+est indisponible, la migration passe avec un `notice` et le job est simplement
+absent). `cron` s'exécute en **UTC** ; pour changer une heure, reprogrammer le
+job avec le même nom.
+
+| Job                             | Migration | Planification | Rôle                                        |
+| ------------------------------- | --------- | ------------- | ------------------------------------------- |
+| `mister-doc-weekly-backup`      | `0006`    | `0 3 * * 1`   | sauvegarde automatique hebdomadaire         |
+| `mister-doc-rate-limit-cleanup` | `0014`    | `17 4 * * *`  | purge de la table de rate-limit             |
+| `mister-doc-shift-reminders`    | `0023`    | `0 17 * * *`  | rappels « garde demain » / « nuit ce soir » |
+| `mister-doc-weekly-digest`      | `0024`    | `0 17 * * 0`  | récapitulatif hebdomadaire des gardes       |
+
+Les rappels et le récapitulatif s'envoient aussi **à la main** depuis `/admin` →
+« Réglages » (RPC `admin_send_reminders` / `admin_send_weekly_digest`) ; ils sont
+idempotents, un même envoi n'est jamais dupliqué. Détail :
+[`notifications-push.md`](notifications-push.md).
 
 ## Vérifications après déploiement
 
@@ -138,6 +161,14 @@ numérotation.
 
 7. **2FA** — activer la 2FA génère des codes de secours ; un code permet de récupérer
    l'accès depuis l'écran de défi ; un admin peut réinitialiser la 2FA d'un médecin.
+
+8. **Créneaux configurables** — `/admin` → carte « Types de créneaux » : la liste
+   affiche `S1J` / `S1N` / `S2J` (+ `S3` inactif) ; renommer un créneau se reflète
+   aussitôt dans le planning et les notifications.
+
+9. **Rappels et récapitulatif** — `/admin` → « Réglages » → boutons « Envoyer » :
+   le compte rendu indique le nombre d'envois (0 si déjà faits pour la période).
+   Les jobs planifiés sont visibles dans `cron.job`.
 
 ## Connexion par empreinte (passkeys) — **config dashboard OBLIGATOIRE**
 
