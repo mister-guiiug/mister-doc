@@ -10,12 +10,16 @@ import { listLeavesBetween } from '../../backend/leaves.ts';
 import { listHncBetween } from '../../backend/hnc.ts';
 import { logError } from '../../lib/logger.ts';
 import { useI18n } from '../../i18n/index.ts';
+import { SwipeDeck, type DeckView } from '../../components/ui/SwipeDeck.tsx';
+import { CountersCalendar } from './CountersCalendar.tsx';
 import type { HncEntry, Leave, Shift } from '../../backend/types.ts';
 
 /** Portée des compteurs : mois affiché ou quadrimestre (bloc de 4 mois). */
 type Scope = 'month' | 'quad';
 
 const SCOPE_KEY = 'mister-doc:counters-scope';
+/** Vue affichée dans le carrousel : 0 = pastilles, 1 = calendrier. */
+const VIEW_KEY = 'mister-doc:counters-view';
 
 /**
  * Compteurs compacts du médecin connecté : vendredis / samedis / dimanches de
@@ -48,6 +52,15 @@ export function Counters({
       return localStorage.getItem(SCOPE_KEY) === 'quad' ? 'quad' : 'month';
     } catch {
       return 'month';
+    }
+  });
+  // Même patron de persistance que la portée : le médecin retrouve la vue qu'il
+  // consultait (pastilles ou calendrier) d'une session à l'autre.
+  const [view, setView] = useState(() => {
+    try {
+      return localStorage.getItem(VIEW_KEY) === '1' ? 1 : 0;
+    } catch {
+      return 0;
     }
   });
   // Données du quadrimestre, chargées à la demande (mode « quadri. » seulement).
@@ -97,6 +110,15 @@ export function Counters({
     }
   }
 
+  function changeView(next: number) {
+    setView(next);
+    try {
+      localStorage.setItem(VIEW_KEY, String(next));
+    } catch {
+      /* ignore */
+    }
+  }
+
   // En attendant le chargement du quadrimestre, on retombe sur le mois courant.
   const src = scope === 'quad' && quad ? quad : { shifts, leaves, hnc };
   const mineShifts: CountableShift[] = src.shifts
@@ -115,6 +137,62 @@ export function Counters({
     scope === 'quad'
       ? `${m.common.months[quadStart]} – ${m.common.months[quadStart + 3]} ${year}`
       : `${m.common.months[month]} ${year}`;
+
+  // Le calendrier n'affiche QUE le mois `year`/`month` : en portée « quadri. »,
+  // `src.shifts` couvre 4 mois. On filtre donc sur le préfixe ISO `YYYY-MM`,
+  // sinon on colorerait des jours appartenant à un autre mois du bloc.
+  const monthPrefix = `${year}-${String(month + 1).padStart(2, '0')}`;
+  const monthShifts = mineShifts.filter(s =>
+    s.work_date.startsWith(monthPrefix)
+  );
+
+  // Vue 1 = la rangée de pastilles historique (inchangée) ; vue 2 = le
+  // mini-calendrier du mois. Les compteurs eux-mêmes ne changent pas.
+  const views: DeckView[] = [
+    {
+      key: 'pills',
+      label: t('counters.viewPills'),
+      content: (
+        <div className="flex flex-wrap gap-1.5">
+          <Pill label={t('counters.fri')} value={c.fridays} />
+          <Pill label={t('counters.sat')} value={c.saturdays} />
+          <Pill label={t('counters.sun')} value={c.sundays} />
+          <Pill
+            label={t('counters.we')}
+            value={`${c.weekendHours} ${t('common.hoursUnit')}`}
+            tone="teal"
+          />
+          <Pill
+            label={t('counters.hnc')}
+            value={`${hncHours} ${t('common.hoursUnit')}`}
+            tone="sky"
+          />
+          <Pill
+            label={t('counters.total')}
+            value={`${totalHours} ${t('common.hoursUnit')}`}
+            tone="teal"
+          />
+          <Pill
+            label={t('counters.leave')}
+            value={`${l.annualDays} ${t('common.daysUnit')}`}
+            tone="violet"
+          />
+          <Pill
+            label={t('counters.training')}
+            value={`${l.trainingHours} ${t('common.hoursUnit')}`}
+            tone="amber"
+          />
+        </div>
+      ),
+    },
+    {
+      key: 'calendar',
+      label: t('counters.viewCalendar'),
+      content: (
+        <CountersCalendar year={year} month={month} shifts={monthShifts} />
+      ),
+    },
+  ];
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
@@ -142,36 +220,13 @@ export function Counters({
           </ScopeButton>
         </div>
       </div>
-      <div className="flex flex-wrap gap-1.5">
-        <Pill label={t('counters.fri')} value={c.fridays} />
-        <Pill label={t('counters.sat')} value={c.saturdays} />
-        <Pill label={t('counters.sun')} value={c.sundays} />
-        <Pill
-          label={t('counters.we')}
-          value={`${c.weekendHours} ${t('common.hoursUnit')}`}
-          tone="teal"
-        />
-        <Pill
-          label={t('counters.hnc')}
-          value={`${hncHours} ${t('common.hoursUnit')}`}
-          tone="sky"
-        />
-        <Pill
-          label={t('counters.total')}
-          value={`${totalHours} ${t('common.hoursUnit')}`}
-          tone="teal"
-        />
-        <Pill
-          label={t('counters.leave')}
-          value={`${l.annualDays} ${t('common.daysUnit')}`}
-          tone="violet"
-        />
-        <Pill
-          label={t('counters.training')}
-          value={`${l.trainingHours} ${t('common.hoursUnit')}`}
-          tone="amber"
-        />
-      </div>
+      <SwipeDeck
+        views={views}
+        index={view}
+        onIndexChange={changeView}
+        ariaLabel={t('counters.deckAria')}
+        dotLabel={(n, total) => t('counters.viewDot', { n, total })}
+      />
     </section>
   );
 }
