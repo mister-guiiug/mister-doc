@@ -1,18 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import {
-  ShieldCheck,
-  ShieldAlert,
-  Check,
-  X,
-  KeyRound,
-  Copy,
-  Download,
-} from 'lucide-react';
+import { ShieldCheck, ShieldAlert, KeyRound } from 'lucide-react';
 import { useToast } from '../../components/Toast.tsx';
 import { useConfirm } from '../../components/ui/confirmContext.ts';
 import { Button } from '../../components/ui/Button.tsx';
 import { SectionCard } from '../../components/ui/SectionCard.tsx';
 import { useI18n } from '../../i18n/index.ts';
+import { TwoFactorEnrollForm } from './TwoFactorEnrollForm.tsx';
+import { TwoFactorRecoveryCodes } from './TwoFactorRecoveryCodes.tsx';
 import {
   cancelTotpEnrollment,
   confirmTotpEnrollment,
@@ -125,26 +119,6 @@ export function TwoFactorCard() {
     }
   }
 
-  function copyCodes() {
-    void navigator.clipboard
-      .writeText((codes ?? []).join('\n'))
-      .then(() => toast.success(t('twoFactor.codesCopied')))
-      .catch(() => toast.error(t('twoFactor.copyError')));
-  }
-
-  function downloadCodes() {
-    const blob = new Blob(
-      [t('twoFactor.backupFileHeader') + (codes ?? []).join('\n') + '\n'],
-      { type: 'text/plain' }
-    );
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'codes-secours-mister-doc.txt';
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
   async function disable() {
     const ok = await confirm({
       title: t('twoFactor.disableConfirmTitle'),
@@ -185,34 +159,7 @@ export function TwoFactorCard() {
 
       {/* Codes de secours fraîchement générés (affichés une seule fois) */}
       {codes && (
-        <div className="flex flex-col gap-3">
-          <p className="flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
-            <KeyRound className="mt-0.5 size-4 shrink-0" />
-            <span>{t('twoFactor.backupIntro')}</span>
-          </p>
-          <ul className="grid grid-cols-2 gap-1.5 rounded-lg bg-slate-50 p-3 font-mono text-sm dark:bg-slate-800">
-            {codes.map(c => (
-              <li key={c} className="text-center tracking-wider">
-                {c}
-              </li>
-            ))}
-          </ul>
-          <div className="flex gap-2">
-            <Button variant="secondary" className="flex-1" onClick={copyCodes}>
-              <Copy className="size-4" /> {t('twoFactor.copy')}
-            </Button>
-            <Button
-              variant="secondary"
-              className="flex-1"
-              onClick={downloadCodes}
-            >
-              <Download className="size-4" /> {t('twoFactor.download')}
-            </Button>
-          </div>
-          <Button className="w-full py-2.5" onClick={() => setCodes(null)}>
-            <Check className="size-4" /> {t('twoFactor.savedCodes')}
-          </Button>
-        </div>
+        <TwoFactorRecoveryCodes codes={codes} onSaved={() => setCodes(null)} />
       )}
 
       {/* Activée */}
@@ -260,76 +207,15 @@ export function TwoFactorCard() {
 
       {/* Enrôlement en cours : QR + secret + confirmation du code */}
       {enroll && (
-        <form onSubmit={confirmEnroll} className="flex flex-col gap-3">
-          <ol className="list-decimal space-y-1 pl-5 text-sm text-slate-600 dark:text-slate-300">
-            <li>{t('twoFactor.enrollStep1')}</li>
-            <li>{t('twoFactor.enrollStep2')}</li>
-          </ol>
-          <div className="mx-auto rounded-xl border border-slate-200 bg-white p-2 dark:border-slate-700">
-            {/* data:image/svg+xml fourni par Supabase — autorisé par la CSP img-src data:. */}
-            <img
-              src={enroll.qrCode}
-              alt={t('twoFactor.qrAlt')}
-              width={176}
-              height={176}
-              className="size-44"
-            />
-          </div>
-          <div className="rounded-lg bg-slate-50 px-3 py-2 text-center dark:bg-slate-800">
-            <span className="text-xs text-slate-500 dark:text-slate-400">
-              {t('twoFactor.manualEntry')}
-            </span>
-            <p className="mt-0.5 break-all font-mono text-xs font-medium">
-              {enroll.secret}
-            </p>
-          </div>
-
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-slate-600 dark:text-slate-300">
-              {t('twoFactor.code6Label')}
-            </span>
-            <input
-              value={code}
-              onChange={e =>
-                setCode(e.target.value.replace(/\D/g, '').slice(0, 6))
-              }
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              pattern="\d{6}"
-              placeholder="123456"
-              autoFocus
-              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-center text-lg tracking-[0.3em] tabular-nums outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:border-slate-600 dark:bg-slate-900"
-            />
-          </label>
-
-          {err && (
-            <p
-              role="alert"
-              className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/50 dark:text-red-300"
-            >
-              {err}
-            </p>
-          )}
-
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              className="flex-1 py-2.5"
-              onClick={() => void cancelEnroll()}
-            >
-              <X className="size-4" /> {t('twoFactor.cancel')}
-            </Button>
-            <Button
-              type="submit"
-              className="flex-1 py-2.5"
-              loading={busy}
-              disabled={code.trim().length < 6}
-            >
-              <Check className="size-4" /> {t('twoFactor.verify')}
-            </Button>
-          </div>
-        </form>
+        <TwoFactorEnrollForm
+          enrollment={enroll}
+          code={code}
+          onCodeChange={setCode}
+          busy={busy}
+          error={err}
+          onSubmit={confirmEnroll}
+          onCancel={() => void cancelEnroll()}
+        />
       )}
     </SectionCard>
   );

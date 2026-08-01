@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Repeat, X, ArrowRight, Inbox, Plus, History } from 'lucide-react';
+import { Repeat, X, Plus } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth.ts';
 import { useToast } from '../../components/Toast.tsx';
 import { Button } from '../../components/ui/Button.tsx';
-import { EmptyState } from '../../components/ui/EmptyState.tsx';
-import { fromISODate, mondayIndex } from '../../lib/dates.ts';
-import { shiftLabel, type ShiftType } from '../../lib/shifts.ts';
+import type { ShiftType } from '../../lib/shifts.ts';
 import { logError } from '../../lib/logger.ts';
 import { useI18n } from '../../i18n/index.ts';
 import type { Doctor, SwapRequest } from '../../backend/types.ts';
@@ -20,29 +18,15 @@ import {
 } from '../../backend/swaps.ts';
 import { FullScreenSpinner } from '../../components/Spinner.tsx';
 import { ProposeSwapDialog } from './ProposeSwapDialog.tsx';
+import { SwapItem } from './SwapItem.tsx';
+import { SwapEmpty, SwapSection } from './SwapSection.tsx';
+import { SwapHistory } from './SwapHistory.tsx';
 
 export function SwapBoard() {
   const { doctor } = useAuth();
   const toast = useToast();
-  const { t, m } = useI18n();
+  const { t } = useI18n();
 
-  const dayLabel = (iso: string): string => {
-    const d = fromISODate(iso);
-    return `${m.common.weekdays[mondayIndex(d)]} ${d.getDate()}/${d.getMonth() + 1}`;
-  };
-
-  // « aujourd'hui » / « demain » / « dans N j » / « passé » relatif à aujourd'hui.
-  const relativeDay = (iso: string): string => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const days = Math.round(
-      (fromISODate(iso).getTime() - today.getTime()) / 86_400_000
-    );
-    if (days < 0) return t('swaps.past');
-    if (days === 0) return t('swaps.todayRel');
-    if (days === 1) return t('swaps.tomorrow');
-    return t('swaps.inDays', { n: days });
-  };
   const [swaps, setSwaps] = useState<SwapRequest[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
@@ -123,39 +107,6 @@ export function SwapBoard() {
 
   if (loading) return <FullScreenSpinner label={t('common.loading')} />;
 
-  const Item = ({
-    s,
-    actions,
-  }: {
-    s: SwapRequest;
-    actions: React.ReactNode;
-  }) => (
-    <li className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium">
-          {shiftLabel(s.shift_type)} ·{' '}
-          <span className="capitalize">{dayLabel(s.work_date)}</span>
-          <span className="ml-1 font-normal text-slate-400">
-            · {relativeDay(s.work_date)}
-          </span>
-        </p>
-        <p className="flex items-center gap-1 text-xs text-slate-500">
-          {nameById.get(s.from_doctor) ?? '?'}
-          <ArrowRight className="size-3" />
-          {s.to_doctor
-            ? (nameById.get(s.to_doctor) ?? '?')
-            : t('swaps.openTarget')}
-        </p>
-        {s.message && (
-          <p className="mt-0.5 truncate text-xs italic text-slate-400">
-            « {s.message} »
-          </p>
-        )}
-      </div>
-      <div className="flex items-center gap-1">{actions}</div>
-    </li>
-  );
-
   const AcceptBtn = ({ s }: { s: SwapRequest }) => (
     <Button
       size="sm"
@@ -179,15 +130,16 @@ export function SwapBoard() {
         </Button>
       </div>
 
-      <Section title={t('swaps.forMe')} count={forMe.length}>
+      <SwapSection title={t('swaps.forMe')} count={forMe.length}>
         {forMe.length === 0 ? (
-          <Empty>{t('swaps.noneForMe')}</Empty>
+          <SwapEmpty>{t('swaps.noneForMe')}</SwapEmpty>
         ) : (
           <ul className="flex flex-col gap-2">
             {forMe.map(s => (
-              <Item
+              <SwapItem
                 key={s.id}
-                s={s}
+                swap={s}
+                nameById={nameById}
                 actions={
                   <>
                     <AcceptBtn s={s} />
@@ -211,29 +163,35 @@ export function SwapBoard() {
             ))}
           </ul>
         )}
-      </Section>
+      </SwapSection>
 
-      <Section title={t('swaps.openToAll')} count={open.length}>
+      <SwapSection title={t('swaps.openToAll')} count={open.length}>
         {open.length === 0 ? (
-          <Empty>{t('swaps.noneOpen')}</Empty>
+          <SwapEmpty>{t('swaps.noneOpen')}</SwapEmpty>
         ) : (
           <ul className="flex flex-col gap-2">
             {open.map(s => (
-              <Item key={s.id} s={s} actions={<AcceptBtn s={s} />} />
+              <SwapItem
+                key={s.id}
+                swap={s}
+                nameById={nameById}
+                actions={<AcceptBtn s={s} />}
+              />
             ))}
           </ul>
         )}
-      </Section>
+      </SwapSection>
 
-      <Section title={t('swaps.myProposals')} count={mine.length}>
+      <SwapSection title={t('swaps.myProposals')} count={mine.length}>
         {mine.length === 0 ? (
-          <Empty>{t('swaps.noneMine')}</Empty>
+          <SwapEmpty>{t('swaps.noneMine')}</SwapEmpty>
         ) : (
           <ul className="flex flex-col gap-2">
             {mine.map(s => (
-              <Item
+              <SwapItem
                 key={s.id}
-                s={s}
+                swap={s}
+                nameById={nameById}
                 actions={
                   <Button
                     variant="dangerGhost"
@@ -254,36 +212,10 @@ export function SwapBoard() {
             ))}
           </ul>
         )}
-      </Section>
+      </SwapSection>
 
       {resolved.length > 0 && (
-        <Section
-          title={t('swaps.history')}
-          count={resolved.length}
-          icon={<History className="size-4 text-slate-400" />}
-        >
-          <ul className="flex flex-col gap-1.5">
-            {resolved.map(s => (
-              <li
-                key={s.id}
-                className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-100 px-3 py-2 text-sm dark:border-slate-800/60"
-              >
-                <span className="min-w-0 flex-1">
-                  <span className="capitalize">{dayLabel(s.work_date)}</span> ·{' '}
-                  {shiftLabel(s.shift_type)}
-                  <span className="text-xs text-slate-400">
-                    {' '}
-                    — {nameById.get(s.from_doctor) ?? '?'} →{' '}
-                    {s.to_doctor
-                      ? (nameById.get(s.to_doctor) ?? '?')
-                      : t('swaps.allTarget')}
-                  </span>
-                </span>
-                <StatusBadge status={s.status} />
-              </li>
-            ))}
-          </ul>
-        </Section>
+        <SwapHistory resolved={resolved} nameById={nameById} />
       )}
 
       <p className="text-xs text-slate-400">{t('swaps.footer')}</p>
@@ -299,58 +231,4 @@ export function SwapBoard() {
       )}
     </div>
   );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const { t } = useI18n();
-  const cls =
-    status === 'accepted'
-      ? 'border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-900 dark:bg-teal-950/40 dark:text-teal-300'
-      : status === 'declined'
-        ? 'border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300'
-        : 'border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-400';
-  const label =
-    status === 'accepted'
-      ? t('swaps.statusAccepted')
-      : status === 'declined'
-        ? t('swaps.statusDeclined')
-        : status === 'cancelled'
-          ? t('swaps.statusCancelled')
-          : status;
-  return (
-    <span
-      className={`shrink-0 rounded-full border px-2 py-0.5 text-xs font-medium ${cls}`}
-    >
-      {label}
-    </span>
-  );
-}
-
-function Section({
-  title,
-  count,
-  icon,
-  children,
-}: {
-  title: string;
-  count: number;
-  icon?: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <section>
-      <div className="mb-2 flex items-center gap-2">
-        {icon ?? <Inbox className="size-4 text-slate-400" />}
-        <h2 className="font-semibold">{title}</h2>
-        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500 dark:bg-slate-800">
-          {count}
-        </span>
-      </div>
-      {children}
-    </section>
-  );
-}
-
-function Empty({ children }: { children: React.ReactNode }) {
-  return <EmptyState className="py-3">{children}</EmptyState>;
 }

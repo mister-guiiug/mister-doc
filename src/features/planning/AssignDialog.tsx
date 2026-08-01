@@ -1,45 +1,25 @@
-import { useEffect, useMemo, useState } from 'react';
-import {
-  Trash2,
-  UserPlus,
-  X,
-  Loader2,
-  Check,
-  AlertTriangle,
-  Moon,
-  Repeat,
-  ThumbsUp,
-  ThumbsDown,
-  History,
-  ChevronDown,
-  ChevronUp,
-} from 'lucide-react';
+import { useState } from 'react';
+import { X } from 'lucide-react';
 import { fromISODate, mondayIndex } from '../../lib/dates.ts';
 import { shiftLabel, shiftHours, type ShiftType } from '../../lib/shifts.ts';
 import { useI18n } from '../../i18n/index.ts';
-import {
-  doctorsOnLeave,
-  doctorsWorking,
-  violatesRest,
-} from '../../lib/validation.ts';
-import type {
-  Doctor,
-  Leave,
-  Shift,
-  ShiftHistory,
-  WishKind,
-} from '../../backend/types.ts';
-import { listSlotHistory } from '../../backend/history.ts';
-import { timeAgo } from '../../lib/relativeTime.ts';
+import type { Doctor, Leave, Shift, WishKind } from '../../backend/types.ts';
 import { Modal } from '../../components/Modal.tsx';
-import { Button } from '../../components/ui/Button.tsx';
-import { useConfirm } from '../../components/ui/confirmContext.ts';
+import { AssignSlotActions } from './AssignSlotActions.tsx';
+import { AssignSlotHistory } from './AssignSlotHistory.tsx';
+import { AssignDoctorList } from './AssignDoctorList.tsx';
 
 export interface SlotTarget {
   iso: string;
   shiftType: ShiftType;
 }
 
+/**
+ * Dialogue d'affectation d'un créneau. Il n'assemble que les quatre blocs
+ * (en-tête, actions, historique, liste des médecins) et garde le seul état
+ * réellement partagé : `busy`, qui verrouille tous les boutons pendant une
+ * mutation via l'utilitaire `run`.
+ */
 export function AssignDialog({
   target,
   currentShift,
@@ -65,63 +45,11 @@ export function AssignDialog({
   onPropose: (toDoctor: string | null, message: string) => Promise<void>;
   onClose: () => void;
 }) {
-  const [query, setQuery] = useState('');
   const [busy, setBusy] = useState(false);
-  const [swapOpen, setSwapOpen] = useState(false);
-  const [swapTarget, setSwapTarget] = useState('');
-  const [swapMsg, setSwapMsg] = useState('');
-  const [history, setHistory] = useState<ShiftHistory[]>([]);
-  const [loadingHistory, setLoadingHistory] = useState(true);
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const confirm = useConfirm();
   const { t, m } = useI18n();
-  const isMine = currentShift?.doctor_id === selfDoctorId;
 
   const d = fromISODate(target.iso);
   const dayLabel = `${m.common.weekdays[mondayIndex(d)]} ${d.getDate()}`;
-  const doctorsById = useMemo(
-    () => new Map(doctors.map(doc => [doc.id, doc])),
-    [doctors]
-  );
-  const nameOf = (id: string | null) =>
-    id ? (doctorsById.get(id)?.name ?? t('assign.deletedAccount')) : '—';
-
-  useEffect(() => {
-    let alive = true;
-    setLoadingHistory(true);
-    listSlotHistory(target.iso, target.shiftType, 10)
-      .then(h => alive && setHistory(h))
-      .catch(() => {})
-      .finally(() => alive && setLoadingHistory(false));
-    return () => {
-      alive = false;
-    };
-  }, [target.iso, target.shiftType]);
-
-  const onLeave = useMemo(
-    () => doctorsOnLeave(target.iso, leaves),
-    [target.iso, leaves]
-  );
-  const working = useMemo(
-    () => doctorsWorking(target.iso, monthShifts),
-    [target.iso, monthShifts]
-  );
-  const hoursByDoctor = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const s of monthShifts)
-      m.set(s.doctor_id, (m.get(s.doctor_id) ?? 0) + shiftHours(s.shift_type));
-    return m;
-  }, [monthShifts]);
-
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return doctors
-      .filter(doc => doc.name.toLowerCase().includes(q))
-      .sort(
-        (a, b) =>
-          (hoursByDoctor.get(a.id) ?? 0) - (hoursByDoctor.get(b.id) ?? 0)
-      );
-  }, [doctors, query, hoursByDoctor]);
 
   async function run(action: () => Promise<void>) {
     setBusy(true);
@@ -154,278 +82,36 @@ export function AssignDialog({
         </button>
       </div>
 
-      <div className="border-b border-slate-100 p-3 dark:border-slate-800">
-        <Button
-          className="w-full py-2.5"
-          disabled={busy || currentShift?.doctor_id === selfDoctorId}
-          onClick={() => void run(() => onAssign(selfDoctorId))}
-        >
-          <UserPlus className="size-4" /> {t('assign.assignMe')}
-        </Button>
-        {currentShift && (
-          <Button
-            variant="dangerGhost"
-            className="mt-2 w-full py-2"
-            disabled={busy}
-            onClick={async () => {
-              if (
-                await confirm({
-                  message: t('assign.freeSlotConfirm', {
-                    shift: shiftLabel(target.shiftType),
-                    day: dayLabel,
-                  }),
-                  danger: true,
-                  confirmLabel: t('assign.freeLabel'),
-                })
-              )
-                void run(onClear);
-            }}
-          >
-            <Trash2 className="size-4" /> {t('assign.freeSlot')}
-          </Button>
-        )}
+      <AssignSlotActions
+        shiftType={target.shiftType}
+        dayLabel={dayLabel}
+        currentShift={currentShift}
+        doctors={doctors}
+        selfDoctorId={selfDoctorId}
+        busy={busy}
+        run={run}
+        onAssign={onAssign}
+        onClear={onClear}
+        onPropose={onPropose}
+      />
 
-        {isMine && !swapOpen && (
-          <Button
-            variant="secondary"
-            className="mt-2 w-full py-2"
-            onClick={() => setSwapOpen(true)}
-          >
-            <Repeat className="size-4" /> {t('assign.proposeSwap')}
-          </Button>
-        )}
-        {isMine && swapOpen && (
-          <div className="mt-2 flex flex-col gap-2 rounded-lg border border-slate-200 p-2 dark:border-slate-700">
-            <select
-              value={swapTarget}
-              onChange={e => setSwapTarget(e.target.value)}
-              className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm dark:border-slate-600 dark:bg-slate-800"
-            >
-              <option value="">{t('assign.openToAll')}</option>
-              {doctors
-                .filter(d => d.id !== selfDoctorId)
-                .map(d => (
-                  <option key={d.id} value={d.id}>
-                    {d.name}
-                  </option>
-                ))}
-            </select>
-            <input
-              value={swapMsg}
-              onChange={e => setSwapMsg(e.target.value)}
-              placeholder={t('assign.messageOptional')}
-              className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm dark:border-slate-600 dark:bg-slate-800"
-            />
-            <div className="flex gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                className="flex-1"
-                onClick={() => setSwapOpen(false)}
-              >
-                {t('common.cancel')}
-              </Button>
-              <Button
-                size="sm"
-                className="flex-1"
-                disabled={busy}
-                onClick={() =>
-                  void run(() => onPropose(swapTarget || null, swapMsg))
-                }
-              >
-                {t('assign.propose')}
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
+      <AssignSlotHistory
+        iso={target.iso}
+        shiftType={target.shiftType}
+        doctors={doctors}
+      />
 
-      <div className="border-b border-slate-100 px-3 py-2 dark:border-slate-800">
-        <button
-          type="button"
-          onClick={() => setHistoryOpen(o => !o)}
-          aria-expanded={historyOpen}
-          className="flex w-full items-center gap-2 text-xs font-medium text-slate-500 transition hover:text-slate-700 dark:hover:text-slate-300"
-        >
-          <History className="size-3.5" />
-          {t('assign.historyTitle')}
-          {history.length > 0 && (
-            <span className="rounded-full bg-slate-100 px-1.5 text-[10px] font-semibold text-slate-500 dark:bg-slate-800">
-              {history.length}
-            </span>
-          )}
-          {historyOpen ? (
-            <ChevronUp className="ml-auto size-4" />
-          ) : (
-            <ChevronDown className="ml-auto size-4" />
-          )}
-        </button>
-        {historyOpen && (
-          <div className="mt-1.5">
-            {loadingHistory ? (
-              <p className="py-2 text-center text-slate-400">
-                <Loader2 className="inline size-4 animate-spin" />
-              </p>
-            ) : history.length === 0 ? (
-              <p className="py-1 text-xs text-slate-400">
-                {t('assign.noHistory')}
-              </p>
-            ) : (
-              <ul className="flex max-h-40 flex-col gap-1.5 overflow-y-auto pr-1">
-                {history.map(h => (
-                  <li
-                    key={h.id}
-                    className="flex items-start gap-1.5 text-[11px] leading-tight"
-                  >
-                    <span
-                      className={`mt-1 inline-block size-1.5 shrink-0 rounded-full ${
-                        h.action === 'removed'
-                          ? 'bg-red-400'
-                          : h.action === 'reassigned'
-                            ? 'bg-amber-400'
-                            : 'bg-teal-500'
-                      }`}
-                    />
-                    <span className="min-w-0 flex-1">
-                      {h.action === 'assigned' && (
-                        <>
-                          {h.changed_by
-                            ? `${nameOf(h.changed_by)} ${t('assign.assignedTo')}`
-                            : t('assign.assignedToShort')}
-                          <span className="font-medium">
-                            {nameOf(h.doctor_id)}
-                          </span>
-                        </>
-                      )}
-                      {h.action === 'reassigned' && (
-                        <>
-                          {h.changed_by ? `${nameOf(h.changed_by)} : ` : ''}
-                          {nameOf(h.prev_doctor_id)} →{' '}
-                          <span className="font-medium">
-                            {nameOf(h.doctor_id)}
-                          </span>
-                        </>
-                      )}
-                      {h.action === 'removed' && (
-                        <>
-                          {h.changed_by
-                            ? `${nameOf(h.changed_by)} ${t('assign.removedBy')}`
-                            : t('assign.removedShort')}{' '}
-                          ({nameOf(h.prev_doctor_id)})
-                        </>
-                      )}
-                    </span>
-                    <span className="shrink-0 text-slate-400">
-                      {timeAgo(h.changed_at)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        )}
-      </div>
-
-      <div className="p-3">
-        <input
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          placeholder={t('assign.searchPlaceholder')}
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:border-slate-600 dark:bg-slate-800"
-        />
-      </div>
-
-      <ul className="min-h-0 flex-1 overflow-y-auto px-3 pb-4">
-        {filtered.length === 0 && (
-          <li className="px-2 py-6 text-center text-sm text-slate-400">
-            {t('assign.noDoctors')}
-          </li>
-        )}
-        {filtered.map(doc => {
-          const active = currentShift?.doctor_id === doc.id;
-          const leave = onLeave.has(doc.id);
-          const rest = violatesRest(doc.id, target.iso, monthShifts);
-          const busyDay = working.has(doc.id) && !active;
-          const hours = hoursByDoctor.get(doc.id) ?? 0;
-          return (
-            <li key={doc.id}>
-              <button
-                disabled={busy}
-                onClick={() => void run(() => onAssign(doc.id))}
-                className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm transition hover:bg-slate-100 disabled:opacity-50 dark:hover:bg-slate-800"
-              >
-                <span
-                  className="inline-block size-3 shrink-0 rounded-full"
-                  style={{ backgroundColor: doc.color }}
-                />
-                <span className="flex-1 truncate">
-                  {doc.name}
-                  {doc.id === selfDoctorId && (
-                    <span className="ml-1 text-[10px] font-semibold uppercase text-teal-600">
-                      {t('common.me')}
-                    </span>
-                  )}
-                </span>
-                {rest && (
-                  <span
-                    title={t('assign.restTitle')}
-                    className="flex items-center gap-0.5 rounded bg-red-100 px-1 text-[10px] font-semibold text-red-700 dark:bg-red-950/50 dark:text-red-300"
-                  >
-                    <Moon className="size-3" /> {t('assign.restBadge')}
-                  </span>
-                )}
-                {leave && (
-                  <span
-                    title={t('assign.leaveTitle')}
-                    className="rounded bg-amber-100 px-1 text-[10px] font-semibold text-amber-700 dark:bg-amber-950/50 dark:text-amber-300"
-                  >
-                    {t('assign.leaveBadge')}
-                  </span>
-                )}
-                {busyDay && (
-                  <span
-                    title={t('assign.onDutyTitle')}
-                    className="rounded bg-slate-200 px-1 text-[10px] font-medium text-slate-600 dark:bg-slate-700 dark:text-slate-300"
-                  >
-                    {t('assign.onDutyBadge')}
-                  </span>
-                )}
-                {dayWishes.get(doc.id) === 'prefer' && (
-                  <ThumbsUp
-                    className="size-3.5 text-emerald-500"
-                    aria-label={t('assign.prefersDay')}
-                  />
-                )}
-                {dayWishes.get(doc.id) === 'avoid' && (
-                  <ThumbsDown
-                    className="size-3.5 text-rose-500"
-                    aria-label={t('assign.avoidsDay')}
-                  />
-                )}
-                <span className="tabular-nums text-[11px] text-slate-400">
-                  {hours}h
-                </span>
-                {active &&
-                  (busy ? (
-                    <Loader2 className="size-4 animate-spin text-teal-600" />
-                  ) : (
-                    <Check className="size-4 text-teal-600" />
-                  ))}
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-
-      {(onLeave.size > 0 ||
-        filtered.some(doc =>
-          violatesRest(doc.id, target.iso, monthShifts)
-        )) && (
-        <p className="flex items-center gap-1 border-t border-slate-100 px-3 py-2 text-[11px] text-slate-400 dark:border-slate-800">
-          <AlertTriangle className="size-3 shrink-0" />
-          {t('assign.badgeLegend')}
-        </p>
-      )}
+      <AssignDoctorList
+        iso={target.iso}
+        doctors={doctors}
+        currentShift={currentShift}
+        selfDoctorId={selfDoctorId}
+        monthShifts={monthShifts}
+        leaves={leaves}
+        dayWishes={dayWishes}
+        busy={busy}
+        onPick={doctorId => void run(() => onAssign(doctorId))}
+      />
     </Modal>
   );
 }
