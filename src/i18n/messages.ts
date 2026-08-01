@@ -230,6 +230,7 @@ export const messages = {
       hTotal: 'h Total',
       leaveShort: 'Congés',
       trainingShort: 'Format.',
+      sortBy: 'Trier par {column}',
       noDoctors: 'Aucun médecin.',
       weekendNote:
         'Heures WE = créneaux du vendredi, samedi et dimanche. Période : {label}.',
@@ -933,6 +934,7 @@ export const messages = {
       hTotal: 'Total h',
       leaveShort: 'Leave',
       trainingShort: 'Train.',
+      sortBy: 'Sort by {column}',
       noDoctors: 'No doctors.',
       weekendNote:
         'WE hours = Friday, Saturday and Sunday slots. Period: {label}.',
