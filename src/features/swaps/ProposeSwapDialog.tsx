@@ -7,6 +7,7 @@ import { logError } from '../../lib/logger.ts';
 import { listShiftsBetween } from '../../backend/planning.ts';
 import type { Doctor, Shift } from '../../backend/types.ts';
 import { useI18n } from '../../i18n/index.ts';
+import { ErrorMessage } from '../../components/ui/ErrorMessage.tsx';
 
 /** Nombre de jours à venir dans lesquels chercher mes gardes proposables. */
 const HORIZON_DAYS = 60;
@@ -196,11 +197,7 @@ export function ProposeSwapDialog({
             />
           </label>
 
-          {error && (
-            <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">
-              {error}
-            </p>
-          )}
+          {error && <ErrorMessage className="mb-3">{error}</ErrorMessage>}
 
           <button
             onClick={() => void submit()}

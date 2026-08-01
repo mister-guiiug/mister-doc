@@ -20,7 +20,12 @@ import {
   type CountersView,
   type Period,
 } from './CountersToolbar.tsx';
-import { CountersTable, type Row } from './CountersTable.tsx';
+import {
+  CountersTable,
+  type Row,
+  type SortKey,
+  type SortState,
+} from './CountersTable.tsx';
 import { EquityView } from './EquityView.tsx';
 import type { CounterRow } from './countersExport.ts';
 
@@ -38,6 +43,16 @@ function bounds(period: Period, year: number, month: number): [string, string] {
   ];
 }
 
+/**
+ * Comparaison de deux lignes sur la colonne demandée, toujours en ordre
+ * croissant : le sens est appliqué ensuite par l'appelant. Hors `name`, la clé
+ * de tri est exactement le nom du champ numérique de `Row`.
+ */
+function compareRows(a: Row, b: Row, key: SortKey): number {
+  if (key === 'name') return a.doctor.name.localeCompare(b.doctor.name);
+  return a[key] - b[key];
+}
+
 export function AllCounters() {
   const { t, m } = useI18n();
   const today = new Date();
@@ -51,6 +66,12 @@ export function AllCounters() {
   const [hnc, setHnc] = useState<HncEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Tri par défaut : heures totales décroissantes puis nom croissant, soit
+  // exactement l'ordre historique de l'écran (rien ne change à l'ouverture).
+  const [sort, setSort] = useState<SortState>({
+    key: 'totalHours',
+    dir: 'desc',
+  });
 
   const [from, to] = useMemo(
     () => bounds(period, year, month),
@@ -119,10 +140,22 @@ export function AllCounters() {
       })
       .sort(
         (a, b) =>
-          b.totalHours - a.totalHours ||
+          // Sens demandé sur la colonne, puis nom croissant : l'égalité se
+          // départage toujours pareil, l'ordre reste stable et prévisible.
+          (sort.dir === 'asc' ? 1 : -1) * compareRows(a, b, sort.key) ||
           a.doctor.name.localeCompare(b.doctor.name)
       );
-  }, [doctors, shifts, leaves, hnc]);
+  }, [doctors, shifts, leaves, hnc, sort]);
+
+  // Un clic sur la colonne déjà triée inverse le sens ; sinon on ouvre sur le
+  // sens le plus parlant : décroissant pour un compteur, croissant pour un nom.
+  const changeSort = useCallback((key: SortKey) => {
+    setSort(prev =>
+      prev.key === key
+        ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+        : { key, dir: key === 'name' ? 'asc' : 'desc' }
+    );
+  }, []);
 
   function shiftPeriod(delta: number) {
     if (period === 'year') {
@@ -153,6 +186,7 @@ export function AllCounters() {
   );
 
   // Lignes exportables (nom du médecin + compteurs), partagées par CSV/Excel/PDF.
+  // Dérivées de `rows` : l'export suit donc toujours le tri affiché.
   const exportRows = useMemo<CounterRow[]>(
     () =>
       rows.map(r => ({
@@ -194,7 +228,12 @@ export function AllCounters() {
       {view === 'equity' ? (
         <EquityView report={equity} label={label} />
       ) : (
-        <CountersTable rows={rows} label={label} />
+        <CountersTable
+          rows={rows}
+          label={label}
+          sort={sort}
+          onSortChange={changeSort}
+        />
       )}
     </div>
   );

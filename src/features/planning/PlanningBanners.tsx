@@ -1,5 +1,6 @@
 import { AlertTriangle, WifiOff } from 'lucide-react';
 import { useI18n } from '../../i18n/index.ts';
+import { ErrorMessage } from '../../components/ui/ErrorMessage.tsx';
 
 /** Horodatage court `DD/MM HH:MM` (dernière synchro affichée hors-ligne). */
 function syncLabel(ts: number, locale: string): string {
@@ -37,11 +38,7 @@ export function PlanningBanners({
 
   return (
     <>
-      {error && (
-        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">
-          {error}
-        </p>
-      )}
+      {error && <ErrorMessage>{error}</ErrorMessage>}
 
       {offline && (
         <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-300">

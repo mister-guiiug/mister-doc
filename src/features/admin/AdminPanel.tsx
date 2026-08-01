@@ -28,6 +28,7 @@ import { PendingAccountsCard } from './PendingAccountsCard.tsx';
 import { AddRosterCard } from './AddRosterCard.tsx';
 import { MembersCard } from './MembersCard.tsx';
 import { DEFAULT_DOCTOR_COLOR } from '../../lib/colors.ts';
+import { ErrorMessage } from '../../components/ui/ErrorMessage.tsx';
 
 /**
  * Écran d'administration : orchestre l'état partagé (liste des médecins,
@@ -123,11 +124,7 @@ export function AdminPanel() {
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-4">
-      {error && (
-        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">
-          {error}
-        </p>
-      )}
+      {error && <ErrorMessage>{error}</ErrorMessage>}
 
       <AdminSettingsCard
         pentecoteFerie={settings.pentecote_ferie !== false}

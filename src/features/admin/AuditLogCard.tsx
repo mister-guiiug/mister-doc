@@ -7,6 +7,7 @@ import { timeAgo } from '../../lib/relativeTime.ts';
 import { SectionCard } from '../../components/ui/SectionCard.tsx';
 import { EmptyState } from '../../components/ui/EmptyState.tsx';
 import { useI18n } from '../../i18n/index.ts';
+import { ErrorMessage } from '../../components/ui/ErrorMessage.tsx';
 
 /**
  * Journal d'audit (admin, lecture seule) : dernières actions sensibles
@@ -39,9 +40,7 @@ export function AuditLogCard() {
       count={entries?.length}
     >
       {error ? (
-        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">
-          {error}
-        </p>
+        <ErrorMessage>{error}</ErrorMessage>
       ) : entries === null ? (
         <p className="py-2 text-sm text-slate-400">{t('audit.loading')}</p>
       ) : entries.length === 0 ? (

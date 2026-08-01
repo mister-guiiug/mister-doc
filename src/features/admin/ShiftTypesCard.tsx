@@ -13,6 +13,7 @@ import { Button } from '../../components/ui/Button.tsx';
 import { useI18n } from '../../i18n/index.ts';
 import { ShiftTypeRow } from './ShiftTypeRow.tsx';
 import { ShiftTypeDialog } from './ShiftTypeDialog.tsx';
+import { ErrorMessage } from '../../components/ui/ErrorMessage.tsx';
 
 /** Modèle vierge d'un nouveau créneau (défauts raisonnables). */
 function blankType(): ShiftTypeDef {
@@ -117,11 +118,7 @@ export function ShiftTypesCard() {
         </Button>
       }
     >
-      {error && (
-        <p className="mb-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">
-          {error}
-        </p>
-      )}
+      {error && <ErrorMessage className="mb-2">{error}</ErrorMessage>}
 
       <ul className="flex flex-col gap-2">
         {types.map((t, i) => (
