@@ -435,6 +435,12 @@ export const messages = {
       remindersSent: '{n} rappel(s) envoyé(s).',
       remindersNone:
         'Aucun rappel à envoyer (déjà faits ou aucune garde concernée).',
+      digestTitle: 'Récapitulatif hebdomadaire',
+      digestDesc:
+        'Envoyé automatiquement le dimanche soir : toutes les gardes de la semaine à venir, en une notification. Ce bouton le déclenche maintenant.',
+      digestSent: '{n} récapitulatif(s) envoyé(s).',
+      digestNone:
+        'Aucun récapitulatif à envoyer (déjà fait ou aucune garde cette semaine).',
       pendingTitle: 'Comptes en attente',
       noPending: 'Aucune demande en attente.',
       approve: 'Approuver',
@@ -1142,6 +1148,11 @@ export const messages = {
       send: 'Send',
       remindersSent: '{n} reminder(s) sent.',
       remindersNone: 'No reminder to send (already done or no relevant shift).',
+      digestTitle: 'Weekly summary',
+      digestDesc:
+        'Sent automatically on Sunday evening: every shift of the coming week, in a single notification. This button triggers it now.',
+      digestSent: '{n} summary/summaries sent.',
+      digestNone: 'No summary to send (already done or no shift this week).',
       pendingTitle: 'Pending accounts',
       noPending: 'No pending request.',
       approve: 'Approve',
