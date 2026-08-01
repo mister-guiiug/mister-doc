@@ -24,6 +24,9 @@ src/**/*.jsx
 /vite.config.js
 /vitest.config.js
 
+# Cache local du CLI Supabase (ref du projet liée à la machine).
+supabase/.temp
+
 # Playwright (E2E)
 test-results
 playwright-report
