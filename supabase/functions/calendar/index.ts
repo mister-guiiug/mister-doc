@@ -9,6 +9,10 @@
 //   ?token=DOCTOR_TOKEN&scope=me → uniquement ce médecin
 //   ?token=...&timed=1          → événements horodatés (sinon journée entière)
 
+import { createLogger, errMessage } from '../_shared/log.ts';
+
+const log = createLogger('calendar');
+
 // Défauts historiques : servent de REPLI si la table `shift_types` est absente,
 // vide, ou ne connaît pas un code (base incomplète). La source de vérité est la
 // table (types de créneaux configurables) — chargée et mise en cache ci-dessous.
@@ -311,6 +315,9 @@ Deno.serve(async (req: Request) => {
         ((c.calendar_token_hash && c.calendar_token_hash === tokenHash) ||
           (c.calendar_token && c.calendar_token === token));
       if (!ok) {
+        // Token rejeté : utile pour repérer un abonnement .ics cassé (token
+        // révoqué) ou une tentative de devinette. Le token n'est pas journalisé.
+        log.warn('token_invalid');
         return new Response('Token invalide.', { status: 401, headers: CORS });
       }
     }
@@ -396,7 +403,11 @@ Deno.serve(async (req: Request) => {
       },
     });
   } catch (e) {
-    return new Response(`Erreur: ${e instanceof Error ? e.message : e}`, {
+    // Journalisé AVANT de répondre : une 500 passait jusqu'ici sans aucune
+    // trace côté serveur, donc invisible tant qu'un utilisateur ne la signalait
+    // pas. Le client, lui, ne reçoit pas de détail interne.
+    log.error('unhandled', { reason: errMessage(e) });
+    return new Response('Erreur interne.', {
       status: 500,
       headers: CORS,
     });
