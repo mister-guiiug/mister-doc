@@ -168,9 +168,12 @@ contrôles serveur que l'affectation unitaire (RLS, verrou de mois, historique).
   jours de semaine suivants (J+7, J+14, J+21). Une date est **ignorée**, sans
   empêcher les autres, si le créneau n'est pas à couvrir ce jour-là (week-end,
   férié, créneau désactivé) ou si son **mois est verrouillé** — la répétition
-  peut déborder sur le mois suivant. Comme une affectation simple, elle
-  **remplace** l'occupant éventuel du créneau. Le décompte des dates retenues et
-  des dates ignorées est affiché après coup.
+  peut déborder sur le mois suivant. Le jour **choisi** se comporte comme une
+  affectation simple et **remplace** l'occupant éventuel — c'est le créneau que
+  l'on vient d'ouvrir. Les semaines **suivantes**, elles, n'écrasent jamais : un
+  créneau déjà attribué y est ignoré, pour ne pas déloger un collègue à son
+  insu. Le décompte des dates retenues et des dates ignorées (avec leur motif)
+  est affiché après coup.
 - **Copier le mois précédent** (barre d'outils du planning) : reprend les
   **gardes seules** du mois précédent — ni absences, ni HNC, ni notes, ni vœux.
   - **Alignement sur le jour de semaine**, pas sur le quantième : le 1er du mois

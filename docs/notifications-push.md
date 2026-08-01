@@ -95,8 +95,8 @@ la cloche. Aucune Edge Function ni configuration supplémentaire.
 
 Depuis la migration `0025`, le trigger d'**INSERT** sur `shifts` est de niveau
 **instruction** (`for each statement`, table de transition) et non plus de niveau
-ligne : une insertion en lot (copie de mois) produit **une notification — donc un
-seul push — par médecin**, au lieu d'une par garde. Le corps s'adapte au volume :
+ligne : une insertion en lot (copie de mois, semaines répétées) produit **une
+notification — donc un seul push — par médecin**, au lieu d'une par garde. Le corps s'adapte au volume :
 message habituel pour une garde, liste des dates pour un petit lot, plage
 « du … au … » au-delà. `UPDATE` et `DELETE` restent en `for each row` (retrait et
 réaffectation ne partent jamais en masse). Même patron que la migration `0012`

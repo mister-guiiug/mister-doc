@@ -339,6 +339,7 @@ export const messages = {
       repeatSkippedInactive:
         '{n} date(s) ignorée(s) : créneau non requis (week-end ou férié).',
       repeatSkippedLocked: '{n} date(s) ignorée(s) : mois verrouillé.',
+      repeatSkippedTaken: '{n} date(s) ignorée(s) : créneau déjà attribué.',
       repeatNothing:
         'Aucune date affectable : le créneau n’est pas à couvrir ces jours-là, ou le mois est verrouillé.',
       proposeSwap: 'Proposer un échange',
@@ -1086,6 +1087,7 @@ export const messages = {
       repeatSkippedInactive:
         '{n} date(s) skipped: slot not required (weekend or holiday).',
       repeatSkippedLocked: '{n} date(s) skipped: month locked.',
+      repeatSkippedTaken: '{n} date(s) skipped: slot already assigned.',
       repeatNothing:
         'No assignable date: the slot is not required on those days, or the month is locked.',
       proposeSwap: 'Offer a swap',
