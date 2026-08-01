@@ -68,6 +68,40 @@ Chaque médecin active le push depuis **Profil → Notifications push** (un appa
 = un abonnement). Le refus d'autorisation navigateur est géré ; l'abonnement est
 purgé automatiquement côté serveur quand il expire (404/410).
 
+## Envois programmés (pg_cron)
+
+Deux jobs insèrent des lignes dans `notifications` : ces lignes empruntent donc
+le **même pipeline** (webhook → Edge Function `push`) et apparaissent aussi dans
+la cloche. Aucune Edge Function ni configuration supplémentaire.
+
+| Job                          | Migration | Planification (UTC) | Contenu                                                                                           |
+| ---------------------------- | --------- | ------------------- | ------------------------------------------------------------------------------------------------- |
+| `mister-doc-shift-reminders` | `0023`    | `0 17 * * *`        | **« Garde demain »** (gardes du lendemain) et **« Nuit ce soir »** (garde du jour, type « nuit ») |
+| `mister-doc-weekly-digest`   | `0024`    | `0 17 * * 0`        | **récapitulatif hebdomadaire** : toutes les gardes des 7 jours suivants, en une notification      |
+
+- Seuls les médecins **ayant un compte** sont notifiés (les entrées de roster
+  sans `auth_id` sont ignorées).
+- **Idempotence** : un rappel n'est jamais recréé pour un même (médecin, type,
+  date) ; le récapitulatif est daté du **lundi de la semaine couverte**, ce qui
+  interdit le doublon.
+- **Déclenchement manuel** (test / rattrapage), réservé aux admins : boutons
+  « Rappels de garde » et « Récapitulatif hebdomadaire » dans `/admin` →
+  « Réglages » (RPC `admin_send_reminders` et `admin_send_weekly_digest`, qui
+  renvoient le nombre d'envois créés).
+- La planification s'exécute en **UTC** : `17:00 UTC` ≈ 18–19 h à Paris. Pour
+  changer l'heure, reprogrammer le job (`cron.schedule` avec le même nom).
+
+## Notifications d'affectation groupées
+
+Depuis la migration `0025`, le trigger d'**INSERT** sur `shifts` est de niveau
+**instruction** (`for each statement`, table de transition) et non plus de niveau
+ligne : une insertion en lot (copie de mois) produit **une notification — donc un
+seul push — par médecin**, au lieu d'une par garde. Le corps s'adapte au volume :
+message habituel pour une garde, liste des dates pour un petit lot, plage
+« du … au … » au-delà. `UPDATE` et `DELETE` restent en `for each row` (retrait et
+réaffectation ne partent jamais en masse). Même patron que la migration `0012`
+pour les congés.
+
 ## Test rapide
 
 1. Activer le push dans le profil (autoriser dans le navigateur).

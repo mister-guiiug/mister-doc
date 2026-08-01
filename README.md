@@ -15,17 +15,22 @@ métier, à partir d'un modèle simple de créneaux mensuels.
 
 - **Vue mensuelle** groupée par **numéro de semaine ISO**, avec **liste** (mobile)
   ou **grille 7 colonnes** (desktop, bascule mémorisée).
-- **Créneaux cliniques** à occupant unique, base horaire métier :
+- **Créneaux cliniques configurables** à occupant unique : les types de garde ne
+  sont plus codés en dur, un **admin** les crée, édite, réordonne et désactive
+  (libellé, heures, « clinique », « requis le week-end », « nuit », horaires du
+  flux .ics, couleur) — voir
+  [docs/spec-creneaux-configurables.md](docs/spec-creneaux-configurables.md).
+  Configuration par défaut :
 
-  | Créneau | Libellé | Heures |
-  | ------- | ------- | ------ |
-  | `S1J`   | S1 Jour | 10 h   |
-  | `S1N`   | S1 Nuit | 15 h   |
-  | `S2J`   | S2 Jour | 8 h    |
+  | Créneau | Libellé | Heures | Week-end | Nuit |
+  | ------- | ------- | ------ | -------- | ---- |
+  | `S1J`   | S1 Jour | 10 h   | oui      | non  |
+  | `S1N`   | S1 Nuit | 15 h   | oui      | oui  |
+  | `S2J`   | S2 Jour | 8 h    | non      | non  |
 
   1 médecin par créneau et par jour ; les créneaux non pourvus sont signalés
   « à couvrir ». **Exception week-end / jours fériés** (fériés FR calculés) :
-  seuls `S1J` et `S1N` sont requis.
+  seuls les créneaux marqués « requis le week-end » le sont.
 
 - **Heures Non Cliniques (HNC, ex-« S3 »)** : plusieurs médecins par jour, chacun
   saisit son **propre nombre d'heures**, **n'importe quel jour**, hors couverture
@@ -35,6 +40,13 @@ métier, à partir d'un modèle simple de créneaux mensuels.
 - **Édition partagée** temps réel (Supabase Realtime) : tout médecin approuvé
   affecte n'importe qui, avec **alertes** (repos de sécurité après une nuit,
   conflit garde/absence, cumul). **Confirmation avant chaque suppression.**
+- **Affectation sur plusieurs semaines** : depuis le dialogue d'affectation,
+  répéter le même médecin sur le même créneau **1 à 4 semaines** consécutives
+  (mêmes jours de semaine).
+- **Copier le mois précédent** : reprend ses gardes dans le mois affiché,
+  **alignées sur le jour de semaine** ; **récapitulatif** (gardes à créer,
+  ignorées et pourquoi) avant toute écriture, et aucun créneau déjà attribué
+  n'est écrasé.
 - **Bourse aux gardes** : proposer une de ses gardes (ciblée ou ouverte à tous)
   depuis la bourse (« Proposer une garde ») ou le planning ; **accepter réaffecte
   la garde** ; tri par date, « dans N j » et **historique** — page **Échanges**.
@@ -42,7 +54,8 @@ métier, à partir d'un modèle simple de créneaux mensuels.
   absences, HNC) en liste, avec compteurs perso et abonnement calendrier.
 - **Compteurs du médecin connecté** (bascule **mois** / **quadrimestre**) :
   vendredis / samedis / dimanches, heures de week-end, **HNC**, heures totales,
-  congés, formation.
+  congés, formation. Deux vues en **carrousel** : pastilles ou **mini-calendrier**
+  du mois.
 - **Verrouillage de mois** (admin) pour figer un planning validé.
 
 ### Comptes, rôles, admin
@@ -54,8 +67,11 @@ métier, à partir d'un modèle simple de créneaux mensuels.
 - Un compte **en attente** peut supprimer lui-même sa demande ; un **admin** peut
   l'**approuver** ou la **rejeter**.
 - **Vue admin `/compteurs`** : compteurs de toute l'équipe (bascule **Tableau /
-  Équité**) par mois / quadrimestre (4 mois) / année, export **CSV**, **Excel
-  (.xlsx)** et **PDF**.
+  Équité**) par mois / quadrimestre (4 mois) / année, colonnes **triables** dans
+  la vue Tableau, export **CSV**, **Excel (.xlsx)** et **PDF**.
+- **Types de créneaux** (carte d'admin) : créer, éditer, réordonner et
+  (dés)activer les créneaux ; la suppression n'est possible que si aucune garde
+  ni proposition d'échange ne les utilise.
 - **Aperçu « médecin »** : un admin peut, via le **bouclier** de l'en-tête,
   masquer temporairement ses fonctions admin pour voir l'app comme un non-admin.
 
@@ -63,9 +79,15 @@ métier, à partir d'un modèle simple de créneaux mensuels.
 
 - **Notifications in-app** (cloche, temps réel) : garde attribuée/retirée, absence
   (posée/supprimée, **groupée par plage**), HNC, échange proposé/accepté/décliné,
-  mois verrouillé/déverrouillé, demande de compte (aux admins), approbation.
+  mois verrouillé/déverrouillé, demande de compte (aux admins), approbation,
+  **rappel de garde** et **récapitulatif hebdomadaire**.
   **Clic = raccourci** vers le bon menu ; **glissement latéral = marquer lu** ;
-  **toast** à l'arrivée d'une notif app ouverte.
+  **toast** à l'arrivée d'une notif app ouverte. Une **affectation en lot** (copie
+  de mois) ne donne qu'**une seule** notification par médecin.
+- **Rappels de garde** (pg_cron, quotidien) : « garde demain » et « nuit ce
+  soir » ; **récapitulatif hebdomadaire** (pg_cron, dimanche) listant les gardes
+  des 7 jours à venir. Les deux sont aussi déclenchables à la main depuis les
+  réglages admin.
 - **Notifications push** (optionnel) : reçues même app fermée, via service worker +
   VAPID. Opt-in depuis le profil. Configuration : [docs/notifications-push.md](docs/notifications-push.md).
 - **Sauvegarde/restauration** (admin) + **sauvegarde auto hebdomadaire** (pg_cron).
@@ -132,34 +154,38 @@ Scripts utiles : `npm run build`, `npm run preview`, `npm run test`,
 
 Le schéma versionné est découpé en migrations dans
 [`supabase/migrations/`](supabase/migrations/), appliquées **dans l'ordre**
-(`0001` → `0021`). Pour une instance existante, le déploiement (Edge Functions +
+(`0001` → `0025`). Pour une instance existante, le déploiement (Edge Functions +
 migrations `≥ 0014`) est **automatisé par la CI** — workflow
 [`.github/workflows/supabase.yml`](.github/workflows/supabase.yml), déclenché sur
 tout changement `supabase/**` sur `main`. Détails, secrets requis et procédure
 manuelle de repli : [`docs/deploiement.md`](docs/deploiement.md).
 
-| Migration                                  | Contenu                                                                                                             |
-| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
-| `0001_init`                                | tables `doctors` / `shifts` / `app_config`, RLS, barrière d'approbation, RPC de base                                |
-| `0002_admin_update_doctor`                 | édition profil (soi / admin)                                                                                        |
-| `0003_leaves`                              | congés annuels & formations                                                                                         |
-| `0004_calendar_feed` · `0005_improvements` | flux .ics (token), tokens par médecin, notes de jour, verrou de mois, réglages                                      |
-| `0006_notifications_backups`               | notifications (triggers) + sauvegarde/restauration + pg_cron                                                        |
-| `0007_swaps_wishes`                        | échanges de gardes + vœux                                                                                           |
-| `0008_self_service`                        | suppression de sa demande en attente                                                                                |
-| `0009_hnc`                                 | **Heures Non Cliniques** (table `hnc_hours`, migration des ex-`S3`)                                                 |
-| `0010_admin_reject`                        | rejet admin d'une demande en attente                                                                                |
-| `0011_shift_history`                       | historique des changements par créneau                                                                              |
-| `0012_notif_improvements`                  | améliorations des notifications                                                                                     |
-| `0013_push_subscriptions`                  | abonnements Web Push                                                                                                |
-| `0014_calendar_rate_limit`                 | **rate-limit** de l'Edge Function calendrier (table `edge_rate_limit` + RPC `edge_rate_limit_hit`)                  |
-| `0015_calendar_token_privacy`              | **confidentialité** du token calendrier (privilège colonne : `calendar_token` illisible par les autres médecins)    |
-| `0016_extend_month_lock`                   | verrou de mois **étendu** aux HNC / notes / vœux (triggers `assert_month_unlocked`)                                 |
-| `0017_audit_log`                           | **journal d'audit** admin (table `audit_log` + triggers sur `doctors` / `locked_months`)                            |
-| `0018_calendar_token_hash`                 | tokens calendrier **hashés au repos** (SHA-256 ; plus de token en clair en base ; lien montré une seule fois)       |
-| `0019_anonymize_doctor`                    | **effacement RGPD** des comptes approuvés par **anonymisation** (RPC `anonymize_doctor`, self-service ou admin)     |
-| `0020_admin_reset_mfa`                     | **récupération 2FA** : un admin réinitialise la double authentification d'un médecin (RPC `admin_reset_mfa`)        |
-| `0021_mfa_recovery_codes`                  | **codes de secours 2FA** self-service (table `mfa_recovery_codes` hashés + RPC `generate_`/`use_mfa_recovery_code`) |
+| Migration                                  | Contenu                                                                                                                        |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| `0001_init`                                | tables `doctors` / `shifts` / `app_config`, RLS, barrière d'approbation, RPC de base                                           |
+| `0002_admin_update_doctor`                 | édition profil (soi / admin)                                                                                                   |
+| `0003_leaves`                              | congés annuels & formations                                                                                                    |
+| `0004_calendar_feed` · `0005_improvements` | flux .ics (token), tokens par médecin, notes de jour, verrou de mois, réglages                                                 |
+| `0006_notifications_backups`               | notifications (triggers) + sauvegarde/restauration + pg_cron                                                                   |
+| `0007_swaps_wishes`                        | échanges de gardes + vœux                                                                                                      |
+| `0008_self_service`                        | suppression de sa demande en attente                                                                                           |
+| `0009_hnc`                                 | **Heures Non Cliniques** (table `hnc_hours`, migration des ex-`S3`)                                                            |
+| `0010_admin_reject`                        | rejet admin d'une demande en attente                                                                                           |
+| `0011_shift_history`                       | historique des changements par créneau                                                                                         |
+| `0012_notif_improvements`                  | améliorations des notifications                                                                                                |
+| `0013_push_subscriptions`                  | abonnements Web Push                                                                                                           |
+| `0014_calendar_rate_limit`                 | **rate-limit** de l'Edge Function calendrier (table `edge_rate_limit` + RPC `edge_rate_limit_hit`)                             |
+| `0015_calendar_token_privacy`              | **confidentialité** du token calendrier (privilège colonne : `calendar_token` illisible par les autres médecins)               |
+| `0016_extend_month_lock`                   | verrou de mois **étendu** aux HNC / notes / vœux (triggers `assert_month_unlocked`)                                            |
+| `0017_audit_log`                           | **journal d'audit** admin (table `audit_log` + triggers sur `doctors` / `locked_months`)                                       |
+| `0018_calendar_token_hash`                 | tokens calendrier **hashés au repos** (SHA-256 ; plus de token en clair en base ; lien montré une seule fois)                  |
+| `0019_anonymize_doctor`                    | **effacement RGPD** des comptes approuvés par **anonymisation** (RPC `anonymize_doctor`, self-service ou admin)                |
+| `0020_admin_reset_mfa`                     | **récupération 2FA** : un admin réinitialise la double authentification d'un médecin (RPC `admin_reset_mfa`)                   |
+| `0021_mfa_recovery_codes`                  | **codes de secours 2FA** self-service (table `mfa_recovery_codes` hashés + RPC `generate_`/`use_mfa_recovery_code`)            |
+| `0022_shift_types`                         | **créneaux configurables** (table `shift_types`, CHECK → FK, RPC admin `admin_upsert_/set_active_/reorder_/delete_shift_type`) |
+| `0023_shift_reminders`                     | **rappels de garde** quotidiens (`enqueue_shift_reminders` + job pg_cron, RPC `admin_send_reminders`)                          |
+| `0024_weekly_digest`                       | **récapitulatif hebdomadaire** (`enqueue_weekly_digest` + job pg_cron, RPC `admin_send_weekly_digest`)                         |
+| `0025_copy_previous_month`                 | **copie de mois** (RPC `assign_shifts_bulk`) + notifications d'affectation **groupées** à l'INSERT                             |
 
 Après `0001`, renseignez le code de bootstrap :
 
@@ -232,4 +258,4 @@ src/
 ```
 
 Tests (`src/lib/*.test.ts`) : compteurs, semaine ISO, créneaux actifs, congés,
-alertes de validation.
+alertes de validation, répétition hebdomadaire, copie de mois.
