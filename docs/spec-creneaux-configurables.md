@@ -137,8 +137,10 @@ Validation renforcée à l'exécution (valeurs venues de la DB / FK).
   ⇒ défauts conservés).
 - `equity.test.ts` : **deux** types `is_night` → `nights` cumulés.
 - `monthPdf.test.ts` : colonnes = cliniques actifs, cellules par colonne, WE neutralisé.
-- **Migration** : vérifiée sous **pglite** (seed exact, FK, `shift_label`, RPC,
-  garde-fous) — 15 assertions.
+- **Migration** : vérifiée à la mise au point sous **pglite** (Postgres en WASM)
+  — seed exact, FK, `shift_label`, RPC, garde-fous, 15 assertions. Ce contrôle
+  est **ponctuel et non versionné** : `pglite` n'est pas une dépendance du
+  projet et aucun test SQL ne tourne en CI.
 
 ## 13. Risques & mitigations
 

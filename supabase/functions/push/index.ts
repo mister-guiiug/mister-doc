@@ -10,7 +10,8 @@
 //   VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY  (npx web-push generate-vapid-keys)
 //   VAPID_SUBJECT       ex. mailto:admin@votre-domaine.fr
 //   APP_URL             ex. https://mister-guiiug.github.io/mister-doc/
-//   WEBHOOK_SECRET      (optionnel) partagé avec le header du webhook
+//   WEBHOOK_SECRET      OBLIGATOIRE — partagé avec le header du webhook ; sans
+//                       lui la fonction refuse tout appel (fail-closed).
 // SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY sont fournis automatiquement.
 
 import webpush from 'npm:web-push@3.6.7';

@@ -36,6 +36,10 @@ jobs:
           VITE_PUBLIC_SITE_ORIGIN: https://${{ github.repository_owner }}.github.io
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+          # Clé VAPID PUBLIQUE (destinée au bundle, comme la clé anon). Sans
+          # elle, `pushConfigured()` est faux et l'opt-in aux notifications
+          # push reste MASQUÉ en production — la fonctionnalité paraît absente.
+          VITE_VAPID_PUBLIC_KEY: ${{ vars.VITE_VAPID_PUBLIC_KEY }}
       - uses: actions/upload-pages-artifact@v5
         with:
           path: dist

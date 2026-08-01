@@ -61,9 +61,10 @@ métier, à partir d'un modèle simple de créneaux mensuels.
 ### Comptes, rôles, admin
 
 - **Authentification Supabase** + barrière d'approbation (voir Sécurité).
-- **Profil dédié** (`/profil`) : nom, couleur, thème clair/sombre, abonnement
-  calendrier, **partage du lien de l'app**, **notifications push** (opt-in),
-  version + « forcer la mise à jour », déconnexion.
+- **Profil dédié** (`/profil`) : nom, couleur, thème clair/sombre, **langue
+  (français / anglais)**, abonnement calendrier, **partage du lien de l'app**,
+  **notifications push** (opt-in), version + « forcer la mise à jour »,
+  déconnexion.
 - Un compte **en attente** peut supprimer lui-même sa demande ; un **admin** peut
   l'**approuver** ou la **rejeter**.
 - **Vue admin `/compteurs`** : compteurs de toute l'équipe (bascule **Tableau /
@@ -200,15 +201,16 @@ servi par l'Edge Function Supabase [`supabase/functions/calendar`](supabase/func
 
 ```
 https://<ref>.supabase.co/functions/v1/calendar?token=SECRET          # toute l'équipe
-https://<ref>.supabase.co/functions/v1/calendar?token=SECRET&doctor=ID # un médecin
+https://<ref>.supabase.co/functions/v1/calendar?token=TOKEN&scope=me   # ses propres gardes
 ```
 
-L'accès est protégé par un token secret (colonne `app_config.calendar_token`) ;
-la fonction lit les données via la clé `service_role` et est déployée avec
-`verify_jwt = false` (les agendas ne peuvent pas envoyer de JWT). Dans l'app, le
-bouton **Calendrier** de l'en-tête affiche l'URL d'abonnement (équipe ou
-personnelle) avec liens webcal / Google Agenda / téléchargement. Les médecins
-approuvés récupèrent le token via la RPC `calendar_token()`.
+L'accès est protégé par un token secret **propre à chaque médecin** (stocké
+haché, cf. migration `0018`) ; la fonction lit les données via la clé
+`service_role` et est déployée avec `verify_jwt = false` (les agendas ne peuvent
+pas envoyer de JWT). Dans l'app, le bouton **Calendrier** de l'en-tête affiche
+l'URL d'abonnement (équipe ou personnelle) avec liens webcal / Google Agenda /
+téléchargement, et permet de **révoquer** le token en le régénérant
+(`rotate_calendar_token()`).
 
 Déploiement de la fonction : automatisé par la CI (workflow
 [`supabase.yml`](.github/workflows/supabase.yml), `verify_jwt` déclaré dans
@@ -247,12 +249,16 @@ puis activez **Settings → Pages → Source : GitHub Actions**.
 ```
 src/
   lib/        env (validation JS) · client Supabase · dates (semaine ISO) ·
-              créneaux + compteurs · congés · HNC · validation/alertes · thème · couleurs
+              créneaux + compteurs · congés · HNC · validation/alertes · équité ·
+              répétition + copie de mois · PDF · XLSX · thème · couleurs
   backend/    types · doctors · planning (shifts) · leaves · hnc · notes · wishes ·
-              swaps · hnc · notifications · backup · locks · settings · calendar
+              swaps · shiftTypes · notifications · push · reminders · history ·
+              audit · gdpr · mfa · passkey · backup · locks · settings · calendar
   auth/       contexte + porte d'authentification + page de connexion
+  i18n/       catalogue FR/EN typé + fournisseur de traduction
   features/   planning/ (liste + grille, compteurs, dialogues affect./congé/note/HNC) ·
-              swaps/ · admin/ (panel, compteurs équipe, sauvegarde) · profile/ · pending/
+              swaps/ · admin/ (panel, compteurs équipe, créneaux, sauvegarde) ·
+              profile/ · pending/ · legal/ (politique de confidentialité)
   components/ en-tête · barre d'onglets basse · cloche notifications · modale ·
               toast · thème · calendrier · profil · invite d'installation · spinner
 ```
