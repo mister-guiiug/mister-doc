@@ -9,6 +9,7 @@ import { ConfirmProvider } from './components/ui/ConfirmProvider.tsx';
 import { Header } from './components/Header.tsx';
 import { BottomNav } from './components/BottomNav.tsx';
 import { InstallPrompt } from './components/InstallPrompt.tsx';
+import { UpdatePrompt } from './components/UpdatePrompt.tsx';
 import { FullScreenSpinner } from './components/Spinner.tsx';
 import { PlanningView } from './features/planning/PlanningView.tsx';
 
@@ -89,6 +90,7 @@ export default function App() {
             </HashRouter>
           </AuthGate>
           <InstallPrompt />
+          <UpdatePrompt />
         </AuthProvider>
       </ConfirmProvider>
     </ToastProvider>

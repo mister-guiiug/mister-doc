@@ -129,7 +129,11 @@ export default defineConfig(({ command }) => {
       }),
       cspPlugin(command === 'serve'),
       VitePWA({
-        registerType: 'autoUpdate',
+        // `prompt` (et non `autoUpdate`) : la nouvelle version est téléchargée
+        // en fond, mais c'est l'UTILISATEUR qui décide quand recharger (cf.
+        // `components/UpdatePrompt.tsx`). En `autoUpdate`, la page pouvait se
+        // recharger en pleine saisie (affectation de garde, formulaire ouvert).
+        registerType: 'prompt',
         includeAssets: [
           'icons/icon-192.png',
           'icons/icon-512.png',

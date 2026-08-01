@@ -636,6 +636,10 @@ export const messages = {
       install: 'Installer',
       close: 'Fermer',
     },
+    update: {
+      available: 'Une nouvelle version est disponible.',
+      reload: 'Recharger',
+    },
     confirm: {
       confirm: 'Confirmer',
       cancel: 'Annuler',
@@ -1328,6 +1332,10 @@ export const messages = {
       benefits: 'Quick access, full screen, offline.',
       install: 'Install',
       close: 'Close',
+    },
+    update: {
+      available: 'A new version is available.',
+      reload: 'Reload',
     },
     confirm: {
       confirm: 'Confirm',
