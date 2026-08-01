@@ -45,7 +45,12 @@ export function fromISODate(iso: string): Date {
   return new Date(y, m - 1, d);
 }
 
-function addDays(d: Date, n: number): Date {
+/**
+ * Décale une date de `n` jours (copie ; l'entrée n'est pas modifiée). Passe par
+ * `setDate`, qui gère seul les bascules de mois/année et les changements
+ * d'heure — contrairement à une arithmétique en millisecondes.
+ */
+export function addDays(d: Date, n: number): Date {
   const r = new Date(d);
   r.setDate(r.getDate() + n);
   return r;

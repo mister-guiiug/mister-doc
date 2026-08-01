@@ -58,7 +58,9 @@ export function PlanningDialogs({
           monthShifts={data.shifts}
           leaves={data.leaves}
           dayWishes={slotDayWishes}
-          onAssign={doctorId => mutations.handleAssign(slot, doctorId)}
+          onAssign={(doctorId, weeks) =>
+            mutations.handleAssign(slot, doctorId, weeks)
+          }
           onClear={() => mutations.handleClearSlot(slot)}
           onPropose={(toDoctor, message) =>
             mutations.handlePropose(slot, toDoctor, message)
