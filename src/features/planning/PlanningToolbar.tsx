@@ -2,6 +2,7 @@ import {
   ChevronLeft,
   ChevronRight,
   CalendarDays,
+  CopyPlus,
   RefreshCw,
   Lock,
   LockOpen,
@@ -27,6 +28,8 @@ interface PlanningToolbarProps {
   onToday: () => void;
   onHighlightChange: (doctorId: string | null) => void;
   onToggleLock: () => void;
+  /** Ouvre le récapitulatif de reprise des gardes du mois précédent. */
+  onCopyPreviousMonth: () => void;
   onChangeView: (v: 'list' | 'grid') => void;
   onExportPdf: () => void;
   onRefresh: () => void;
@@ -34,9 +37,9 @@ interface PlanningToolbarProps {
 
 /**
  * Barre d'outils du planning : navigation de mois, retour à aujourd'hui,
- * surlignage d'un médecin, verrou du mois (admin), bascule liste/grille,
- * export PDF et rafraîchissement. Purement présentationnelle — tout l'état
- * reste dans `PlanningView`.
+ * surlignage d'un médecin, verrou du mois (admin), copie du mois précédent,
+ * bascule liste/grille, export PDF et rafraîchissement. Purement
+ * présentationnelle — tout l'état reste dans `PlanningView`.
  */
 export function PlanningToolbar({
   monthTitle,
@@ -50,6 +53,7 @@ export function PlanningToolbar({
   onToday,
   onHighlightChange,
   onToggleLock,
+  onCopyPreviousMonth,
   onChangeView,
   onExportPdf,
   onRefresh,
@@ -122,6 +126,18 @@ export function PlanningToolbar({
           </span>
         </button>
       )}
+
+      {/* Reprise des gardes du mois précédent : le clic n'écrit rien, il ouvre
+          le récapitulatif à confirmer (cf. `CopyMonthDialog`). */}
+      <button
+        onClick={onCopyPreviousMonth}
+        title={t('copyMonth.button')}
+        aria-label={t('copyMonth.button')}
+        className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800"
+      >
+        <CopyPlus className="size-4 text-teal-600" />
+        <span className="hidden sm:inline">{t('copyMonth.buttonShort')}</span>
+      </button>
 
       <div className="ml-auto flex items-center gap-2">
         {/* Bascule liste / grille (desktop uniquement — la grille 7 colonnes

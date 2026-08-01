@@ -35,6 +35,7 @@ export function PlanningView() {
   const [leaveDate, setLeaveDate] = useState<string | null>(null);
   const [noteDate, setNoteDate] = useState<string | null>(null);
   const [hncDate, setHncDate] = useState<string | null>(null);
+  const [copyMonthOpen, setCopyMonthOpen] = useState(false);
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [view, setView] = useState<'list' | 'grid'>(() => {
     try {
@@ -162,6 +163,16 @@ export function PlanningView() {
     });
   }
 
+  // Copier le mois précédent : impossible sur un mois verrouillé — on le dit
+  // plutôt que de laisser l'utilisateur confirmer un récapitulatif inapplicable.
+  function openCopyMonth() {
+    if (data.locked) {
+      toast.error(t('copyMonth.lockedError'));
+      return;
+    }
+    setCopyMonthOpen(true);
+  }
+
   function jumpToFirstUncovered() {
     const iso = data.uncovered[0]?.iso;
     if (iso)
@@ -239,6 +250,7 @@ export function PlanningView() {
         onToday={() => goToMonth(today.getFullYear(), today.getMonth())}
         onHighlightChange={setHighlightId}
         onToggleLock={() => void mutations.toggleLock()}
+        onCopyPreviousMonth={openCopyMonth}
         onChangeView={changeView}
         onExportPdf={handleExportPdf}
         onRefresh={() => void data.loadData()}
@@ -287,10 +299,14 @@ export function PlanningView() {
         leaveDate={leaveDate}
         noteDate={noteDate}
         hncDate={hncDate}
+        year={year}
+        month={month}
+        copyMonthOpen={copyMonthOpen}
         onCloseSlot={() => setSlot(null)}
         onCloseLeave={() => setLeaveDate(null)}
         onCloseNote={() => setNoteDate(null)}
         onCloseHnc={() => setHncDate(null)}
+        onCloseCopyMonth={() => setCopyMonthOpen(false)}
       />
     </div>
   );
