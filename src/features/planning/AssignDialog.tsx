@@ -5,6 +5,7 @@ import { shiftLabel, shiftHours, type ShiftType } from '../../lib/shifts.ts';
 import { useI18n } from '../../i18n/index.ts';
 import type { Doctor, Leave, Shift, WishKind } from '../../backend/types.ts';
 import { Modal } from '../../components/Modal.tsx';
+import { SegmentedControl } from '../../components/ui/SegmentedControl.tsx';
 import { AssignSlotActions } from './AssignSlotActions.tsx';
 import { AssignSlotHistory } from './AssignSlotHistory.tsx';
 import { AssignDoctorList } from './AssignDoctorList.tsx';
@@ -15,10 +16,19 @@ export interface SlotTarget {
 }
 
 /**
- * Dialogue d'affectation d'un créneau. Il n'assemble que les quatre blocs
- * (en-tête, actions, historique, liste des médecins) et garde le seul état
- * réellement partagé : `busy`, qui verrouille tous les boutons pendant une
- * mutation via l'utilitaire `run`.
+ * Choix de répétition hebdomadaire. Des CHAÎNES parce que `SegmentedControl`
+ * n'accepte que des valeurs de type `string` ; la conversion en nombre se fait
+ * au seul endroit qui en a besoin (l'appel d'affectation).
+ */
+const REPEAT_WEEKS = ['1', '2', '3', '4'] as const;
+type RepeatWeeks = (typeof REPEAT_WEEKS)[number];
+
+/**
+ * Dialogue d'affectation d'un créneau. Il n'assemble que les blocs (en-tête,
+ * répétition, actions, historique, liste des médecins) et garde les deux seuls
+ * états réellement partagés : `busy`, qui verrouille tous les boutons pendant
+ * une mutation via l'utilitaire `run`, et `repeat`, qui s'applique aussi bien
+ * au bouton « m'assigner » qu'au choix d'un médecin dans la liste.
  */
 export function AssignDialog({
   target,
@@ -40,16 +50,19 @@ export function AssignDialog({
   monthShifts: Shift[];
   leaves: Leave[];
   dayWishes: Map<string, WishKind>;
-  onAssign: (doctorId: string) => Promise<void>;
+  /** `weeks` = nombre de semaines consécutives à affecter (1 = ce jour seul). */
+  onAssign: (doctorId: string, weeks: number) => Promise<void>;
   onClear: () => Promise<void>;
   onPropose: (toDoctor: string | null, message: string) => Promise<void>;
   onClose: () => void;
 }) {
   const [busy, setBusy] = useState(false);
+  const [repeat, setRepeat] = useState<RepeatWeeks>('1');
   const { t, m } = useI18n();
 
   const d = fromISODate(target.iso);
   const dayLabel = `${m.common.weekdays[mondayIndex(d)]} ${d.getDate()}`;
+  const weeks = Number(repeat);
 
   async function run(action: () => Promise<void>) {
     setBusy(true);
@@ -60,6 +73,11 @@ export function AssignDialog({
       setBusy(false);
     }
   }
+
+  // Point d'entrée unique des deux chemins d'affectation (bouton « m'assigner »
+  // et liste des médecins) : la répétition s'applique donc aux deux sans que
+  // les sous-composants aient à la connaître.
+  const assign = (doctorId: string) => onAssign(doctorId, weeks);
 
   return (
     <Modal
@@ -82,6 +100,29 @@ export function AssignDialog({
         </button>
       </div>
 
+      <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 dark:border-slate-800">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
+            {t('assign.repeatLabel')}
+          </p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            {weeks === 1
+              ? t('assign.repeatHintOnce')
+              : t('assign.repeatHint', { n: weeks - 1 })}
+          </p>
+        </div>
+        <SegmentedControl
+          size="sm"
+          ariaLabel={t('assign.repeatAria')}
+          value={repeat}
+          onChange={setRepeat}
+          options={REPEAT_WEEKS.map(w => ({
+            value: w,
+            label: t('assign.repeatOption', { n: w }),
+          }))}
+        />
+      </div>
+
       <AssignSlotActions
         shiftType={target.shiftType}
         dayLabel={dayLabel}
@@ -89,8 +130,9 @@ export function AssignDialog({
         doctors={doctors}
         selfDoctorId={selfDoctorId}
         busy={busy}
+        repeatWeeks={weeks}
         run={run}
-        onAssign={onAssign}
+        onAssign={assign}
         onClear={onClear}
         onPropose={onPropose}
       />
@@ -110,7 +152,7 @@ export function AssignDialog({
         leaves={leaves}
         dayWishes={dayWishes}
         busy={busy}
-        onPick={doctorId => void run(() => onAssign(doctorId))}
+        onPick={doctorId => void run(() => assign(doctorId))}
       />
     </Modal>
   );

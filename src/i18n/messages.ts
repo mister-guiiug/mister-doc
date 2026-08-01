@@ -308,6 +308,18 @@ export const messages = {
       freeSlotConfirm:
         'Libérer le créneau {shift} du {day} ? Le médecin en sera retiré.',
       freeLabel: 'Libérer',
+      // Répétition hebdomadaire (même créneau, mêmes jours de semaine suivants)
+      repeatLabel: 'Répéter chaque semaine',
+      repeatAria: 'Nombre de semaines',
+      repeatOption: '{n} sem.',
+      repeatHintOnce: 'Ce jour uniquement.',
+      repeatHint: 'Ce jour et les {n} suivants (même jour de semaine).',
+      repeatDone: '{n} gardes attribuées.',
+      repeatSkippedInactive:
+        '{n} date(s) ignorée(s) : créneau non requis (week-end ou férié).',
+      repeatSkippedLocked: '{n} date(s) ignorée(s) : mois verrouillé.',
+      repeatNothing:
+        'Aucune date affectable : le créneau n’est pas à couvrir ces jours-là, ou le mois est verrouillé.',
       proposeSwap: 'Proposer un échange',
       openToAll: 'Ouvert à tous',
       messageOptional: 'Message (facultatif)',
@@ -1024,6 +1036,17 @@ export const messages = {
       freeSlotConfirm:
         'Free the {shift} slot on {day}? The doctor will be removed from it.',
       freeLabel: 'Free',
+      repeatLabel: 'Repeat weekly',
+      repeatAria: 'Number of weeks',
+      repeatOption: '{n} wk',
+      repeatHintOnce: 'This day only.',
+      repeatHint: 'This day and the next {n} (same weekday).',
+      repeatDone: '{n} shifts assigned.',
+      repeatSkippedInactive:
+        '{n} date(s) skipped: slot not required (weekend or holiday).',
+      repeatSkippedLocked: '{n} date(s) skipped: month locked.',
+      repeatNothing:
+        'No assignable date: the slot is not required on those days, or the month is locked.',
       proposeSwap: 'Offer a swap',
       openToAll: 'Open to all',
       messageOptional: 'Message (optional)',

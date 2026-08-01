@@ -15,6 +15,8 @@ interface AssignSlotActionsProps {
   selfDoctorId: string;
   /** Mutation en cours : verrouille les boutons (état porté par le dialogue). */
   busy: boolean;
+  /** Semaines de répétition choisies (état porté par le dialogue ; 1 = ce jour). */
+  repeatWeeks: number;
   /** Exécute une mutation puis ferme le dialogue (fourni par `AssignDialog`). */
   run: (action: () => Promise<void>) => Promise<void>;
   onAssign: (doctorId: string) => Promise<void>;
@@ -36,6 +38,7 @@ export function AssignSlotActions({
   doctors,
   selfDoctorId,
   busy,
+  repeatWeeks,
   run,
   onAssign,
   onClear,
@@ -50,9 +53,14 @@ export function AssignSlotActions({
 
   return (
     <div className="border-b border-slate-100 p-3 dark:border-slate-800">
+      {/* Déjà titulaire du créneau ⇒ bouton inutile… sauf en répétition, où le
+          clic sert à couvrir les semaines suivantes. */}
       <Button
         className="w-full py-2.5"
-        disabled={busy || currentShift?.doctor_id === selfDoctorId}
+        disabled={
+          busy ||
+          (repeatWeeks === 1 && currentShift?.doctor_id === selfDoctorId)
+        }
         onClick={() => void run(() => onAssign(selfDoctorId))}
       >
         <UserPlus className="size-4" /> {t('assign.assignMe')}

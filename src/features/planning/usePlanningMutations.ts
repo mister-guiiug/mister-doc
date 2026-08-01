@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import type { useToast } from '../../components/Toast.tsx';
 import { useConfirm } from '../../components/ui/confirmContext.ts';
 import type { LeaveKind } from '../../lib/leaves.ts';
+import { planWeeklyRepeat } from '../../lib/repeatPlan.ts';
 import type { Doctor, Leave, Shift, WishKind } from '../../backend/types.ts';
 import { assignShift, clearShift } from '../../backend/planning.ts';
 import { clearLeave, setLeaveRange } from '../../backend/leaves.ts';
@@ -9,7 +10,12 @@ import { clearNote, setNote } from '../../backend/notes.ts';
 import { clearWish, setWish } from '../../backend/wishes.ts';
 import { clearHnc, setHnc as saveHnc } from '../../backend/hnc.ts';
 import { proposeSwap } from '../../backend/swaps.ts';
-import { listLocks, lockMonth, unlockMonth } from '../../backend/locks.ts';
+import {
+  isMonthLocked,
+  listLocks,
+  lockMonth,
+  unlockMonth,
+} from '../../backend/locks.ts';
 import { useI18n } from '../../i18n/index.ts';
 import type { SlotTarget } from './AssignDialog.tsx';
 import type { PlanningData } from './usePlanningData.ts';
@@ -40,6 +46,7 @@ export function usePlanningMutations(data: PlanningData, ctx: MutationCtx) {
     leaves,
     wishes,
     hnc,
+    locks,
     doctorsById,
     setShifts,
     setLeaves,
@@ -62,33 +69,74 @@ export function usePlanningMutations(data: PlanningData, ctx: MutationCtx) {
     [toast, t]
   );
 
+  /**
+   * Affecte un médecin sur un créneau, éventuellement répété sur `weeks`
+   * semaines (le jour cliqué + les mêmes jours de semaine suivants).
+   *
+   * La répétition est portée par `handleAssign` plutôt que par une mutation
+   * séparée : l'écriture optimiste, le rollback et le message de succès sont
+   * les mêmes à 1 ou 4 semaines, et `weeks = 1` (défaut) ramène exactement au
+   * code précédent — un seul chemin à maintenir, aucune duplication.
+   */
   const handleAssign = useCallback(
-    async (slot: SlotTarget, doctorId: string) => {
+    async (slot: SlotTarget, doctorId: string, weeks = 1) => {
       if (!doctor) return;
+      const plan = planWeeklyRepeat(slot.iso, slot.shiftType, weeks, (y, mo) =>
+        isMonthLocked(locks, y, mo)
+      );
+      // Aucune date retenue : rien à écrire, on explique pourquoi.
+      if (plan.dates.length === 0) {
+        toast.error(t('assign.repeatNothing'));
+        return;
+      }
       const prev = shifts;
+      const targets = new Set(plan.dates);
       setShifts(cur => [
         ...cur.filter(
-          s => !(s.work_date === slot.iso && s.shift_type === slot.shiftType)
+          s => !(targets.has(s.work_date) && s.shift_type === slot.shiftType)
         ),
-        {
-          id: `tmp-${slot.iso}-${slot.shiftType}`,
-          work_date: slot.iso,
-          shift_type: slot.shiftType,
-          doctor_id: doctorId,
-          created_by: doctor.id,
-          created_at: '',
-          updated_at: '',
-        } as Shift,
+        ...plan.dates.map(
+          iso =>
+            ({
+              id: `tmp-${iso}-${slot.shiftType}`,
+              work_date: iso,
+              shift_type: slot.shiftType,
+              doctor_id: doctorId,
+              created_by: doctor.id,
+              created_at: '',
+              updated_at: '',
+            }) as Shift
+        ),
       ]);
       try {
-        await assignShift(slot.iso, slot.shiftType, doctorId, doctor.id);
-        toast.success(t('planning.shiftAssigned'));
+        // Pas de RPC de lot : une écriture par date, lancées en parallèle. Un
+        // échec annule tout l'affichage optimiste ; le Realtime resynchronise
+        // ensuite les dates éventuellement déjà écrites.
+        await Promise.all(
+          plan.dates.map(iso =>
+            assignShift(iso, slot.shiftType, doctorId, doctor.id)
+          )
+        );
+        const parts = [
+          plan.dates.length === 1
+            ? t('planning.shiftAssigned')
+            : t('assign.repeatDone', { n: plan.dates.length }),
+        ];
+        if (plan.skippedInactive > 0)
+          parts.push(
+            t('assign.repeatSkippedInactive', { n: plan.skippedInactive })
+          );
+        if (plan.skippedLocked > 0)
+          parts.push(
+            t('assign.repeatSkippedLocked', { n: plan.skippedLocked })
+          );
+        toast.success(parts.join(' '));
       } catch (e) {
         setShifts(prev);
         notifyError(e);
       }
     },
-    [doctor, shifts, setShifts, toast, t, notifyError]
+    [doctor, shifts, locks, setShifts, toast, t, notifyError]
   );
 
   const handleClearSlot = useCallback(
