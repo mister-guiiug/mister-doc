@@ -13,6 +13,7 @@ import {
   LockOpen,
   AlarmClock,
   Moon,
+  CalendarRange,
 } from 'lucide-react';
 
 /**
@@ -42,6 +43,8 @@ export function iconFor(type: string) {
       return <AlarmClock className="size-4 text-teal-600" />;
     case 'night_reminder':
       return <Moon className="size-4 text-indigo-500" />;
+    case 'weekly_digest':
+      return <CalendarRange className="size-4 text-teal-600" />;
     case 'month_locked':
       return <Lock className="size-4 text-slate-500" />;
     case 'month_unlocked':

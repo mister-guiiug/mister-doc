@@ -15,7 +15,7 @@ import {
   getSettings,
   setSettings as saveSettings,
 } from '../../backend/settings.ts';
-import { sendReminders } from '../../backend/reminders.ts';
+import { sendReminders, sendWeeklyDigest } from '../../backend/reminders.ts';
 import { setIncludePentecote } from '../../lib/dates.ts';
 import { FullScreenSpinner } from '../../components/Spinner.tsx';
 import { ProfileDialog } from '../../components/ProfileDialog.tsx';
@@ -47,6 +47,8 @@ export function AdminPanel() {
   const [settings, setSettings] = useState<AppSettings>({});
   const [reminderBusy, setReminderBusy] = useState(false);
   const [reminderMsg, setReminderMsg] = useState<string | null>(null);
+  const [digestBusy, setDigestBusy] = useState(false);
+  const [digestMsg, setDigestMsg] = useState<string | null>(null);
 
   useEffect(() => {
     getSettings()
@@ -77,6 +79,21 @@ export function AdminPanel() {
       setError(err instanceof Error ? err.message : t('common.error'));
     } finally {
       setReminderBusy(false);
+    }
+  }
+
+  async function handleDigest() {
+    setDigestBusy(true);
+    setDigestMsg(null);
+    try {
+      const n = await sendWeeklyDigest();
+      setDigestMsg(
+        n > 0 ? t('admin.digestSent', { n }) : t('admin.digestNone')
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('common.error'));
+    } finally {
+      setDigestBusy(false);
     }
   }
 
@@ -132,6 +149,9 @@ export function AdminPanel() {
         reminderBusy={reminderBusy}
         reminderMsg={reminderMsg}
         onSendReminders={() => void handleReminders()}
+        digestBusy={digestBusy}
+        digestMsg={digestMsg}
+        onSendDigest={() => void handleDigest()}
       />
 
       <ShiftTypesCard />
