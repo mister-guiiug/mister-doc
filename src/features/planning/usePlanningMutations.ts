@@ -94,38 +94,53 @@ export function usePlanningMutations(data: PlanningData, ctx: MutationCtx) {
         toast.error(t('assign.repeatNothing'));
         return;
       }
+      // La date CLIQUÉE est traitée à part, en upsert : l'utilisateur a ouvert
+      // ce créneau précis, remplacer son occupant est le geste attendu.
+      const [first, ...rest] = plan.dates;
+      if (!first) return;
+
       const prev = shifts;
-      const targets = new Set(plan.dates);
       setShifts(cur => [
         ...cur.filter(
-          s => !(targets.has(s.work_date) && s.shift_type === slot.shiftType)
+          s => !(s.work_date === first && s.shift_type === slot.shiftType)
         ),
-        ...plan.dates.map(
-          iso =>
-            ({
-              id: `tmp-${iso}-${slot.shiftType}`,
+        {
+          id: `tmp-${first}-${slot.shiftType}`,
+          work_date: first,
+          shift_type: slot.shiftType,
+          doctor_id: doctorId,
+          created_by: doctor.id,
+          created_at: '',
+          updated_at: '',
+        } as Shift,
+      ]);
+      try {
+        await assignShift(first, slot.shiftType, doctorId, doctor.id);
+        // Les dates RÉPÉTÉES passent par la RPC de lot : une seule transaction,
+        // et surtout `on conflict do nothing` — répéter ne doit pas déloger un
+        // collègue déjà affecté sur une semaine suivante. Bonus : le trigger
+        // d'INSERT étant de niveau instruction, le lot ne produit qu'UNE
+        // notification au lieu d'une par date.
+        let taken = 0;
+        if (rest.length > 0) {
+          const inserted = await assignShiftsBulk(
+            rest.map(iso => ({
               work_date: iso,
               shift_type: slot.shiftType,
               doctor_id: doctorId,
-              created_by: doctor.id,
-              created_at: '',
-              updated_at: '',
-            }) as Shift
-        ),
-      ]);
-      try {
-        // Pas de RPC de lot : une écriture par date, lancées en parallèle. Un
-        // échec annule tout l'affichage optimiste ; le Realtime resynchronise
-        // ensuite les dates éventuellement déjà écrites.
-        await Promise.all(
-          plan.dates.map(iso =>
-            assignShift(iso, slot.shiftType, doctorId, doctor.id)
-          )
-        );
+            }))
+          );
+          taken = rest.length - inserted;
+          // Le lot n'a pas d'écriture optimiste : on relit pour refléter
+          // exactement ce que la base a accepté.
+          await loadData();
+        }
+
+        const written = 1 + rest.length - taken;
         const parts = [
-          plan.dates.length === 1
+          written === 1
             ? t('planning.shiftAssigned')
-            : t('assign.repeatDone', { n: plan.dates.length }),
+            : t('assign.repeatDone', { n: written }),
         ];
         if (plan.skippedInactive > 0)
           parts.push(
@@ -135,13 +150,14 @@ export function usePlanningMutations(data: PlanningData, ctx: MutationCtx) {
           parts.push(
             t('assign.repeatSkippedLocked', { n: plan.skippedLocked })
           );
+        if (taken > 0) parts.push(t('assign.repeatSkippedTaken', { n: taken }));
         toast.success(parts.join(' '));
       } catch (e) {
         setShifts(prev);
         notifyError(e);
       }
     },
-    [doctor, shifts, locks, setShifts, toast, t, notifyError]
+    [doctor, shifts, locks, setShifts, loadData, toast, t, notifyError]
   );
 
   const handleClearSlot = useCallback(
