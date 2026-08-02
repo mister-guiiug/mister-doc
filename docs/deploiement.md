@@ -12,14 +12,15 @@ documentée en repli.
 
 ## État
 
-| Élément                                                 | État                                                                                                                                 |
-| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| Front (GitHub Pages)                                    | ✅ à jour, en prod — <https://mister-guiiug.github.io/mister-doc/>                                                                   |
-| Variables Actions `VITE_SUPABASE_*`                     | ✅ déjà posées                                                                                                                       |
-| Secrets CI (`SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_URL`) | ✅ posés (déploiement Supabase automatisé)                                                                                           |
-| Schéma de base                                          | ✅ migrations `0014`→`0026` **appliquées** (via CI) ; `0001`→`0013` posées à la main, hors CI (dont `0013`, appliquée le 2026-08-02) |
-| Edge Functions `calendar` / `push`                      | ✅ **déployées** (rate-limit + lookup par hash)                                                                                      |
-| Passkeys (connexion par empreinte)                      | ✅ activées côté dashboard (RP ID `mister-guiiug.github.io`)                                                                         |
+| Élément                                                 | État                                                                                                                                                           |
+| ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Front (GitHub Pages)                                    | ✅ à jour, en prod — <https://mister-guiiug.github.io/mister-doc/>                                                                                             |
+| Variables Actions `VITE_SUPABASE_*`                     | ✅ déjà posées                                                                                                                                                 |
+| Secrets CI (`SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_URL`) | ✅ posés (déploiement Supabase automatisé)                                                                                                                     |
+| Schéma de base                                          | ✅ migrations `0014`→`0026` **appliquées** (via CI) ; `0001`→`0013` posées à la main, hors CI (dont `0013`, appliquée le 2026-08-02)                           |
+| Edge Functions `calendar` / `push`                      | ✅ **déployées** (rate-limit + lookup par hash)                                                                                                                |
+| Notifications push (Web Push)                           | ✅ **opérationnelles** depuis le 2026-08-02 — chaîne validée de bout en bout (cf. [section dédiée](#notifications-push--configuration-hors-dépôt-obligatoire)) |
+| Passkeys (connexion par empreinte)                      | ✅ activées côté dashboard (RP ID `mister-guiiug.github.io`)                                                                                                   |
 
 Le front est **rétro-compatible** : il fonctionne avant comme après ces migrations
 (double-mode calendrier, génération de codes non bloquante, etc.). On peut donc
@@ -190,6 +191,13 @@ idempotents, un même envoi n'est jamais dupliqué. Détail :
    le compte rendu indique le nombre d'envois (0 si déjà faits pour la période).
    Les jobs planifiés sont visibles dans `cron.job`.
 
+10. **Notifications push** — **Profil → Notifications push → activer**, puis
+    déclencher un envoi (bouton « Réglages » ci-dessus, ou une affectation de garde
+    par un autre compte). Une notification OS doit apparaître ; un clic ouvre l'app
+    sur le bon jour. En cas de silence, la [sonde
+    externe](#notifications-push--configuration-hors-dépôt-obligatoire) situe la
+    panne en un appel.
+
 ## Connexion par empreinte (passkeys) — **config dashboard OBLIGATOIRE**
 
 Le front expose la connexion par empreinte / Face ID / Windows Hello (passkeys
@@ -208,6 +216,57 @@ bouton afficherait alors une erreur. À faire **avant** d'annoncer la fonctionna
 > API passkeys Supabase en **beta** (peut évoluer). C'est **additif** : le mot de
 > passe reste le moyen de connexion principal, la passkey est opt-in par appareil.
 > Aucune migration base : les passkeys sont gérées par Supabase Auth.
+
+## Notifications push — **configuration hors dépôt OBLIGATOIRE**
+
+**État : ✅ opérationnel depuis le 2026-08-02** (notification OS reçue, chaîne
+complète validée). Mise en place détaillée : [`notifications-push.md`](notifications-push.md).
+
+Quatre conditions doivent être vraies **en même temps**, et aucune ne se signale
+dans l'application. Elles ont toutes manqué au premier essai — d'où ce tableau, qui
+associe chaque maillon à son symptôme :
+
+| Où                                                                   | Quoi                                                                    | Symptôme si absent                                                                                                                                                                |
+| -------------------------------------------------------------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Variable Actions `VITE_VAPID_PUBLIC_KEY`                             | clé **publique** VAPID, lue **au build** (donc un redéploiement suffit) | carte « Notifications push » **invisible** dans le profil. Pire avec une valeur bidon : la carte s'affiche (`pushConfigured()` ne teste que la longueur) mais l'abonnement échoue |
+| Secrets de l'Edge Function                                           | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `APP_URL`     | `500 VAPID non configuré`                                                                                                                                                         |
+| Secret `WEBHOOK_SECRET` **et** en-tête `x-webhook-secret` du webhook | authentifie la fonction, déployée `--no-verify-jwt`                     | `500 WEBHOOK_SECRET non configuré` ; ou `401 forbidden` **silencieux** si les deux valeurs diffèrent                                                                              |
+| Table `push_subscriptions` (migration `0013`)                        | stockage des abonnements                                                | `500` générique (la lecture REST échoue) **et** activation impossible depuis le profil                                                                                            |
+
+La clé publique doit être **identique** dans la variable Actions et dans les
+secrets de la fonction : une paire dépareillée fait rejeter les envois (403) par
+les services de push.
+
+### Sonde externe
+
+Un seul appel valide les **trois maillons serveur** (secret, VAPID, table), sans
+rien écrire ni envoyer le moindre push : le `doctor_id` est un UUID nul, donc
+aucun abonnement ne correspond.
+
+```bash
+curl -i -X POST "https://lgbuytinzukaxrqjwxme.supabase.co/functions/v1/push" -H "Content-Type: application/json" -H "x-webhook-secret: VOTRE_SECRET" -d '{"record":{"doctor_id":"00000000-0000-0000-0000-000000000000","type":"test","title":"t"}}'
+```
+
+`200 {"sent":0,"expired":0,"failed":0}` = tout est bon côté serveur ; il ne reste
+que le webhook et l'abonnement du navigateur à vérifier. Les autres réponses sont
+listées dans le tableau ci-dessus.
+
+⚠️ **Le `doctor_id` est indispensable à ce diagnostic.** Avec un corps vide
+(`-d '{}'`), la fonction répond `200 no record` **avant** de lire
+`push_subscriptions` : la réponse est verte alors que la table peut manquer. C'est
+exactement ce qui a masqué le problème le 2026-08-02. Un corps vide reste utile
+pour tester le secret seul : sans en-tête, la réponse attendue est
+`401 forbidden` — un `500` signale alors un `WEBHOOK_SECRET` manquant.
+
+Le premier maillon (la variable de build) n'est pas testable par cette sonde : il
+se vérifie à l'œil, la carte « Notifications push » étant visible dans le profil.
+
+> ⚠️ **Les valeurs ne sont nulle part dans le dépôt.** Convention locale : un
+> fichier `push-secrets.local` à la racine (ignoré par git via `*.local`),
+> applicable d'un coup avec `supabase secrets set --env-file`. Recopiez-le dans un
+> gestionnaire de mots de passe : il détient l'**unique copie** de la clé privée
+> VAPID, et la perdre impose de régénérer la paire — ce qui invalide tous les
+> abonnements déjà enregistrés par les médecins.
 
 ## Configuration externe (hors code, optionnel)
 
