@@ -33,3 +33,6 @@ playwright-report
 blob-report
 e2e/test-results
 e2e/playwright-report
+
+# Lighthouse CI (rapports locaux)
+.lighthouseci/
