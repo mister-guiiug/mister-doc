@@ -174,6 +174,28 @@ webhook l'a seulement appelée.
 ## Notes
 
 - iOS : le push web exige que l'app soit **installée** (ajout à l'écran d'accueil,
-  iOS 16.4+).
+  iOS 16.4+). Safari en onglet n'expose alors pas `PushManager` ; l'app le
+  **détecte et l'explique** dans la carte du profil, au lieu de la masquer comme
+  pour un navigateur réellement incapable.
 - Le service worker ne change pas la stratégie de cache : les handlers push sont
   chargés via `workbox.importScripts(['push-sw.js'])` (`public/push-sw.js`).
+
+## D'où vient le code
+
+La **mécanique** navigateur vient du socle
+(`@mister-guiiug/dev-wpa-config/push`) : état de la permission, cycle de vie de
+l'abonnement, conversion de la clé VAPID base64url → octets, sérialisation, et
+la détection de support **avec sa raison** (le cas iOS ci-dessus).
+
+Le **transport** reste celui de l'app (`src/backend/push.ts` → table
+`push_subscriptions`). Le transport Supabase du socle n'est pas utilisable ici :
+il écrit une colonne `user_id` (identité `auth.users`) et une colonne
+`user_agent`, alors que notre table porte un `doctor_id` référençant
+`public.doctors (id)` — identité distincte, résolue par `current_doctor_id()` —
+et n'a pas de `user_agent`. Ces noms de colonnes ne sont pas paramétrables ; s'y
+brancher imposerait une migration qui casserait aussi l'Edge Function et la
+migration `0019`, toutes deux écrites sur `doctor_id`. Le socle prévoit ce cas :
+son transport est un contrat à trois méthodes (`save`, `remove`, `key`).
+
+Enfin, **Supabase stocke mais ne pousse pas** : l'envoi reste l'affaire de
+l'Edge Function `push` de ce dépôt, que le socle ne fournit pas.
