@@ -688,6 +688,7 @@ export const messages = {
     update: {
       available: 'Une nouvelle version est disponible.',
       reload: 'Recharger',
+      updating: 'Mise à jour…',
     },
     confirm: {
       // Titre générique du dialogue de confirmation : le composant du socle
@@ -1432,6 +1433,7 @@ export const messages = {
     update: {
       available: 'A new version is available.',
       reload: 'Reload',
+      updating: 'Updating…',
     },
     confirm: {
       title: 'Confirmation',
