@@ -1,10 +1,9 @@
 import { useState } from 'react';
-import { X } from 'lucide-react';
 import { fromISODate, mondayIndex } from '../../lib/dates.ts';
 import { shiftLabel, shiftHours, type ShiftType } from '../../lib/shifts.ts';
 import { useI18n } from '../../i18n/index.ts';
 import type { Doctor, Leave, Shift, WishKind } from '../../backend/types.ts';
-import { Modal } from '../../components/Modal.tsx';
+import { Sheet } from '@mister-guiiug/dev-wpa-config/react/sheet';
 import { SegmentedControl } from '../../components/ui/SegmentedControl.tsx';
 import { AssignSlotActions } from './AssignSlotActions.tsx';
 import { AssignSlotHistory } from './AssignSlotHistory.tsx';
@@ -80,26 +79,18 @@ export function AssignDialog({
   const assign = (doctorId: string) => onAssign(doctorId, weeks);
 
   return (
-    <Modal
+    <Sheet
+      open
       onClose={onClose}
-      className="flex max-h-[85dvh] max-w-md flex-col rounded-t-2xl sm:rounded-2xl"
+      title={`${shiftLabel(target.shiftType)} · ${shiftHours(
+        target.shiftType
+      )} h — ${dayLabel}`}
+      closeLabel={t('common.close')}
+      // Feuille SECTIONNÉE à bord perdu : ses filets traversent toute la
+      // largeur et c'est la liste des médecins qui défile, pas le corps. Le
+      // détail est dans index.css (`.assign-sheet`).
+      className="assign-sheet"
     >
-      <div className="flex items-center justify-between border-b border-slate-100 p-4 dark:border-slate-800">
-        <div>
-          <h3 className="font-semibold">
-            {shiftLabel(target.shiftType)} · {shiftHours(target.shiftType)} h
-          </h3>
-          <p className="text-sm capitalize text-slate-500">{dayLabel}</p>
-        </div>
-        <button
-          onClick={onClose}
-          aria-label={t('common.close')}
-          className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-        >
-          <X className="size-5" />
-        </button>
-      </div>
-
       <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 dark:border-slate-800">
         <div className="min-w-0">
           <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
@@ -154,6 +145,6 @@ export function AssignDialog({
         busy={busy}
         onPick={doctorId => void run(() => assign(doctorId))}
       />
-    </Modal>
+    </Sheet>
   );
 }

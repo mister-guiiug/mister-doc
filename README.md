@@ -290,7 +290,7 @@ puis activez **Settings → Pages → Source : GitHub Actions**.
 src/
   lib/        env (validation JS) · client Supabase · dates (semaine ISO) ·
               créneaux + compteurs · congés · HNC · validation/alertes · équité ·
-              répétition + copie de mois · PDF · XLSX · thème · couleurs
+              répétition + copie de mois · PDF · XLSX · tons de chips · couleurs
   backend/    types · doctors · planning (shifts) · leaves · hnc · notes · wishes ·
               swaps · shiftTypes · notifications · push · reminders · history ·
               audit · gdpr · mfa · passkey · backup · locks · settings · calendar
@@ -299,9 +299,39 @@ src/
   features/   planning/ (liste + grille, compteurs, dialogues affect./congé/note/HNC) ·
               swaps/ · admin/ (panel, compteurs équipe, créneaux, sauvegarde) ·
               profile/ · pending/ · legal/ (politique de confidentialité)
-  components/ en-tête · barre d'onglets basse · cloche notifications · modale ·
-              toast · thème · calendrier · profil · invite d'installation · spinner
+  components/ en-tête · barre d'onglets basse · cloche notifications ·
+              calendrier · profil · invite d'installation · spinner
 ```
 
 Tests (`src/lib/*.test.ts`) : compteurs, semaine ISO, créneaux actifs, congés,
 alertes de validation, répétition hebdomadaire, copie de mois.
+
+### Ce qui vient du socle, et ce qui reste local
+
+Les briques d'interface partagées viennent de `@mister-guiiug/dev-wpa-config`
+(`Button`, `TextField`, `EmptyState`, `Skeleton`, `ConfirmDialog`, `Toast`,
+`BottomNav`, `Sheet`, `useTheme`/`ThemeProvider`), habillées par
+`components.css` et les quinze jetons `--dwc-*` câblés dans `src/index.css`.
+Le thème est écrit **une seule fois**, par le `ThemeProvider` de `main.tsx`.
+
+**Pourquoi `Badge` reste local.** Les deux composants n'ont pas le même axe, et
+ce n'est pas une question de nommage :
+
+- celui du socle est **sémantique** et volontairement fermé — `brand`,
+  `success`, `warning`, `danger`, `info`, `muted` : ce que la pastille _veut
+  dire_ ;
+- celui d'ici est **chromatique** et métier — `teal` / `indigo` distinguent une
+  garde de **jour** d'une garde de **nuit**, `violet` / `amber` un **congé**
+  d'une **formation**, `sky` les **HNC**. Cinq catégories de même niveau, dont
+  aucune n'est une réussite, un avertissement ou un danger.
+
+Les replier sur six intentions sémantiques ferait perdre la distinction (tout
+deviendrait `muted`) ou mentirait sur le sens (un congé n'est pas un `danger`).
+S'ajoute que `size="xs"`, utilisé par les pastilles de la carte des créneaux,
+n'a pas d'équivalent : le socle n'a pas d'axe de taille. La carte des tons
+(`src/lib/tones.ts`) sert d'ailleurs aussi à `Counters` et `SwapStatusBadge`,
+qui ne sont pas des `Badge`.
+
+Décision **réexaminée contre le socle 3.24.0** (2026-08-30) : inchangée. Elle
+redeviendra discutable le jour où le socle ouvrira son axe de tons ou ajoutera
+une taille — pas avant.

@@ -1,5 +1,4 @@
-import { X } from 'lucide-react';
-import { Modal } from '../../components/Modal.tsx';
+import { Sheet } from '@mister-guiiug/dev-wpa-config/react/sheet';
 import { useI18n } from '../../i18n/index.ts';
 
 /**
@@ -11,25 +10,20 @@ import { useI18n } from '../../i18n/index.ts';
 export function PrivacyDialog({ onClose }: { onClose: () => void }) {
   const { t } = useI18n();
   return (
-    <Modal
+    <Sheet
+      open
       onClose={onClose}
-      className="flex max-h-[85dvh] max-w-lg flex-col rounded-t-2xl sm:rounded-2xl"
+      title={t('privacy.title')}
+      closeLabel={t('common.close')}
     >
-      <div className="flex items-center justify-between border-b border-slate-100 p-4 dark:border-slate-800">
-        <h2 className="font-semibold">{t('privacy.title')}</h2>
-        <button
-          onClick={onClose}
-          aria-label={t('common.close')}
-          className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-        >
-          <X className="size-5" />
-        </button>
-      </div>
-
-      {/* tabIndex : région scrollable atteignable au clavier (axe serious). */}
+      {/* tabIndex : la zone qui défile (`sheet-body`) doit rester atteignable
+          au clavier. Elle ne contient aucun élément focusable — que du texte —
+          et c'est exactement le cas que la règle axe `scrollable-region-
+          focusable` (WCAG 2.1.1) signale. Le conteneur porte donc le focus à
+          sa place, comme le faisait la version locale. */}
       <div
         tabIndex={0}
-        className="space-y-4 overflow-y-auto p-4 text-sm leading-relaxed text-slate-600 dark:text-slate-300"
+        className="space-y-4 text-sm leading-relaxed text-slate-600 dark:text-slate-300"
       >
         <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
           {t('privacy.templateWarningBefore')}
@@ -119,7 +113,7 @@ export function PrivacyDialog({ onClose }: { onClose: () => void }) {
           {t('privacy.lastUpdate')}
         </p>
       </div>
-    </Modal>
+    </Sheet>
   );
 }
 
