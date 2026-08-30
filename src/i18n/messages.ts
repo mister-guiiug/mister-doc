@@ -74,6 +74,7 @@ export const messages = {
       ],
     },
     nav: {
+      main: 'Navigation principale',
       planning: 'Planning',
       me: 'Moi',
       myPlanning: 'Mon planning',
@@ -831,6 +832,7 @@ export const messages = {
       ],
     },
     nav: {
+      main: 'Main navigation',
       planning: 'Schedule',
       me: 'Me',
       myPlanning: 'My schedule',
