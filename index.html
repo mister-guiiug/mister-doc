@@ -5,29 +5,16 @@
     <!--
       La Content-Security-Policy (défense en profondeur) est injectée par
       vite.config.ts (plugin `csp`) : en PROD, `script-src` n'autorise que
-      'self' + le hash SHA-256 du script anti-FOUC ci-dessous (pas de
+      'self' + le hash SHA-256 de CHAQUE script inline (pas de
       'unsafe-inline'). En DEV, 'unsafe-inline' est conservé pour le préambule
       Fast Refresh inline de @vitejs/plugin-react.
     -->
 
-    <!-- Anti-FOUC : applique le thème avant le premier rendu. -->
-    <script>
-      (function () {
-        try {
-          var v = localStorage.getItem('mister-doc:theme');
-          var eff =
-            v === 'light' || v === 'dark'
-              ? v
-              : window.matchMedia('(prefers-color-scheme: dark)').matches
-                ? 'dark'
-                : 'light';
-          document.documentElement.dataset.theme = eff;
-          document.documentElement.style.colorScheme = eff;
-        } catch (e) {
-          document.documentElement.dataset.theme = 'light';
-        }
-      })();
-    </script>
+    <!-- Anti-FOUC : le script est injecté en tête de <head> au build par
+         pwaSeoPlugin() (option themeBoot, @mister-guiiug/dev-wpa-config/
+         theme-boot). Clé dwc_theme, avec migration depuis l'ancienne clé
+         mister-doc:theme. Il partage sa lecture et sa validation avec
+         `useTheme`/`ThemeProvider` : les deux ne peuvent plus diverger. -->
 
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
     <link

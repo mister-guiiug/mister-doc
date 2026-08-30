@@ -126,6 +126,12 @@ export default defineConfig(({ command }) => {
         siteName: 'Mister Doc',
         basePath: '/mister-doc/',
         logoPath: '/icons/icon-512.png',
+        // Script anti-FOUC engendré par le socle (theme-boot) au lieu de
+        // l'IIFE recopiée dans index.html. `legacyKeys` migre la préférence
+        // déjà stockée sous `mister-doc:theme` vers la clé famille
+        // `dwc_theme`, celle que lisent `useTheme` et `ThemeProvider` : sans
+        // elle, chaque utilisateur perdrait son choix au premier chargement.
+        themeBoot: { legacyKeys: ['mister-doc:theme'] },
       }),
       cspPlugin(command === 'serve'),
       VitePWA({
