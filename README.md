@@ -239,6 +239,40 @@ variables d'environnement de la fonction `CALENDAR_RATE_MAX` / `CALENDAR_RATE_WI
 Au-delà : réponse `429` avec `Retry-After`. En cas d'échec de la RPC, on **laisse
 passer** (fail-open) pour ne jamais casser un abonnement légitime.
 
+**Pourquoi l'écriture du `.ics` n'est pas celle du socle.** Le module `./ical` de
+`@mister-guiiug/dev-wpa-config` (3.24.0) est promu de quatre réécritures RFC 5545,
+dont celle-ci, et corrige deux défauts de la nôtre : `DTSTAMP` recalculé à chaque
+événement (au lieu d'un seul par fichier, qui est la date de FABRICATION) et
+lignes non pliées à 75 octets. Il n'est pourtant **pas** importé, pour des raisons
+d'empaquetage et non de couverture :
+
+- le `.ics` est engendré **uniquement** par cette Edge Function (Deno). Côté
+  navigateur, [`src/backend/calendar.ts`](src/backend/calendar.ts) ne construit
+  que l'URL d'abonnement, et le bouton « Télécharger le .ics » pointe sur ce même
+  flux : il n'y a rien à migrer là ;
+- le paquet n'est publié que sur **GitHub Packages**, qui exige un jeton même en
+  lecture (`401` sans en-tête ; absent de npmjs). La CI déploie avec `--use-api` :
+  c'est l'infrastructure Supabase qui résout les spécifieurs `npm:`, sans nos
+  identifiants. Le `.npmrc` par fonction que Supabase prévoit pour un registre
+  privé demanderait le jeton **en clair dans un dépôt public** — celui de la
+  racine s'appuie sur `${NODE_AUTH_TOKEN}`, qui n'existe pas sur le constructeur
+  distant ;
+- toute modification sous `supabase/functions/**` poussée sur `main` déclenche
+  [`supabase.yml`](.github/workflows/supabase.yml), donc un redéploiement **et**
+  les migrations : le coût d'un simple changement d'import n'est pas local.
+
+Une échappatoire existe — le dépôt du socle est public, donc `ical.js` et son
+`vcard.js` sont servis en `application/javascript` par un CDN GitHub, importables
+tels quels par Deno —, mais elle troque le registre contre un tiers dans la chaîne
+d'approvisionnement d'un point d'entrée public qui lit via `service_role`, pour
+deux corrections de forme. Elle n'est pas prise.
+
+La couverture, elle, est vérifiée propriété par propriété — `METHOD`,
+`X-WR-CALNAME`, `X-WR-TIMEZONE`, `REFRESH-INTERVAL` + `X-PUBLISHED-TTL`,
+`CATEGORIES`, `TRANSP`, journées entières à `DTEND` exclusif et créneaux de nuit
+franchissant minuit —, dans le même ordre de lignes. Le jour où le paquet est
+joignable depuis le constructeur Supabase, la bascule est mécanique.
+
 ## Déploiement (GitHub Pages)
 
 Le workflow [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)
