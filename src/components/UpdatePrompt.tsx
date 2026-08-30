@@ -36,8 +36,9 @@ const registerSWLogged: RegisterSW = options =>
  *  - `registerSW` (enrobé ci-dessus), qui ne peut venir que d'elle : le module
  *    virtuel `virtual:pwa-register` n'existe que dans un build vite-plugin-pwa,
  *    c'est pourquoi le socle l'exige EN PARAMÈTRE au lieu de l'importer ;
- *  - les libellés, traduits par l'i18n de l'app — le socle retombe sur le
- *    FRANÇAIS hors `LabelsProvider`, qui n'est pas branché ici ;
+ *  - les libellés, traduits par l'i18n de l'app : le catalogue métier porte
+ *    déjà ces chaînes, et la PROP l'emporte sur le `LabelsProvider` monté
+ *    dans `App.tsx` ;
  *  - le placement flottant en bas d'écran, par-dessus `BottomNav`.
  *
  * `snoozeHours` reste à 0 (défaut) : le bouton secondaire ÉCARTE le bandeau

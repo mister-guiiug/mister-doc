@@ -73,6 +73,15 @@
   background: color-mix(in srgb, var(--dwc-danger) 8%, transparent);
 }
 
+/* Barre d'onglets basse : un admin en a SIX. À l'échelle du socle
+   (`--text-fluid-xs`, 12 px), « Compteurs » déborde de sa colonne sur un
+   écran de 360 px. On garde les 10 px de la barre locale — un écart voulu,
+   posé hors `@layer` pour battre components.css. */
+[data-dwc='bottom-nav-item'],
+[data-dwc='bottom-nav-more'] {
+  font-size: 0.625rem;
+}
+
 html,
 body,
 #root {
