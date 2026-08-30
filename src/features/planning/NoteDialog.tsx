@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { X, Trash2, StickyNote } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { fromISODate, mondayIndex } from '../../lib/dates.ts';
-import { Modal } from '../../components/Modal.tsx';
+import { Sheet } from '@mister-guiiug/dev-wpa-config/react/sheet';
 import { Button } from '@mister-guiiug/dev-wpa-config/react/button';
 import { useConfirm } from '../../components/ui/confirmContext.ts';
 import { useI18n } from '../../i18n/index.ts';
@@ -38,24 +38,43 @@ export function NoteDialog({
   }
 
   return (
-    <Modal
+    <Sheet
+      open
       onClose={onClose}
-      className="max-w-md rounded-t-2xl p-4 sm:rounded-2xl"
+      title={`${t('note.title')} — ${dayLabel}`}
+      closeLabel={t('common.close')}
+      footer={
+        <>
+          {initialNote && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={async () => {
+                if (
+                  await confirm({
+                    message: t('note.deleteConfirm', { day: dayLabel }),
+                    danger: true,
+                    confirmLabel: t('note.delete'),
+                  })
+                )
+                  void run(onDelete);
+              }}
+              className="mr-auto flex items-center gap-1 rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 dark:border-red-900/60 dark:hover:bg-red-950/30"
+            >
+              <Trash2 className="size-4" /> {t('note.delete')}
+            </button>
+          )}
+          <Button
+            type="button"
+            loading={busy}
+            disabled={!note.trim()}
+            onClick={() => void run(() => onSave(note.trim()))}
+          >
+            {t('note.save')}
+          </Button>
+        </>
+      }
     >
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="flex items-center gap-2 font-semibold">
-          <StickyNote className="size-5 text-slate-500" />
-          {t('note.title')} — <span className="capitalize">{dayLabel}</span>
-        </h3>
-        <button
-          onClick={onClose}
-          aria-label={t('common.close')}
-          className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-        >
-          <X className="size-5" />
-        </button>
-      </div>
-
       <textarea
         value={note}
         onChange={e => setNote(e.target.value)}
@@ -63,37 +82,6 @@ export function NoteDialog({
         placeholder={t('note.placeholder')}
         className="w-full resize-y rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:border-slate-600 dark:bg-slate-800"
       />
-
-      <div className="mt-3 flex gap-2">
-        {initialNote && (
-          <button
-            type="button"
-            disabled={busy}
-            onClick={async () => {
-              if (
-                await confirm({
-                  message: t('note.deleteConfirm', { day: dayLabel }),
-                  danger: true,
-                  confirmLabel: t('note.delete'),
-                })
-              )
-                void run(onDelete);
-            }}
-            className="flex items-center gap-1 rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 dark:border-red-900/60 dark:hover:bg-red-950/30"
-          >
-            <Trash2 className="size-4" /> {t('note.delete')}
-          </button>
-        )}
-        <Button
-          type="button"
-          loading={busy}
-          disabled={!note.trim()}
-          onClick={() => void run(() => onSave(note.trim()))}
-          className="ml-auto"
-        >
-          {t('note.save')}
-        </Button>
-      </div>
-    </Modal>
+    </Sheet>
   );
 }

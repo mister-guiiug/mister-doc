@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import {
-  X,
   Loader2,
   Copy,
   Check,
@@ -17,7 +16,7 @@ import {
   rotateCalendarToken,
 } from '../backend/calendar.ts';
 import { useToast } from '@mister-guiiug/dev-wpa-config/react/toast';
-import { Modal } from './Modal.tsx';
+import { Sheet } from '@mister-guiiug/dev-wpa-config/react/sheet';
 import { Button } from '@mister-guiiug/dev-wpa-config/react/button';
 import { SegmentedControl } from './ui/SegmentedControl.tsx';
 import { useConfirm } from './ui/confirmContext.ts';
@@ -113,24 +112,12 @@ export function CalendarDialog({ onClose }: { onClose: () => void }) {
   const showFeed = mode === 'legacy' || (mode === 'hashed' && token !== null);
 
   return (
-    <Modal
+    <Sheet
+      open
       onClose={onClose}
-      className="max-w-md rounded-t-2xl p-5 sm:rounded-2xl"
+      title={t('calendar.title')}
+      closeLabel={t('common.close')}
     >
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="flex items-center gap-2 font-semibold">
-          <CalendarPlus className="size-5 text-teal-600" />
-          {t('calendar.title')}
-        </h3>
-        <button
-          onClick={onClose}
-          aria-label={t('common.close')}
-          className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-        >
-          <X className="size-5" />
-        </button>
-      </div>
-
       {mode === 'loading' ? (
         <div className="grid place-items-center py-8 text-slate-400">
           <Loader2 className="size-6 animate-spin" />
@@ -257,6 +244,6 @@ export function CalendarDialog({ onClose }: { onClose: () => void }) {
           )}
         </div>
       )}
-    </Modal>
+    </Sheet>
   );
 }
