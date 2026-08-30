@@ -33,8 +33,13 @@ export function Header() {
           <span>mister-doc</span>
         </div>
 
-        {/* Navigation principale : en-tête sur ≥ sm, barre basse sur mobile. */}
-        <nav className="hidden items-center gap-1 sm:flex">
+        {/* Navigation principale : en-tête sur ≥ sm, barre basse sur mobile.
+            Nommée, sinon les deux repères `<nav>` de la page sont
+            indiscernables dans la liste d'un lecteur d'écran. */}
+        <nav
+          aria-label={t('nav.main')}
+          className="hidden items-center gap-1 sm:flex"
+        >
           <NavLink to="/" end className={linkClass}>
             {t('nav.planning')}
           </NavLink>
