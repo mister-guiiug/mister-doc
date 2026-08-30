@@ -73,6 +73,17 @@
   background: color-mix(in srgb, var(--dwc-danger) 8%, transparent);
 }
 
+/* Dialogue d'affectation : la seule feuille SECTIONNÉE de l'app. Ses filets
+   traversent toute la largeur (d'où l'annulation du rembourrage horizontal du
+   panneau) et c'est la liste des médecins qui défile, pas le corps entier —
+   les contrôles de répétition et d'action restent visibles, comme avant. */
+.assign-sheet [data-dwc='sheet-body'] {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  margin-inline: calc(-1 * var(--spacing-fluid-md, 1rem));
+}
+
 /* Barre d'onglets basse : un admin en a SIX. À l'échelle du socle
    (`--text-fluid-xs`, 12 px), « Compteurs » déborde de sa colonne sur un
    écran de 360 px. On garde les 10 px de la barre locale — un écart voulu,

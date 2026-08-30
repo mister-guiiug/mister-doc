@@ -1,9 +1,8 @@
 import { useState } from 'react';
-import { X } from 'lucide-react';
 import type { ShiftTypeDef } from '../../lib/shifts.ts';
 import { Button } from '@mister-guiiug/dev-wpa-config/react/button';
 import { TextField } from '@mister-guiiug/dev-wpa-config/react/field';
-import { Modal } from '../../components/Modal.tsx';
+import { Sheet } from '@mister-guiiug/dev-wpa-config/react/sheet';
 import { useI18n } from '../../i18n/index.ts';
 
 interface ShiftTypeDialogProps {
@@ -56,23 +55,32 @@ export function ShiftTypeDialog({
   }
 
   return (
-    <Modal onClose={onClose} className="max-w-md rounded-t-2xl sm:rounded-2xl">
-      <div className="flex items-center justify-between border-b border-slate-100 p-4 dark:border-slate-800">
-        <h3 className="font-semibold">
-          {isNew
-            ? t('shiftTypes.newTitle')
-            : t('shiftTypes.editTitle', { code: def.code })}
-        </h3>
-        <button
-          onClick={onClose}
-          aria-label={t('common.close')}
-          className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-        >
-          <X className="size-5" />
-        </button>
-      </div>
-
-      <div className="flex max-h-[70dvh] flex-col gap-3 overflow-y-auto p-4">
+    <Sheet
+      open
+      onClose={onClose}
+      title={
+        isNew
+          ? t('shiftTypes.newTitle')
+          : t('shiftTypes.editTitle', { code: def.code })
+      }
+      closeLabel={t('common.close')}
+      footer={
+        <>
+          <Button variant="secondary" size="sm" onClick={onClose}>
+            {t('shiftTypes.cancel')}
+          </Button>
+          <Button
+            size="sm"
+            loading={saving}
+            disabled={!valid}
+            onClick={() => void submit()}
+          >
+            {t('shiftTypes.save')}
+          </Button>
+        </>
+      }
+    >
+      <div className="flex flex-col gap-3">
         <div className="grid grid-cols-2 gap-3">
           <TextField
             label={t('shiftTypes.code')}
@@ -164,21 +172,7 @@ export function ShiftTypeDialog({
           )}
         </label>
       </div>
-
-      <div className="flex justify-end gap-2 border-t border-slate-100 p-3 dark:border-slate-800">
-        <Button variant="secondary" size="sm" onClick={onClose}>
-          {t('shiftTypes.cancel')}
-        </Button>
-        <Button
-          size="sm"
-          loading={saving}
-          disabled={!valid}
-          onClick={() => void submit()}
-        >
-          {t('shiftTypes.save')}
-        </Button>
-      </div>
-    </Modal>
+    </Sheet>
   );
 }
 

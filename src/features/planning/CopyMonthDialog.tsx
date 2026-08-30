@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CopyPlus, Loader2, X } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { monthBounds } from '../../lib/dates.ts';
 import { planMonthCopy, type MonthCopyRow } from '../../lib/monthCopy.ts';
 import { listShiftsBetween } from '../../backend/planning.ts';
 import type { Shift } from '../../backend/types.ts';
-import { Modal } from '../../components/Modal.tsx';
+import { Sheet } from '@mister-guiiug/dev-wpa-config/react/sheet';
 import { Button } from '@mister-guiiug/dev-wpa-config/react/button';
 import { useI18n } from '../../i18n/index.ts';
 
@@ -94,29 +94,27 @@ export function CopyMonthDialog({
     : [];
 
   return (
-    <Modal
+    <Sheet
+      open
       onClose={onClose}
-      className="max-w-md rounded-t-2xl p-4 sm:rounded-2xl"
-      labelledBy="copy-month-title"
+      title={t('copyMonth.title')}
+      closeLabel={t('common.close')}
+      footer={
+        <>
+          <Button type="button" variant="secondary" onClick={onClose}>
+            {t('common.cancel')}
+          </Button>
+          <Button
+            type="button"
+            loading={busy}
+            disabled={!plan || plan.rows.length === 0}
+            onClick={() => void handleConfirm()}
+          >
+            {t('copyMonth.confirm')}
+          </Button>
+        </>
+      }
     >
-      <div className="mb-3 flex items-center justify-between">
-        <h3
-          id="copy-month-title"
-          className="flex items-center gap-2 font-semibold"
-        >
-          <CopyPlus className="size-5 text-teal-600" />
-          {t('copyMonth.title')}
-        </h3>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label={t('common.close')}
-          className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-        >
-          <X className="size-5" />
-        </button>
-      </div>
-
       <p className="mb-3 text-sm text-slate-600 dark:text-slate-300">
         {t('copyMonth.intro', { source: sourceLabel, target: targetLabel })}
       </p>
@@ -157,29 +155,9 @@ export function CopyMonthDialog({
         </div>
       )}
 
-      <p className="mb-3 text-xs text-slate-400 dark:text-slate-500">
+      <p className="text-xs text-slate-400 dark:text-slate-500">
         {t('copyMonth.note')}
       </p>
-
-      <div className="flex gap-2">
-        <Button
-          type="button"
-          variant="secondary"
-          className="flex-1"
-          onClick={onClose}
-        >
-          {t('common.cancel')}
-        </Button>
-        <Button
-          type="button"
-          className="flex-1"
-          loading={busy}
-          disabled={!plan || plan.rows.length === 0}
-          onClick={() => void handleConfirm()}
-        >
-          {t('copyMonth.confirm')}
-        </Button>
-      </div>
-    </Modal>
+    </Sheet>
   );
 }
