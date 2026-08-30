@@ -4,6 +4,7 @@ import {
   installErrorReporter,
   initSentry,
 } from '@mister-guiiug/dev-wpa-config/react/observability';
+import { ThemeProvider } from '@mister-guiiug/dev-wpa-config/react/theme-provider';
 import App from './App.tsx';
 import { ErrorBoundary } from './components/ErrorBoundary.tsx';
 import { I18nProvider } from './i18n/index.ts';
@@ -23,9 +24,19 @@ if (!root) throw new Error('Élément #root introuvable');
 createRoot(root).render(
   <StrictMode>
     <ErrorBoundary>
-      <I18nProvider>
-        <App />
-      </I18nProvider>
+      {/* Avant React, le thème est posé par le script anti-FOUC injecté au
+          build (pwaSeoPlugin themeBoot) ; ThemeProvider prend ensuite le
+          relais et devient le SEUL écrivain de `data-theme` : l'écran
+          Apparence et toute autre commande passent par son contexte, jamais
+          par une seconde instance de `useTheme`. Pas d'`appId` : aucune
+          palette `--dwc-*` n'est peinte, index.css garde la main.
+          `legacyKeys` doit rester aligné sur l'option `themeBoot` de
+          vite.config.ts. */}
+      <ThemeProvider legacyKeys={['mister-doc:theme']}>
+        <I18nProvider>
+          <App />
+        </I18nProvider>
+      </ThemeProvider>
     </ErrorBoundary>
   </StrictMode>
 );
