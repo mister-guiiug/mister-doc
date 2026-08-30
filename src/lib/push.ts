@@ -1,4 +1,11 @@
 import {
+  createPushClient,
+  permissionState,
+  pushSupport,
+  type PushSupport,
+  type PushTransport,
+} from '@mister-guiiug/dev-wpa-config/push';
+import {
   deletePushSubscription,
   savePushSubscription,
 } from '../backend/push.ts';
@@ -8,81 +15,123 @@ import {
  * worker, et enregistrement de l'abonnement en base. Tout est **inerte** si la
  * clé publique VAPID n'est pas configurée (`VITE_VAPID_PUBLIC_KEY`) : l'UI de
  * profil masque alors la section, l'app fonctionne normalement sans push.
+ *
+ * La MÉCANIQUE vient du socle (`@mister-guiiug/dev-wpa-config/push`) : état de
+ * la permission (et le fait de ne pas la redemander quand elle est déjà
+ * tranchée), cycle de vie de l'abonnement, conversion de la clé VAPID
+ * base64url → octets, sérialisation. Ne reste ici que ce qui est propre à
+ * l'app : la clé publique lue de l'environnement, et le TRANSPORT.
+ *
+ * POURQUOI PAS `push/supabase`. Le transport Supabase du socle écrit une
+ * colonne `user_id` — l'identité `auth.users` — et une colonne `user_agent`.
+ * Notre table `push_subscriptions` (migration `0013`) porte un `doctor_id` qui
+ * référence `public.doctors (id)`, identité DISTINCTE de `auth.uid()` puisque
+ * résolue par `current_doctor_id()`, et n'a pas de colonne `user_agent`. Ces
+ * noms de colonnes ne sont pas paramétrables (seule la table l'est) : s'y
+ * brancher demanderait une migration SQL, qui casserait au passage l'Edge
+ * Function `push` et la migration `0019`, toutes deux écrites sur `doctor_id`.
+ * On garde donc notre transport — ce que le socle prévoit explicitement, son
+ * contrat tenant en trois méthodes.
  */
 
 export function pushPublicKey(): string {
   return import.meta.env.VITE_VAPID_PUBLIC_KEY ?? '';
 }
 
-/** Le navigateur sait-il gérer le Web Push ? */
-export function pushSupported(): boolean {
-  return (
-    typeof navigator !== 'undefined' &&
-    'serviceWorker' in navigator &&
-    typeof window !== 'undefined' &&
-    'PushManager' in window &&
-    'Notification' in window
-  );
-}
+/**
+ * Le transport de l'app : la table `push_subscriptions` et son `doctor_id`.
+ * Le médecin est passé en contexte par `enablePush`, faute de pouvoir le
+ * déduire de la session (`auth.uid()` n'est pas `doctors.id`).
+ */
+function transport(): PushTransport {
+  return {
+    key: () => pushPublicKey() || undefined,
 
-/** Support navigateur ET clé VAPID configurée : le push est réellement utilisable. */
-export function pushConfigured(): boolean {
-  return pushSupported() && pushPublicKey().length > 0;
-}
+    async save(subscription, context) {
+      if (!subscription) throw new Error('push : abonnement illisible');
+      const doctorId = context?.doctorId;
+      if (typeof doctorId !== 'string' || doctorId.length === 0) {
+        throw new Error('push : médecin inconnu');
+      }
+      await savePushSubscription(doctorId, {
+        endpoint: subscription.endpoint,
+        p256dh: subscription.keys.p256dh,
+        auth: subscription.keys.auth,
+      });
+    },
 
-/** Convertit une clé VAPID base64url en `Uint8Array` (applicationServerKey). */
-function urlBase64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
-  const padding = '='.repeat((4 - (base64.length % 4)) % 4);
-  const b64 = (base64 + padding).replace(/-/g, '+').replace(/_/g, '/');
-  const raw = atob(b64);
-  const arr = new Uint8Array(new ArrayBuffer(raw.length));
-  for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
-  return arr;
-}
-
-/** Endpoint de l'abonnement actif sur ce navigateur, ou `null`. */
-export async function currentPushEndpoint(): Promise<string | null> {
-  if (!pushSupported()) return null;
-  const reg = await navigator.serviceWorker.ready;
-  const sub = await reg.pushManager.getSubscription();
-  return sub?.endpoint ?? null;
-}
-
-/** Autorisation navigateur déjà refusée pour les notifications ? */
-export function pushDenied(): boolean {
-  return pushSupported() && Notification.permission === 'denied';
+    async remove(subscription) {
+      if (!subscription) return;
+      await deletePushSubscription(subscription.endpoint);
+    },
+  };
 }
 
 /**
- * Active le push : demande l'autorisation, (ré)abonne via le SW et enregistre
- * l'abonnement en base. Renvoie `'denied'` si l'utilisateur refuse.
+ * Le client push du socle, reconstruit à chaque appel : `createPushClient`
+ * capture son `env`, et un client gardé au niveau module figerait l'état du
+ * navigateur au chargement du bundle. La construction ne coûte qu'une clôture.
  */
-export async function enablePush(doctorId: string): Promise<'on' | 'denied'> {
-  const permission = await Notification.requestPermission();
-  if (permission !== 'granted') return 'denied';
-  const reg = await navigator.serviceWorker.ready;
-  const sub =
-    (await reg.pushManager.getSubscription()) ??
-    (await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(pushPublicKey()),
-    }));
-  const json = sub.toJSON();
-  await savePushSubscription(doctorId, {
-    endpoint: sub.endpoint,
-    p256dh: json.keys?.p256dh ?? '',
-    auth: json.keys?.auth ?? '',
-  });
-  return 'on';
+function client(env: unknown = globalThis) {
+  return createPushClient({ transport: transport(), env });
 }
 
-/** Désactive le push : désabonne le navigateur et retire l'abonnement en base. */
-export async function disablePush(): Promise<void> {
-  if (!pushSupported()) return;
-  const reg = await navigator.serviceWorker.ready;
-  const sub = await reg.pushManager.getSubscription();
-  if (!sub) return;
-  const { endpoint } = sub;
-  await sub.unsubscribe().catch(() => undefined);
-  await deletePushSubscription(endpoint).catch(() => undefined);
+/** Ce que ce navigateur sait faire — et, sinon, POURQUOI (dont le cas iOS). */
+export function pushBrowserSupport(env: unknown = globalThis): PushSupport {
+  return pushSupport(env);
+}
+
+/** Le push est-il prévu sur ce déploiement ? (clé VAPID posée au build) */
+export function pushDeployed(): boolean {
+  return pushPublicKey().length > 0;
+}
+
+/** Support navigateur ET clé VAPID configurée : le push est réellement utilisable. */
+export function pushConfigured(env: unknown = globalThis): boolean {
+  return pushDeployed() && pushSupport(env).supported;
+}
+
+/** Autorisation navigateur déjà refusée pour les notifications ? */
+export function pushDenied(env: unknown = globalThis): boolean {
+  return permissionState(env) === 'denied';
+}
+
+/** Endpoint de l'abonnement actif sur ce navigateur, ou `null`. */
+export async function currentPushEndpoint(
+  env: unknown = globalThis
+): Promise<string | null> {
+  const subscription = await client(env).current();
+  return subscription?.endpoint ?? null;
+}
+
+/**
+ * `'denied'` couvre le refus ET le rejet de la fenêtre d'autorisation : dans
+ * les deux cas l'utilisateur n'a pas dit oui. `'error'` est tout le reste — une
+ * vraie panne, qui ne doit pas être annoncée comme un refus.
+ */
+export type PushEnableResult = 'on' | 'denied' | 'error';
+
+/**
+ * Active le push : demande l'autorisation, (ré)abonne via le SW et enregistre
+ * l'abonnement en base.
+ */
+export async function enablePush(
+  doctorId: string,
+  env: unknown = globalThis
+): Promise<PushEnableResult> {
+  const { ok, reason } = await client(env).subscribe({ doctorId });
+  if (ok) return 'on';
+  return reason?.startsWith('permission-') ? 'denied' : 'error';
+}
+
+/**
+ * Désactive le push : retire l'abonnement en base PUIS désabonne le navigateur.
+ * Cet ordre est celui du socle et il compte — désabonner d'abord perdrait
+ * l'endpoint qu'il faut donner au serveur pour qu'il oublie l'abonnement, et
+ * l'utilisateur qui a dit non continuerait de recevoir. Un échec lève, au lieu
+ * d'annoncer une désactivation qui n'a pas eu lieu côté serveur.
+ */
+export async function disablePush(env: unknown = globalThis): Promise<void> {
+  const { ok, reason } = await client(env).unsubscribe();
+  if (!ok) throw new Error(`push : désabonnement impossible (${reason})`);
 }

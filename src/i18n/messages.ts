@@ -410,6 +410,8 @@ export const messages = {
       pushDesc: "Être prévenu même quand l'app est fermée",
       pushBlocked:
         'Les notifications sont bloquées pour ce site. Autorisez-les dans les réglages du navigateur pour activer le push.',
+      pushInstallFirst:
+        "Sur iPhone et iPad, les notifications push exigent que l'app soit installée : ouvrez le menu de partage, puis « Sur l'écran d'accueil », et rouvrez l'app depuis l'icône.",
       pushDisable: 'Désactiver les notifications push',
       pushEnable: 'Activer les notifications push',
       pushEnabled: 'Notifications push activées.',
@@ -1158,6 +1160,8 @@ export const messages = {
       pushDesc: 'Be notified even when the app is closed',
       pushBlocked:
         'Notifications are blocked for this site. Allow them in your browser settings to enable push.',
+      pushInstallFirst:
+        'On iPhone and iPad, push notifications require the app to be installed: open the share menu, choose "Add to Home Screen", then reopen the app from its icon.',
       pushDisable: 'Disable push notifications',
       pushEnable: 'Enable push notifications',
       pushEnabled: 'Push notifications enabled.',
