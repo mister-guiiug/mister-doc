@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Repeat, Loader2, X } from 'lucide-react';
-import { Modal } from '../../components/Modal.tsx';
+import { Repeat, Loader2 } from 'lucide-react';
+import { Sheet } from '@mister-guiiug/dev-wpa-config/react/sheet';
 import { fromISODate, mondayIndex, toISODate } from '../../lib/dates.ts';
 import { shiftLabel, type ShiftType } from '../../lib/shifts.ts';
 import { logError } from '../../lib/logger.ts';
@@ -106,28 +106,30 @@ export function ProposeSwapDialog({
   }
 
   return (
-    <Modal
+    <Sheet
+      open
       onClose={onClose}
-      labelledBy="propose-swap-title"
-      className="max-w-md rounded-t-2xl p-5 sm:rounded-2xl"
+      title={t('swaps.propose')}
+      closeLabel={t('common.close')}
+      footer={
+        // Rien à valider tant que le chargement dure ou qu'aucune garde n'est
+        // proposable : le pied n'existe alors pas, plutôt qu'un bouton mort.
+        loading || myShifts.length === 0 ? undefined : (
+          <button
+            onClick={() => void submit()}
+            disabled={!selected || busy}
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-teal-600 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:opacity-50"
+          >
+            {busy ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Repeat className="size-4" />
+            )}
+            {t('swaps.proposeExchange')}
+          </button>
+        )
+      }
     >
-      <div className="mb-4 flex items-center justify-between">
-        <h3
-          id="propose-swap-title"
-          className="flex items-center gap-2 font-semibold"
-        >
-          <Repeat className="size-5 text-teal-600" />
-          {t('swaps.propose')}
-        </h3>
-        <button
-          onClick={onClose}
-          aria-label={t('common.close')}
-          className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-        >
-          <X className="size-5" />
-        </button>
-      </div>
-
       {loading ? (
         <div className="grid place-items-center py-8 text-slate-400">
           <Loader2 className="size-6 animate-spin" />
@@ -184,7 +186,7 @@ export function ProposeSwapDialog({
             </select>
           </label>
 
-          <label className="mb-4 flex flex-col gap-1 text-sm">
+          <label className="mb-3 flex flex-col gap-1 text-sm">
             <span className="font-medium text-slate-600 dark:text-slate-300">
               {t('swaps.messageOptional')}
             </span>
@@ -197,22 +199,9 @@ export function ProposeSwapDialog({
             />
           </label>
 
-          {error && <ErrorMessage className="mb-3">{error}</ErrorMessage>}
-
-          <button
-            onClick={() => void submit()}
-            disabled={!selected || busy}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-teal-600 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:opacity-50"
-          >
-            {busy ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <Repeat className="size-4" />
-            )}
-            {t('swaps.proposeExchange')}
-          </button>
+          {error && <ErrorMessage>{error}</ErrorMessage>}
         </>
       )}
-    </Modal>
+    </Sheet>
   );
 }

@@ -1,9 +1,9 @@
-import { useMemo, useState } from 'react';
-import { X, Clock3, Trash2 } from 'lucide-react';
+import { useId, useMemo, useState } from 'react';
+import { Trash2 } from 'lucide-react';
 import { fromISODate, mondayIndex } from '../../lib/dates.ts';
 import { HNC_MAX_HOURS } from '../../lib/hnc.ts';
 import type { Doctor, HncEntry } from '../../backend/types.ts';
-import { Modal } from '../../components/Modal.tsx';
+import { Sheet } from '@mister-guiiug/dev-wpa-config/react/sheet';
 import { Button } from '@mister-guiiug/dev-wpa-config/react/button';
 import { useI18n } from '../../i18n/index.ts';
 
@@ -37,6 +37,9 @@ export function HncDialog({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { t, m } = useI18n();
+  // Le pied de la feuille est épinglé HORS du formulaire : `form` rattache le
+  // bouton d'envoi, sans quoi « Enregistrer » ne soumettrait plus rien.
+  const formId = useId();
 
   const d = fromISODate(date);
   const dayLabel = `${m.common.weekdays[mondayIndex(d)]} ${d.getDate()}`;
@@ -68,24 +71,22 @@ export function HncDialog({
   }
 
   return (
-    <Modal
+    <Sheet
+      open
       onClose={onClose}
-      className="max-w-md rounded-t-2xl p-4 sm:rounded-2xl"
+      title={t('hnc.title')}
+      closeLabel={t('common.close')}
+      footer={
+        <>
+          <Button type="button" variant="secondary" onClick={onClose}>
+            {t('hnc.close')}
+          </Button>
+          <Button type="submit" form={formId} loading={busy}>
+            {t('hnc.save')}
+          </Button>
+        </>
+      }
     >
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="flex items-center gap-2 font-semibold">
-          <Clock3 className="size-5 text-sky-600" />
-          {t('hnc.title')}
-        </h3>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label={t('common.close')}
-          className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-        >
-          <X className="size-5" />
-        </button>
-      </div>
       <p className="mb-3 text-sm capitalize text-slate-500">{dayLabel}</p>
 
       {dayEntries.length > 0 && (
@@ -131,7 +132,7 @@ export function HncDialog({
         </ul>
       )}
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+      <form id={formId} onSubmit={handleSubmit} className="flex flex-col gap-3">
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium text-slate-600 dark:text-slate-300">
             {t('hnc.doctor')}
@@ -170,21 +171,7 @@ export function HncDialog({
             {error}
           </p>
         )}
-
-        <div className="flex gap-2">
-          <Button
-            type="button"
-            variant="secondary"
-            className="flex-1"
-            onClick={onClose}
-          >
-            {t('hnc.close')}
-          </Button>
-          <Button type="submit" loading={busy} className="flex-1">
-            {t('hnc.save')}
-          </Button>
-        </div>
       </form>
-    </Modal>
+    </Sheet>
   );
 }

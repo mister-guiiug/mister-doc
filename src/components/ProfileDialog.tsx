@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { X, Check } from 'lucide-react';
+import { useId, useState } from 'react';
+import { Check } from 'lucide-react';
 import { DOCTOR_COLORS } from '../lib/colors.ts';
-import { Modal } from './Modal.tsx';
+import { Sheet } from '@mister-guiiug/dev-wpa-config/react/sheet';
 import { Button } from '@mister-guiiug/dev-wpa-config/react/button';
 import { useI18n } from '../i18n/index.ts';
 
@@ -27,6 +27,9 @@ export function ProfileDialog({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { t } = useI18n();
+  // Le pied de la feuille est épinglé HORS du formulaire : `form` rattache le
+  // bouton d'envoi, sans quoi « Enregistrer » ne soumettrait plus rien.
+  const formId = useId();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -48,22 +51,23 @@ export function ProfileDialog({
   }
 
   return (
-    <Modal
+    <Sheet
+      open
       onClose={onClose}
-      className="max-w-sm rounded-t-2xl p-5 sm:rounded-2xl"
+      title={title}
+      closeLabel={t('common.close')}
+      footer={
+        <>
+          <Button type="button" variant="secondary" onClick={onClose}>
+            {t('profileDialog.cancel')}
+          </Button>
+          <Button type="submit" form={formId} loading={busy}>
+            {t('profileDialog.save')}
+          </Button>
+        </>
+      }
     >
-      <form onSubmit={handleSubmit}>
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="font-semibold">{title}</h3>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-          >
-            <X className="size-5" />
-          </button>
-        </div>
-
+      <form id={formId} onSubmit={handleSubmit}>
         <label className="mb-3 flex flex-col gap-1 text-sm">
           <span className="font-medium text-slate-600 dark:text-slate-300">
             {t('profileDialog.displayName')}
@@ -100,25 +104,11 @@ export function ProfileDialog({
         </div>
 
         {error && (
-          <p role="alert" className="mb-3 text-sm text-red-600">
+          <p role="alert" className="text-sm text-red-600">
             {error}
           </p>
         )}
-
-        <div className="flex gap-2">
-          <Button
-            type="button"
-            variant="secondary"
-            className="flex-1"
-            onClick={onClose}
-          >
-            {t('profileDialog.cancel')}
-          </Button>
-          <Button type="submit" loading={busy} className="flex-1">
-            {t('profileDialog.save')}
-          </Button>
-        </div>
       </form>
-    </Modal>
+    </Sheet>
   );
 }
