@@ -5,7 +5,7 @@ import type { AuditEntry } from '../../backend/types.ts';
 import { auditActionLabel, auditTargetLabel } from '../../lib/auditLabels.ts';
 import { timeAgo } from '../../lib/relativeTime.ts';
 import { SectionCard } from '../../components/ui/SectionCard.tsx';
-import { EmptyState } from '../../components/ui/EmptyState.tsx';
+import { EmptyState } from '@mister-guiiug/dev-wpa-config/react/empty-state';
 import { useI18n } from '../../i18n/index.ts';
 import { ErrorMessage } from '../../components/ui/ErrorMessage.tsx';
 

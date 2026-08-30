@@ -4,7 +4,7 @@ import { fromISODate, mondayIndex } from '../../lib/dates.ts';
 import { LEAVE_KINDS, type LeaveKind } from '../../lib/leaves.ts';
 import type { Doctor } from '../../backend/types.ts';
 import { Modal } from '../../components/Modal.tsx';
-import { Button } from '../../components/ui/Button.tsx';
+import { Button } from '@mister-guiiug/dev-wpa-config/react/button';
 import { SegmentedControl } from '../../components/ui/SegmentedControl.tsx';
 import { useI18n } from '../../i18n/index.ts';
 

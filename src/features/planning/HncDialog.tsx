@@ -4,7 +4,7 @@ import { fromISODate, mondayIndex } from '../../lib/dates.ts';
 import { HNC_MAX_HOURS } from '../../lib/hnc.ts';
 import type { Doctor, HncEntry } from '../../backend/types.ts';
 import { Modal } from '../../components/Modal.tsx';
-import { Button } from '../../components/ui/Button.tsx';
+import { Button } from '@mister-guiiug/dev-wpa-config/react/button';
 import { useI18n } from '../../i18n/index.ts';
 
 /**

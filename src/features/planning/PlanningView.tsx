@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../auth/useAuth.ts';
-import { useToast } from '../../components/Toast.tsx';
+import { useToast } from '@mister-guiiug/dev-wpa-config/react/toast';
 import { useI18n } from '../../i18n/index.ts';
 import { fromISODate, toISODate } from '../../lib/dates.ts';
 import type { ShiftType } from '../../lib/shifts.ts';

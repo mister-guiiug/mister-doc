@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { X, Trash2, StickyNote } from 'lucide-react';
 import { fromISODate, mondayIndex } from '../../lib/dates.ts';
 import { Modal } from '../../components/Modal.tsx';
-import { Button } from '../../components/ui/Button.tsx';
+import { Button } from '@mister-guiiug/dev-wpa-config/react/button';
 import { useConfirm } from '../../components/ui/confirmContext.ts';
 import { useI18n } from '../../i18n/index.ts';
 

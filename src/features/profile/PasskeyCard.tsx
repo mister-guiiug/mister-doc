@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Fingerprint, Plus, Trash2 } from 'lucide-react';
-import { useToast } from '../../components/Toast.tsx';
+import { useToast } from '@mister-guiiug/dev-wpa-config/react/toast';
 import { useConfirm } from '../../components/ui/confirmContext.ts';
-import { Button } from '../../components/ui/Button.tsx';
+import { Button } from '@mister-guiiug/dev-wpa-config/react/button';
 import { SectionCard } from '../../components/ui/SectionCard.tsx';
 import { useI18n } from '../../i18n/index.ts';
 import {

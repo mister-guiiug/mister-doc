@@ -1,14 +1,15 @@
 import { createContext, useContext, type ReactNode } from 'react';
 
 export interface ConfirmOptions {
-  /** Titre court optionnel (gras) au-dessus du message. */
+  /** Titre court optionnel au-dessus du message (défaut : `confirm.title`). */
   title?: string;
   message: ReactNode;
-  /** Libellé du bouton d'action (défaut « Confirmer »). */
+  /** Libellé du bouton d'action (défauts du socle : « Confirmer », ou
+   *  « Supprimer » si `danger`). */
   confirmLabel?: string;
-  /** Libellé du bouton d'annulation (défaut « Annuler »). */
+  /** Libellé du bouton d'annulation (défaut du socle : « Annuler »). */
   cancelLabel?: string;
-  /** Action destructive : bouton rouge. */
+  /** Action destructive : bouton rouge (`destructive` côté socle). */
   danger?: boolean;
 }
 

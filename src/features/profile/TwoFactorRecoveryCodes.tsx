@@ -1,6 +1,6 @@
 import { Check, Copy, Download, KeyRound } from 'lucide-react';
-import { useToast } from '../../components/Toast.tsx';
-import { Button } from '../../components/ui/Button.tsx';
+import { useToast } from '@mister-guiiug/dev-wpa-config/react/toast';
+import { Button } from '@mister-guiiug/dev-wpa-config/react/button';
 import { useI18n } from '../../i18n/index.ts';
 
 type Props = {

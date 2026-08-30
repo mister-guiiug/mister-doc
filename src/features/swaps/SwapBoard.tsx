@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Repeat, X, Plus } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth.ts';
-import { useToast } from '../../components/Toast.tsx';
-import { Button } from '../../components/ui/Button.tsx';
+import { useToast } from '@mister-guiiug/dev-wpa-config/react/toast';
+import { Button } from '@mister-guiiug/dev-wpa-config/react/button';
 import type { ShiftType } from '../../lib/shifts.ts';
 import { logError } from '../../lib/logger.ts';
 import { useI18n } from '../../i18n/index.ts';
@@ -194,7 +194,8 @@ export function SwapBoard() {
                 nameById={nameById}
                 actions={
                   <Button
-                    variant="dangerGhost"
+                    variant="outline"
+                    data-tone="danger"
                     size="sm"
                     disabled={busy === s.id}
                     onClick={() =>

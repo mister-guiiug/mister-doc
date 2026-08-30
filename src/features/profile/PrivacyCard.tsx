@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { Download, FileText, ShieldCheck, UserX } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth.ts';
 import { useI18n } from '../../i18n/index.ts';
-import { useToast } from '../../components/Toast.tsx';
-import { Button } from '../../components/ui/Button.tsx';
+import { useToast } from '@mister-guiiug/dev-wpa-config/react/toast';
+import { Button } from '@mister-guiiug/dev-wpa-config/react/button';
 import { SectionCard } from '../../components/ui/SectionCard.tsx';
 import { useConfirm } from '../../components/ui/confirmContext.ts';
 import { PrivacyDialog } from '../legal/PrivacyPolicy.tsx';
@@ -78,7 +78,8 @@ export function PrivacyCard({ doctor }: { doctor: Doctor }) {
             {t('profile.downloadData')}
           </Button>
           <Button
-            variant="dangerGhost"
+            variant="outline"
+            data-tone="danger"
             className="w-full py-2.5"
             onClick={() => void handleDeleteAccount()}
           >

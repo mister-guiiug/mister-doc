@@ -3,7 +3,7 @@ import { Trash2, UserPlus, Repeat } from 'lucide-react';
 import { shiftLabel, type ShiftType } from '../../lib/shifts.ts';
 import { useI18n } from '../../i18n/index.ts';
 import type { Doctor, Shift } from '../../backend/types.ts';
-import { Button } from '../../components/ui/Button.tsx';
+import { Button } from '@mister-guiiug/dev-wpa-config/react/button';
 import { useConfirm } from '../../components/ui/confirmContext.ts';
 
 interface AssignSlotActionsProps {
@@ -67,7 +67,8 @@ export function AssignSlotActions({
       </Button>
       {currentShift && (
         <Button
-          variant="dangerGhost"
+          variant="outline"
+          data-tone="danger"
           className="mt-2 w-full py-2"
           disabled={busy}
           onClick={async () => {

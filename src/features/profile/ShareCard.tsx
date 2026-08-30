@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Check, Copy, Share2 } from 'lucide-react';
 import { useI18n } from '../../i18n/index.ts';
-import { useToast } from '../../components/Toast.tsx';
-import { Button } from '../../components/ui/Button.tsx';
+import { useToast } from '@mister-guiiug/dev-wpa-config/react/toast';
+import { Button } from '@mister-guiiug/dev-wpa-config/react/button';
 import { SectionCard } from '../../components/ui/SectionCard.tsx';
 
 /**

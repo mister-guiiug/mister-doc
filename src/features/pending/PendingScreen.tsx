@@ -3,7 +3,7 @@ import { Clock, LogOut, KeyRound, Loader2, Trash2 } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth.ts';
 import { useI18n } from '../../i18n/index.ts';
 import { claimAdmin, deleteMyAccount } from '../../backend/doctors.ts';
-import { Button } from '../../components/ui/Button.tsx';
+import { Button } from '@mister-guiiug/dev-wpa-config/react/button';
 import { useConfirm } from '../../components/ui/confirmContext.ts';
 
 export function PendingScreen() {

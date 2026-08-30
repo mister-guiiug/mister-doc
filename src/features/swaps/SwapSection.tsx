@@ -1,5 +1,5 @@
 import { Inbox } from 'lucide-react';
-import { EmptyState } from '../../components/ui/EmptyState.tsx';
+import { EmptyState } from '@mister-guiiug/dev-wpa-config/react/empty-state';
 
 /**
  * En-tête commun aux catégories du tableau d'échanges (titre + compteur).

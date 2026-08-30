@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { X, Check } from 'lucide-react';
 import { DOCTOR_COLORS } from '../lib/colors.ts';
 import { Modal } from './Modal.tsx';
-import { Button } from './ui/Button.tsx';
+import { Button } from '@mister-guiiug/dev-wpa-config/react/button';
 import { useI18n } from '../i18n/index.ts';
 
 /**

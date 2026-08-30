@@ -16,9 +16,9 @@ import {
   getMyCalendarToken,
   rotateCalendarToken,
 } from '../backend/calendar.ts';
-import { useToast } from './Toast.tsx';
+import { useToast } from '@mister-guiiug/dev-wpa-config/react/toast';
 import { Modal } from './Modal.tsx';
-import { Button } from './ui/Button.tsx';
+import { Button } from '@mister-guiiug/dev-wpa-config/react/button';
 import { SegmentedControl } from './ui/SegmentedControl.tsx';
 import { useConfirm } from './ui/confirmContext.ts';
 import { useI18n } from '../i18n/index.ts';
