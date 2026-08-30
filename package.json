@@ -28,7 +28,7 @@
     "react-router-dom": "^7.14.1"
   },
   "devDependencies": {
-    "@mister-guiiug/dev-wpa-config": "^3.21.0",
+    "@mister-guiiug/dev-wpa-config": "^3.22.0",
     "@tailwindcss/vite": "^4.3.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.0.1",

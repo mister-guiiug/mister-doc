@@ -5,8 +5,12 @@ import {
   downloadPdf,
   textWidth,
   type Rgb,
-} from '../../lib/pdf.ts';
-import { buildXlsx, downloadXlsx, type XlsxValue } from '../../lib/xlsx.ts';
+} from '@mister-guiiug/dev-wpa-config/pdf';
+import {
+  buildXlsx,
+  downloadXlsx,
+  type XlsxValue,
+} from '@mister-guiiug/dev-wpa-config/xlsx';
 
 /**
  * Exports de la page « Compteurs de l'équipe » (admin) dans trois formats :
