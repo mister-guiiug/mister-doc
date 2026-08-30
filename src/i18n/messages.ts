@@ -688,8 +688,9 @@ export const messages = {
       reload: 'Recharger',
     },
     confirm: {
-      confirm: 'Confirmer',
-      cancel: 'Annuler',
+      // Titre générique du dialogue de confirmation : le composant du socle
+      // exige un nom accessible, posé quand l'appelant n'en fournit pas.
+      title: 'Confirmation',
     },
     privacy: {
       title: 'Politique de confidentialité',
@@ -1429,8 +1430,7 @@ export const messages = {
       reload: 'Reload',
     },
     confirm: {
-      confirm: 'Confirm',
-      cancel: 'Cancel',
+      title: 'Confirmation',
     },
     privacy: {
       title: 'Privacy policy',

@@ -1,7 +1,7 @@
 import { Clock, UserCheck, UserX } from 'lucide-react';
 import type { Doctor } from '../../backend/types.ts';
-import { Button } from '../../components/ui/Button.tsx';
-import { EmptyState } from '../../components/ui/EmptyState.tsx';
+import { Button } from '@mister-guiiug/dev-wpa-config/react/button';
+import { EmptyState } from '@mister-guiiug/dev-wpa-config/react/empty-state';
 import { SectionCard } from '../../components/ui/SectionCard.tsx';
 import { useConfirm } from '../../components/ui/confirmContext.ts';
 import { useI18n } from '../../i18n/index.ts';
@@ -54,7 +54,8 @@ export function PendingAccountsCard({
                 {t('admin.approve')}
               </Button>
               <Button
-                variant="dangerGhost"
+                variant="outline"
+                data-tone="danger"
                 size="sm"
                 disabled={busyId === d.id}
                 title={t('admin.rejectTitle')}

@@ -1,7 +1,7 @@
 import { LogOut } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth.ts';
 import { useI18n } from '../../i18n/index.ts';
-import { Button } from '../../components/ui/Button.tsx';
+import { Button } from '@mister-guiiug/dev-wpa-config/react/button';
 import { ProfileHeader } from './ProfileHeader.tsx';
 import { IdentityCard } from './IdentityCard.tsx';
 import { AppearanceCard } from './AppearanceCard.tsx';
@@ -65,7 +65,8 @@ export function ProfilePage() {
       <OtherAppsCard />
 
       <Button
-        variant="dangerGhost"
+        variant="outline"
+        data-tone="danger"
         className="mt-1 w-full py-2.5 font-semibold"
         onClick={() => void signOut()}
       >

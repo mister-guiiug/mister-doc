@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import type { useToast } from '../../components/Toast.tsx';
+import type { useToast } from '@mister-guiiug/dev-wpa-config/react/toast';
 import { useConfirm } from '../../components/ui/confirmContext.ts';
 import type { LeaveKind } from '../../lib/leaves.ts';
 import type { MonthCopyRow } from '../../lib/monthCopy.ts';

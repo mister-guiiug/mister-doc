@@ -1,5 +1,10 @@
 @import 'tailwindcss';
 @import '@mister-guiiug/dev-wpa-config/tailwind-preset.css';
+/* Habillage partagé des composants [data-dwc] du socle (Button, Field,
+   ConfirmDialog, Toast, EmptyState, Skeleton, FamilyApps…). En
+   `@layer components` : les utilitaires Tailwind et tout CSS non layered de
+   ce fichier gardent la priorité. */
+@import '@mister-guiiug/dev-wpa-config/components.css';
 
 /* Le thème (clair/sombre) est piloté par l'attribut data-theme posé par le
    script anti-FOUC dans index.html. On mappe la variante `dark:` de Tailwind
@@ -8,6 +13,64 @@
 
 :root {
   color-scheme: light dark;
+}
+
+/* Contrat de couleur des composants partagés : les 15 jetons `--dwc-*` sont
+   câblés une fois sur la palette existante de l'app (teal-700 en primaire,
+   neutres slate). Sans ces valeurs, components.css retomberait sur ses replis
+   système, corrects mais hors identité. */
+:root {
+  --dwc-surface: #ffffff; /* cartes : bg-white */
+  --dwc-surface-2: #f8fafc; /* fond en retrait : slate-50 */
+  --dwc-text: #0f172a; /* slate-900 */
+  --dwc-text-soft: #475569; /* slate-600 (AA sur blanc) */
+  --dwc-border: #e2e8f0; /* filets : slate-200 */
+  /* Contour d'un CONTRÔLE (champ, bouton secondaire) : WCAG 1.4.11 exige 3:1.
+     slate-300 (la bordure locale de `Field`) ne les tenait pas ; slate-500
+     donne 4,8:1 en clair et 4,1:1 en sombre. */
+  --dwc-border-strong: #64748b; /* slate-500 */
+  /* teal-700 : même choix que la copie locale de `Button` (blanc sur teal-600
+     ne tenait pas 4,5:1). Il tient aussi sur la surface sombre (#0f172a). */
+  --dwc-primary: #0f766e;
+  --dwc-primary-contrast: #ffffff;
+  --dwc-primary-soft: #ccfbf1; /* teal-100 */
+  --dwc-success: #0f766e; /* le teal EST le ton succès de l'app (toasts) */
+  --dwc-warning: #b45309; /* amber-700 (AA sur blanc) */
+  --dwc-danger: #dc2626; /* red-600 : le danger des boutons locaux */
+  --dwc-info: #0369a1; /* sky-700 (sky-500 ne porte pas de texte) */
+  --dwc-radius: 0.75rem; /* boutons ×0.7 ≈ rounded-lg, panneaux ×1.4 ≈ 2xl */
+  --dwc-shadow: 0 1px 2px rgb(15 23 42 / 0.08);
+}
+
+[data-theme='dark'] {
+  --dwc-surface: #0f172a; /* cartes : slate-900 */
+  --dwc-surface-2: #1e293b; /* slate-800 */
+  --dwc-text: #f1f5f9; /* slate-100 */
+  --dwc-text-soft: #94a3b8; /* slate-400 */
+  --dwc-border: #1e293b; /* slate-800 */
+  --dwc-primary-soft: #134e4a; /* teal-900 */
+  --dwc-success: #2dd4bf; /* teal-400 */
+  --dwc-warning: #fbbf24; /* amber-400 */
+  --dwc-danger: #f87171; /* red-400 */
+  --dwc-info: #38bdf8; /* sky-400 */
+  --dwc-shadow: 0 1px 2px rgb(0 0 0 / 0.4);
+}
+
+/* Identité mister-doc sur les composants du socle — uniquement les écarts
+   VOULUS par rapport à components.css. */
+
+/* Action destructive « secondaire » (ex-variante locale `dangerGhost` de
+   Button : Libérer, Rejeter, Supprimer le compte…). Le socle n'a pas ce ton
+   sur la variante creuse : on le pose via l'attribut libre `data-tone`,
+   c'est le contrat prévu (« cibler [data-dwc][data-variant] »). */
+[data-dwc='button'][data-variant='outline'][data-tone='danger'] {
+  color: var(--dwc-danger);
+}
+
+[data-dwc='button'][data-variant='outline'][data-tone='danger']:hover:not(
+    :disabled
+  ) {
+  background: color-mix(in srgb, var(--dwc-danger) 8%, transparent);
 }
 
 html,
@@ -117,6 +180,9 @@ body {
   font-size: 0.78rem;
   color: #64748b;
   line-height: 1.4;
+  /* La base importée (components.css) tronque sur une ligne ; ici les
+     descriptions s'affichent en entier, comme avant l'import. */
+  white-space: normal;
 }
 
 [data-theme='dark'] .family-apps [data-dwc='family-app-desc'] {

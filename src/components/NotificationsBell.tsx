@@ -9,7 +9,7 @@ import {
   subscribeNotifications,
 } from '../backend/notifications.ts';
 import { NotificationPanel } from './NotificationPanel.tsx';
-import { useToast } from './Toast.tsx';
+import { useToast } from '@mister-guiiug/dev-wpa-config/react/toast';
 import { useI18n } from '../i18n/index.ts';
 import { logError } from '../lib/logger.ts';
 import type { Notification } from '../backend/types.ts';

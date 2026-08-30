@@ -1,10 +1,13 @@
 import { lazy, Suspense, type ReactNode } from 'react';
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { X } from 'lucide-react';
+import { ToastProvider } from '@mister-guiiug/dev-wpa-config/react/toast';
+import { IconsProvider } from '@mister-guiiug/dev-wpa-config/react/icons-context';
+import { lucideIconSet } from '@mister-guiiug/dev-wpa-config/react/icons-lucide';
 import { AuthProvider } from './auth/AuthContext.tsx';
 import { AuthGate } from './auth/AuthGate.tsx';
 import { useAuth } from './auth/useAuth.ts';
 import { useI18n } from './i18n/index.ts';
-import { ToastProvider } from './components/Toast.tsx';
 import { ConfirmProvider } from './components/ui/ConfirmProvider.tsx';
 import { Header } from './components/Header.tsx';
 import { BottomNav } from './components/BottomNav.tsx';
@@ -43,56 +46,65 @@ function AdminRoute({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
+/* Les composants du socle (croix du toast…) dessinent leurs icônes via le
+   contrat de rôles : on branche lucide, le jeu d'icônes de l'app, plutôt que
+   de laisser cohabiter deux langages visuels. */
+const DWC_ICONS = lucideIconSet({ close: X });
+
 export default function App() {
   const { t } = useI18n();
   return (
-    <ToastProvider>
-      <ConfirmProvider>
-        <AuthProvider>
-          <AuthGate>
-            <HashRouter>
-              <div className="min-h-dvh bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-                <Header />
-                <main className="pb-24">
-                  <Suspense
-                    fallback={<FullScreenSpinner label={t('common.loading')} />}
-                  >
-                    <Routes>
-                      <Route path="/" element={<PlanningView />} />
-                      <Route
-                        path="/mon-planning"
-                        element={<MyPlanningView />}
-                      />
-                      <Route path="/echanges" element={<SwapBoard />} />
-                      <Route path="/profil" element={<ProfilePage />} />
-                      <Route
-                        path="/compteurs"
-                        element={
-                          <AdminRoute>
-                            <AllCounters />
-                          </AdminRoute>
-                        }
-                      />
-                      <Route
-                        path="/admin"
-                        element={
-                          <AdminRoute>
-                            <AdminPanel />
-                          </AdminRoute>
-                        }
-                      />
-                      <Route path="*" element={<Navigate to="/" replace />} />
-                    </Routes>
-                  </Suspense>
-                </main>
-                <BottomNav />
-              </div>
-            </HashRouter>
-          </AuthGate>
-          <InstallPrompt />
-          <UpdatePrompt />
-        </AuthProvider>
-      </ConfirmProvider>
-    </ToastProvider>
+    <IconsProvider icons={DWC_ICONS}>
+      <ToastProvider>
+        <ConfirmProvider>
+          <AuthProvider>
+            <AuthGate>
+              <HashRouter>
+                <div className="min-h-dvh bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+                  <Header />
+                  <main className="pb-24">
+                    <Suspense
+                      fallback={
+                        <FullScreenSpinner label={t('common.loading')} />
+                      }
+                    >
+                      <Routes>
+                        <Route path="/" element={<PlanningView />} />
+                        <Route
+                          path="/mon-planning"
+                          element={<MyPlanningView />}
+                        />
+                        <Route path="/echanges" element={<SwapBoard />} />
+                        <Route path="/profil" element={<ProfilePage />} />
+                        <Route
+                          path="/compteurs"
+                          element={
+                            <AdminRoute>
+                              <AllCounters />
+                            </AdminRoute>
+                          }
+                        />
+                        <Route
+                          path="/admin"
+                          element={
+                            <AdminRoute>
+                              <AdminPanel />
+                            </AdminRoute>
+                          }
+                        />
+                        <Route path="*" element={<Navigate to="/" replace />} />
+                      </Routes>
+                    </Suspense>
+                  </main>
+                  <BottomNav />
+                </div>
+              </HashRouter>
+            </AuthGate>
+            <InstallPrompt />
+            <UpdatePrompt />
+          </AuthProvider>
+        </ConfirmProvider>
+      </ToastProvider>
+    </IconsProvider>
   );
 }

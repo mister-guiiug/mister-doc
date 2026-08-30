@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { CalendarDays, Fingerprint } from 'lucide-react';
 import { useAuth } from './useAuth.ts';
 import { useI18n } from '../i18n/index.ts';
-import { Button } from '../components/ui/Button.tsx';
-import { Field } from '../components/ui/Field.tsx';
+import { Button } from '@mister-guiiug/dev-wpa-config/react/button';
+import { TextField } from '@mister-guiiug/dev-wpa-config/react/field';
 import { SegmentedControl } from '../components/ui/SegmentedControl.tsx';
 import { PrivacyDialog } from '../features/legal/PrivacyPolicy.tsx';
 import { passkeysSupported } from '../backend/passkey.ts';
@@ -69,7 +69,7 @@ export function LoginPage() {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           {mode === 'signup' && (
-            <Field
+            <TextField
               label={t('login.displayName')}
               type="text"
               value={name}
@@ -79,7 +79,7 @@ export function LoginPage() {
               autoComplete="name"
             />
           )}
-          <Field
+          <TextField
             label={t('login.email')}
             type="email"
             value={email}
@@ -88,7 +88,7 @@ export function LoginPage() {
             required
             autoComplete="email"
           />
-          <Field
+          <TextField
             label={t('login.password')}
             type="password"
             value={password}

@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
 import type { ShiftTypeDef } from '../../lib/shifts.ts';
-import { Button } from '../../components/ui/Button.tsx';
-import { Field } from '../../components/ui/Field.tsx';
+import { Button } from '@mister-guiiug/dev-wpa-config/react/button';
+import { TextField } from '@mister-guiiug/dev-wpa-config/react/field';
 import { Modal } from '../../components/Modal.tsx';
 import { useI18n } from '../../i18n/index.ts';
 
@@ -74,7 +74,7 @@ export function ShiftTypeDialog({
 
       <div className="flex max-h-[70dvh] flex-col gap-3 overflow-y-auto p-4">
         <div className="grid grid-cols-2 gap-3">
-          <Field
+          <TextField
             label={t('shiftTypes.code')}
             value={draft.code}
             disabled={!isNew}
@@ -83,7 +83,7 @@ export function ShiftTypeDialog({
             error={codeError}
             onChange={e => set('code', e.target.value.toUpperCase())}
           />
-          <Field
+          <TextField
             label={t('shiftTypes.hours')}
             type="number"
             min={0}
@@ -93,7 +93,7 @@ export function ShiftTypeDialog({
             onChange={e => set('hours', Number(e.target.value))}
           />
         </div>
-        <Field
+        <TextField
           label={t('shiftTypes.label')}
           value={draft.label}
           placeholder="S1 Jour"
@@ -124,13 +124,13 @@ export function ShiftTypeDialog({
         </fieldset>
 
         <div className="grid grid-cols-2 gap-3">
-          <Field
+          <TextField
             label={t('shiftTypes.startIcs')}
             type="time"
             value={draft.startTime ?? ''}
             onChange={e => set('startTime', e.target.value || null)}
           />
-          <Field
+          <TextField
             label={t('shiftTypes.endIcs')}
             type="time"
             value={draft.endTime ?? ''}

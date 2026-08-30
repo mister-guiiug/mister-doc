@@ -5,7 +5,7 @@ import { planMonthCopy, type MonthCopyRow } from '../../lib/monthCopy.ts';
 import { listShiftsBetween } from '../../backend/planning.ts';
 import type { Shift } from '../../backend/types.ts';
 import { Modal } from '../../components/Modal.tsx';
-import { Button } from '../../components/ui/Button.tsx';
+import { Button } from '@mister-guiiug/dev-wpa-config/react/button';
 import { useI18n } from '../../i18n/index.ts';
 
 /**

@@ -7,8 +7,8 @@ import {
   RotateCcw,
   Info,
 } from 'lucide-react';
-import { useToast } from '../../components/Toast.tsx';
-import { Button } from '../../components/ui/Button.tsx';
+import { useToast } from '@mister-guiiug/dev-wpa-config/react/toast';
+import { Button } from '@mister-guiiug/dev-wpa-config/react/button';
 import { SectionCard } from '../../components/ui/SectionCard.tsx';
 import { useConfirm } from '../../components/ui/confirmContext.ts';
 import { useI18n } from '../../i18n/index.ts';
@@ -172,7 +172,8 @@ export function BackupCard() {
             {t('backup.merge')}
           </Button>
           <Button
-            variant="dangerGhost"
+            variant="outline"
+            data-tone="danger"
             size="sm"
             disabled={busy}
             onClick={() => void handleImport('replace')}
