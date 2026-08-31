@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@mister-guiiug/dev-wpa-config/react/toast';
 import { Button } from '@mister-guiiug/dev-wpa-config/react/button';
+import { useActionGuard } from '@mister-guiiug/dev-wpa-config/react/use-action-guard';
 import { SectionCard } from '../../components/ui/SectionCard.tsx';
 import { useConfirm } from '../../components/ui/confirmContext.ts';
 import { useI18n } from '../../i18n/index.ts';
@@ -41,6 +42,18 @@ export function BackupCard() {
   const [busy, setBusy] = useState(false);
   const [pending, setPending] = useState<File | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  /**
+   * RESTAURER, C'EST ÉCRASER. `adminRestore(payload, 'replace')` remplace le
+   * contenu de la base par celui d'un fichier ; supprimer un cliché retire la
+   * seule copie de secours qui restait. Une confirmation « êtes-vous sûr ? »
+   * pour une action que le réseau rendra impossible est pire qu'inutile : elle
+   * fait croire que la question était la seule difficulté.
+   *
+   * EXPORTER ET TÉLÉCHARGER NE SONT PAS GARDÉS : ce sont des lectures suivies
+   * d'une fabrication de fichier en local. Elles échouent proprement.
+   */
+  const guard = useActionGuard({ online: true });
 
   const reload = () =>
     listBackups()
@@ -158,6 +171,11 @@ export function BackupCard() {
         />
       </div>
 
+      {/* SANS `wrap` ICI, ET C'EST VOULU : ces deux boutons sont ceux du socle,
+          à qui l'on passe `disabled` NATIF — le navigateur ne déclenche alors
+          aucun clic, la ceinture suffit. Les corbeilles de la liste, plus bas,
+          sont des boutons natifs qui ne portent qu'`aria-disabled` : elles,
+          ont besoin de `wrap`. */}
       {pending && (
         <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
           <span className="truncate text-xs text-slate-500">
@@ -166,7 +184,8 @@ export function BackupCard() {
           <Button
             variant="secondary"
             size="sm"
-            disabled={busy}
+            disabled={busy || guard.disabled}
+            title={guard.reason ?? undefined}
             onClick={() => void handleImport('merge')}
           >
             {t('backup.merge')}
@@ -175,7 +194,8 @@ export function BackupCard() {
             variant="outline"
             data-tone="danger"
             size="sm"
-            disabled={busy}
+            disabled={busy || guard.disabled}
+            title={guard.reason ?? undefined}
             onClick={() => void handleImport('replace')}
           >
             {t('backup.replace')}
@@ -190,6 +210,15 @@ export function BackupCard() {
             {t('common.cancel')}
           </button>
         </div>
+      )}
+
+      {guard.reason && (
+        <p
+          role="status"
+          className="mt-2 text-xs text-amber-700 dark:text-amber-400"
+        >
+          {guard.reason}
+        </p>
       )}
 
       <p className="mt-3 flex items-start gap-1.5 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">
@@ -230,16 +259,22 @@ export function BackupCard() {
               >
                 <Download className="size-4" />
               </button>
+              {/* Boutons natifs (pas ceux du socle) : ici `aria-disabled` du
+                  garde s'applique tel quel, et le titre porte le motif à la
+                  place du libellé habituel — une icône seule ne peut pas
+                  porter de phrase. */}
               <button
-                onClick={() => void restoreSnapshot(b.id)}
-                title={t('backup.restore')}
+                onClick={guard.wrap(() => void restoreSnapshot(b.id))}
+                title={guard.reason ?? t('backup.restore')}
+                {...guard.disabledProps}
                 className="rounded p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
               >
                 <RotateCcw className="size-4" />
               </button>
               <button
-                onClick={() => void removeSnapshot(b.id)}
-                title={t('backup.delete')}
+                onClick={guard.wrap(() => void removeSnapshot(b.id))}
+                title={guard.reason ?? t('backup.delete')}
+                {...guard.disabledProps}
                 className="rounded p-1 text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
               >
                 <Trash2 className="size-4" />

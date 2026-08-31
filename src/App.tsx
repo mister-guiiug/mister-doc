@@ -13,6 +13,7 @@ import { ConfirmProvider } from './components/ui/ConfirmProvider.tsx';
 import { Header } from './components/Header.tsx';
 import { BottomNav } from './components/BottomNav.tsx';
 import { InstallPrompt } from './components/InstallPrompt.tsx';
+import { OfflineBanner } from './components/OfflineBanner.tsx';
 import { UpdatePrompt } from './components/UpdatePrompt.tsx';
 import { FullScreenSpinner } from './components/Spinner.tsx';
 import { PlanningView } from './features/planning/PlanningView.tsx';
@@ -65,6 +66,18 @@ export default function App() {
         <ToastProvider>
           <ConfirmProvider>
             <AuthProvider>
+              {/* UN SEUL bandeau réseau pour toute l'application, et AVANT la
+                  porte d'accès : se connecter est déjà un appel réseau, et
+                  l'écran de connexion ne disait rien d'autre qu'une erreur
+                  d'authentification quand c'était le réseau qui manquait.
+                  Placé ici, il couvre AUSSI l'attente d'approbation, le défi
+                  2FA et l'application elle-même.
+
+                  EN HAUT, ET DANS LE FLUX. Le bas de l'écran est déjà pris sur
+                  trois niveaux (BottomNav z-30, InstallPrompt z-40,
+                  UpdatePrompt z-50) : un quatrième bandeau y passerait sous ou
+                  par-dessus les autres — un défaut qu'aucun test ne verrait. */}
+              <OfflineBanner />
               <AuthGate>
                 <HashRouter>
                   <div className="min-h-dvh bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">

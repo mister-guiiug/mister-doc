@@ -3,6 +3,7 @@ import { Repeat, X, Plus } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth.ts';
 import { useToast } from '@mister-guiiug/dev-wpa-config/react/toast';
 import { Button } from '@mister-guiiug/dev-wpa-config/react/button';
+import { useActionGuard } from '@mister-guiiug/dev-wpa-config/react/use-action-guard';
 import type { ShiftType } from '../../lib/shifts.ts';
 import { logError } from '../../lib/logger.ts';
 import { useI18n } from '../../i18n/index.ts';
@@ -32,6 +33,20 @@ export function SwapBoard() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [proposing, setProposing] = useState(false);
+
+  /**
+   * UN ÉCHANGE EST UN ENGAGEMENT ENTRE DEUX PERSONNES, pas une préférence
+   * d'affichage. Les quatre actions de cet écran (proposer, accepter, refuser,
+   * annuler) sont des appels RPC : rien n'en existe en local, rien n'est mis
+   * en file. Hors connexion, « Accepter » échouait dans un toast rouge — mais
+   * après avoir laissé croire, une seconde durant, qu'on venait de prendre la
+   * garde de quelqu'un. Le pire malentendu possible dans un tableau de gardes.
+   *
+   * Le motif `offline` du socle suffit : il est déjà câblé sur `useOnline`, il
+   * porte un code stable, et son texte suit la locale via le `LabelsProvider`
+   * monté dans `App.tsx`.
+   */
+  const guard = useActionGuard({ online: true });
 
   const load = useCallback(
     () =>
@@ -107,13 +122,20 @@ export function SwapBoard() {
 
   if (loading) return <FullScreenSpinner label={t('common.loading')} />;
 
+  // `disabled` NATIF, et non les `disabledProps` du garde : le `Button` du
+  // socle retire `aria-disabled` de son type, parce qu'il le pilote lui-même
+  // pour l'état « occupé ». Le motif ne peut donc pas vivre sur le bouton — il
+  // est affiché UNE FOIS en haut de la page, en `role="status"`, plutôt que
+  // répété sur chaque ligne de la liste, et doublé en infobulle.
   const AcceptBtn = ({ s }: { s: SwapRequest }) => (
     <Button
       size="sm"
       loading={busy === s.id}
-      onClick={() =>
-        void act(s.id, () => acceptSwap(s.id), t('swaps.shiftTaken'))
-      }
+      disabled={guard.disabled}
+      title={guard.reason ?? undefined}
+      onClick={guard.wrap(
+        () => void act(s.id, () => acceptSwap(s.id), t('swaps.shiftTaken'))
+      )}
     >
       {t('swaps.accept')}
     </Button>
@@ -125,10 +147,24 @@ export function SwapBoard() {
         <h1 className="flex items-center gap-2 text-lg font-bold">
           <Repeat className="size-5 text-teal-600" /> {t('swaps.title')}
         </h1>
-        <Button className="ml-auto" onClick={() => setProposing(true)}>
+        <Button
+          className="ml-auto"
+          disabled={guard.disabled}
+          title={guard.reason ?? undefined}
+          onClick={guard.wrap(() => setProposing(true))}
+        >
           <Plus className="size-4" /> {t('swaps.propose')}
         </Button>
       </div>
+
+      {guard.reason && (
+        <p
+          role="status"
+          className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-300"
+        >
+          {guard.reason}
+        </p>
+      )}
 
       <SwapSection title={t('swaps.forMe')} count={forMe.length}>
         {forMe.length === 0 ? (
@@ -146,14 +182,16 @@ export function SwapBoard() {
                     <Button
                       variant="secondary"
                       size="sm"
-                      disabled={busy === s.id}
-                      onClick={() =>
-                        void act(
-                          s.id,
-                          () => declineSwap(s.id),
-                          t('swaps.declined')
-                        )
-                      }
+                      disabled={busy === s.id || guard.disabled}
+                      title={guard.reason ?? undefined}
+                      onClick={guard.wrap(
+                        () =>
+                          void act(
+                            s.id,
+                            () => declineSwap(s.id),
+                            t('swaps.declined')
+                          )
+                      )}
                     >
                       <X className="size-4" />
                     </Button>
@@ -197,14 +235,16 @@ export function SwapBoard() {
                     variant="outline"
                     data-tone="danger"
                     size="sm"
-                    disabled={busy === s.id}
-                    onClick={() =>
-                      void act(
-                        s.id,
-                        () => cancelSwap(s.id),
-                        t('swaps.cancelled')
-                      )
-                    }
+                    disabled={busy === s.id || guard.disabled}
+                    title={guard.reason ?? undefined}
+                    onClick={guard.wrap(
+                      () =>
+                        void act(
+                          s.id,
+                          () => cancelSwap(s.id),
+                          t('swaps.cancelled')
+                        )
+                    )}
                   >
                     {t('common.cancel')}
                   </Button>
