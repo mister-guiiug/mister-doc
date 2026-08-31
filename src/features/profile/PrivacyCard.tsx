@@ -4,6 +4,7 @@ import { useAuth } from '../../auth/useAuth.ts';
 import { useI18n } from '../../i18n/index.ts';
 import { useToast } from '@mister-guiiug/dev-wpa-config/react/toast';
 import { Button } from '@mister-guiiug/dev-wpa-config/react/button';
+import { useActionGuard } from '@mister-guiiug/dev-wpa-config/react/use-action-guard';
 import { SectionCard } from '../../components/ui/SectionCard.tsx';
 import { useConfirm } from '../../components/ui/confirmContext.ts';
 import { PrivacyDialog } from '../legal/PrivacyPolicy.tsx';
@@ -22,6 +23,18 @@ export function PrivacyCard({ doctor }: { doctor: Doctor }) {
   const confirm = useConfirm();
   const [privacy, setPrivacy] = useState(false);
   const [exporting, setExporting] = useState(false);
+
+  /**
+   * L'EFFACEMENT RGPD EST DÉFINITIF. Il anonymise le compte puis déconnecte :
+   * hors connexion, l'appel échoue et l'utilisateur reste connecté sans savoir
+   * si son compte a été touché. Poser la question « êtes-vous sûr ? » pour une
+   * suppression qui ne peut pas avoir lieu est le contraire d'un service.
+   *
+   * L'EXPORT, LUI, N'EST PAS GARDÉ : il lit des données puis fabrique un
+   * fichier localement. Il échoue proprement, ne détruit rien, et se refait
+   * d'un clic.
+   */
+  const deleteGuard = useActionGuard({ online: true });
 
   // Effacement RGPD (droit à l'effacement) : anonymise le compte puis déconnecte.
   async function handleDeleteAccount() {
@@ -77,14 +90,27 @@ export function PrivacyCard({ doctor }: { doctor: Doctor }) {
             {!exporting && <Download className="size-4" />}{' '}
             {t('profile.downloadData')}
           </Button>
+          {/* `disabled` natif : le `Button` du socle retire `aria-disabled` de
+              son type (il le pilote lui-même pour l'état « occupé »). Le motif
+              vit donc juste en dessous, en `role="status"`, et en infobulle. */}
           <Button
             variant="outline"
             data-tone="danger"
             className="w-full py-2.5"
-            onClick={() => void handleDeleteAccount()}
+            disabled={deleteGuard.disabled}
+            title={deleteGuard.reason ?? undefined}
+            onClick={deleteGuard.wrap(() => void handleDeleteAccount())}
           >
             <UserX className="size-4" /> {t('profile.deleteAccount')}
           </Button>
+          {deleteGuard.reason && (
+            <p
+              role="status"
+              className="text-xs text-amber-700 dark:text-amber-400"
+            >
+              {deleteGuard.reason}
+            </p>
+          )}
           <p className="text-xs text-slate-500 dark:text-slate-400">
             {t('profile.deleteNote')}
           </p>

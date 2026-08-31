@@ -1,6 +1,7 @@
 import { AlarmClock, CalendarRange, Settings } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Button } from '@mister-guiiug/dev-wpa-config/react/button';
+import { useActionGuard } from '@mister-guiiug/dev-wpa-config/react/use-action-guard';
 import { SectionCard } from '../../components/ui/SectionCard.tsx';
 import { useI18n } from '../../i18n/index.ts';
 
@@ -96,6 +97,14 @@ function ManualSend({
   message: string | null;
   onSend: () => void;
 }) {
+  /**
+   * CES DEUX BOUTONS ENVOIENT DES NOTIFICATIONS À TOUT LE SERVICE. L'appel
+   * part vers une fonction d'Edge qui pousse les messages : hors connexion, il
+   * échoue — et un administrateur qui ne voit rien arriver recommence. Deux
+   * envois pour un seul geste, c'est le service entier réveillé deux fois.
+   */
+  const guard = useActionGuard({ online: true });
+
   return (
     <>
       <div className="mt-3 flex items-start justify-between gap-3 border-t border-slate-100 pt-3 dark:border-slate-800">
@@ -103,11 +112,26 @@ function ManualSend({
           <span className="font-medium">{title}</span>
           <span className="block text-xs text-slate-400">{desc}</span>
         </span>
-        <Button size="sm" variant="secondary" loading={busy} onClick={onSend}>
+        <Button
+          size="sm"
+          variant="secondary"
+          loading={busy}
+          disabled={guard.disabled}
+          title={guard.reason ?? undefined}
+          onClick={guard.wrap(onSend)}
+        >
           {!busy && icon}
           {label}
         </Button>
       </div>
+      {guard.reason && (
+        <p
+          role="status"
+          className="mt-1 text-xs text-amber-700 dark:text-amber-400"
+        >
+          {guard.reason}
+        </p>
+      )}
       {message && (
         <p className="mt-1 text-xs text-teal-600 dark:text-teal-400">
           {message}

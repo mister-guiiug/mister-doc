@@ -1,4 +1,5 @@
 import { AlertTriangle, WifiOff } from 'lucide-react';
+import { useOnline } from '@mister-guiiug/dev-wpa-config/react/use-online';
 import { useI18n } from '../../i18n/index.ts';
 import { ErrorMessage } from '../../components/ui/ErrorMessage.tsx';
 
@@ -35,6 +36,7 @@ export function PlanningBanners({
   onSeeUncovered,
 }: PlanningBannersProps) {
   const { t, locale } = useI18n();
+  const online = useOnline();
 
   return (
     <>
@@ -43,8 +45,19 @@ export function PlanningBanners({
       {offline && (
         <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-300">
           <WifiOff className="size-4 shrink-0" />
+          {/* DEUX BANDEAUX AMBRÉS QUI DISENT « HORS LIGNE » L'UN SOUS L'AUTRE,
+              c'est un défaut visuel qu'aucun test ne verrait. Depuis que la
+              coquille porte le bandeau réseau du socle, celui-ci n'annonce
+              plus la panne : il ne garde que ce que l'autre ne peut PAS dire
+              — le planning vient du cache, et de quand il date.
+
+              Le préfixe « Hors ligne — » reste utile dans l'autre cas, bien
+              réel : le navigateur se croit connecté et le chargement échoue
+              quand même (Supabase indisponible, portail captif d'hôpital,
+              DNS). Là, aucun bandeau global ne s'affiche, et celui-ci est
+              seul à parler. */}
           <span className="flex-1">
-            {t('planning.offlinePrefix')}
+            {online ? t('planning.offlinePrefix') : t('planning.cachePrefix')}
             {lastSync
               ? t('planning.offlineSynced', {
                   date: syncLabel(lastSync, locale),

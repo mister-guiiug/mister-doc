@@ -157,6 +157,7 @@ export const messages = {
       refresh: 'Rafraîchir',
       loadError: 'Erreur de chargement',
       offlinePrefix: 'Hors ligne — planning affiché depuis le cache',
+      cachePrefix: 'Planning affiché depuis le cache',
       offlineSynced: ' (synchronisé le {date})',
       offlineSuffix: '. Les modifications nécessitent une connexion.',
       uncoveredOne: '{count} jour avec un créneau à couvrir',
@@ -692,6 +693,10 @@ export const messages = {
       reload: 'Recharger',
       updating: 'Mise à jour…',
     },
+    connection: {
+      offline:
+        'Hors connexion — le planning affiché peut être périmé, et aucune modification ne partira.',
+    },
     confirm: {
       // Titre générique du dialogue de confirmation : le composant du socle
       // exige un nom accessible, posé quand l'appelant n'en fournit pas.
@@ -914,6 +919,7 @@ export const messages = {
       refresh: 'Refresh',
       loadError: 'Loading error',
       offlinePrefix: 'Offline — schedule shown from cache',
+      cachePrefix: 'Schedule shown from cache',
       offlineSynced: ' (synced on {date})',
       offlineSuffix: '. Changes require a connection.',
       uncoveredOne: '{count} day with a slot to cover',
@@ -1438,6 +1444,10 @@ export const messages = {
       available: 'A new version is available.',
       reload: 'Reload',
       updating: 'Updating…',
+    },
+    connection: {
+      offline:
+        'Offline — the schedule shown may be stale, and no change will be sent.',
     },
     confirm: {
       title: 'Confirmation',
