@@ -1,4 +1,3 @@
-import type { ComponentType } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   CalendarDays,
@@ -78,13 +77,14 @@ export function BottomNav() {
       currentPath={pathname}
       label={t('nav.main')}
       maxVisible={6}
-      // `linkComponent` est typé `ComponentType<Record<string, unknown>>`, qui
-      // refuse un composant à prop obligatoire — donc `Link` et son `to`,
-      // alors que c'est l'usage documenté du socle. La conversion est sûre :
-      // `hrefProp` fournit précisément `to`. `Link` et non `NavLink` : l'état
-      // courant est calculé par le socle à partir de `currentPath`, il n'y a
-      // qu'une seule source de vérité.
-      linkComponent={Link as unknown as ComponentType<Record<string, unknown>>}
+      // Le socle 3.32.0 a élargi `linkComponent` à `ComponentType<any>` : le
+      // type refusait jusque-là tout composant à prop OBLIGATOIRE, donc
+      // précisément `Link` et son `to` — l'usage que sa propre documentation
+      // donne en exemple. Sept apps portaient la même conversion.
+      //
+      // `Link` et non `NavLink` : l'état courant est calculé par le socle à
+      // partir de `currentPath`, il n'y a qu'une seule source de vérité.
+      linkComponent={Link}
       hrefProp="to"
       className="fixed inset-x-0 bottom-0 z-30 bg-white/95 backdrop-blur sm:hidden dark:bg-slate-900/95"
     />
