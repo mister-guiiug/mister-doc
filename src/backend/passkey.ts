@@ -25,22 +25,6 @@ export function passkeysSupported(): boolean {
   return typeof window !== 'undefined' && !!window.PublicKeyCredential;
 }
 
-/**
- * Un authentificateur de PLATEFORME (empreinte / Face ID / Windows Hello) est-il
- * disponible sur cet appareil ? Best-effort — sert à adapter le discours. Ne
- * conditionne pas l'affichage : une clé de sécurité externe reste valable.
- */
-export async function platformAuthenticatorAvailable(): Promise<boolean> {
-  try {
-    return (
-      passkeysSupported() &&
-      (await window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable())
-    );
-  } catch {
-    return false;
-  }
-}
-
 /** Traduit les erreurs WebAuthn (annulation, doublon, contexte non sûr) en FR. */
 function frPasskeyError(e: unknown): string {
   const name = (e as { name?: string })?.name ?? '';

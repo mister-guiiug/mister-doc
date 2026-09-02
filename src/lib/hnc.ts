@@ -5,8 +5,6 @@
  * disposent d'un compteur cumulé dédié.
  */
 
-export const HNC_LABEL = 'Heures non cliniques';
-export const HNC_SHORT = 'HNC';
 export const HNC_MAX_HOURS = 24;
 
 export interface CountableHnc {

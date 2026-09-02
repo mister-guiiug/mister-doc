@@ -34,7 +34,7 @@ import {
  * contrat tenant en trois méthodes.
  */
 
-export function pushPublicKey(): string {
+function pushPublicKey(): string {
   return import.meta.env.VITE_VAPID_PUBLIC_KEY ?? '';
 }
 

@@ -1,6 +1,9 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { recordError } from '@mister-guiiug/dev-wpa-config/react/observability';
+import { createLogger } from '@mister-guiiug/dev-wpa-config/logger';
+
+const log = createLogger('components');
 
 interface Props {
   children: ReactNode;
@@ -20,7 +23,10 @@ export class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, info: ErrorInfo) {
     // Journal d'erreurs partagé famille (localStorage, consultable au support).
     recordError(error, { source: 'error-boundary' });
-    console.error('Erreur applicative :', error, info.componentStack);
+    log.error('Erreur applicative :', {
+      error: error,
+      details: [info.componentStack],
+    });
   }
 
   render() {
