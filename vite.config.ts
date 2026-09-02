@@ -123,6 +123,9 @@ export default defineConfig(({ command }) => {
       // `basePath` FIXE (URLs publiques stables), découplé de la base d'assets
       // qui, elle, honore VITE_BASE_PATH (dev/preview local en `/`).
       pwaSeoPlugin({
+        // Deux <meta name="theme-color"> par schéma : la barre du navigateur suit
+        // le mode sombre dès le premier rendu (relevé du 02/09/2026 : 5 apps sur 16).
+        themeColor: { light: '#f8fafc', dark: '#020617' },
         siteName: 'Mister Doc',
         basePath: '/mister-doc/',
         logoPath: '/icons/icon-512.png',
