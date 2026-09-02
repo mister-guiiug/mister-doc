@@ -7,7 +7,7 @@
   "description": "mister-doc — PWA de synchronisation du planning de gardes des médecins d'un hôpital. Vue mensuelle des créneaux, authentification Supabase, compteurs week-end et heures par médecin.",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && pwa-bundle-budget",
     "preview": "vite preview --base /mister-doc/",
     "lint": "eslint .",
     "format": "prettier --write .",
@@ -19,6 +19,9 @@
     "type-check": "tsc -b",
     "icons": "node scripts/generate-pwa-icons.mjs",
     "prepare": "husky || true"
+  },
+  "bundleBudget": {
+    "totalGzipKb": 260
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.106.2",
