@@ -135,11 +135,6 @@ export function setShiftTypes(defs: readonly ShiftTypeDef[]): void {
   byCode = index(current);
 }
 
-/** Configuration courante, triée par ordre d'affichage. */
-export function getShiftTypes(): readonly ShiftTypeDef[] {
-  return current;
-}
-
 /** Définition d'un code (ou `undefined` si inconnu). */
 export function shiftDef(code: ShiftType): ShiftTypeDef | undefined {
   return byCode.get(code);
@@ -163,10 +158,6 @@ export function isNightShift(code: ShiftType): boolean {
 /** Codes cliniques actifs, dans l'ordre d'affichage. */
 export function clinicalShiftTypes(): ShiftType[] {
   return current.filter(d => d.active && d.clinical).map(d => d.code);
-}
-
-export function isShiftType(v: string): boolean {
-  return byCode.has(v);
 }
 
 /**

@@ -3,16 +3,6 @@
 export const LEAVE_KINDS = ['annual', 'training'] as const;
 export type LeaveKind = (typeof LEAVE_KINDS)[number];
 
-export const LEAVE_LABEL: Record<LeaveKind, string> = {
-  annual: 'Congé annuel',
-  training: 'Formation',
-};
-
-export const LEAVE_SHORT: Record<LeaveKind, string> = {
-  annual: 'CA',
-  training: 'Formation',
-};
-
 export interface CountableLeave {
   kind: LeaveKind;
   hours: number | null;

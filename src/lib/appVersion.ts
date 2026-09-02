@@ -3,8 +3,8 @@
  * commit en CI, horodatage en local) : deux bundles différents affichent deux
  * chaînes différentes, ce qui permet de vérifier qu'une mise à jour a bien pris.
  */
-export const APP_VERSION: string = __APP_VERSION__;
-export const BUILD_ID: string = __BUILD_ID__;
+const APP_VERSION: string = __APP_VERSION__;
+const BUILD_ID: string = __BUILD_ID__;
 export const APP_BUILD = `v${APP_VERSION} · ${BUILD_ID}`;
 
 /**

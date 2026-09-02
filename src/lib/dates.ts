@@ -14,9 +14,7 @@ export const WEEKDAY_LABELS = [
   'Dimanche',
 ] as const;
 
-export const WEEKDAY_SHORT = ['L', 'M', 'M', 'J', 'V', 'S', 'D'] as const;
-
-export const MONTH_LABELS = [
+const MONTH_LABELS = [
   'Janvier',
   'Février',
   'Mars',
@@ -115,7 +113,7 @@ export function setIncludePentecote(v: boolean): void {
 }
 
 /** Jours fériés France métropole pour une année, indexés par clé ISO. */
-export function frenchHolidays(year: number): Map<string, string> {
+function frenchHolidays(year: number): Map<string, string> {
   const cached = holidayCache.get(year);
   if (cached) return cached;
   const easter = easterSunday(year);
@@ -208,10 +206,6 @@ export function weeksOfMonth(
     else groups.push({ week: day.week, days: [day] });
   }
   return groups;
-}
-
-export function monthLabel(year: number, month: number): string {
-  return `${MONTH_LABELS[month]} ${year}`;
 }
 
 /** Bornes ISO `[premier, dernier]` (incluses) d'un mois (année, mois 0-indexé). */

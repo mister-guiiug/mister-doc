@@ -33,32 +33,6 @@ export async function listLeavesBetween(
   return (data ?? []) as Leave[];
 }
 
-/** Pose (ou met à jour) une absence pour un médecin un jour donné. */
-export async function setLeave(
-  doctorId: string,
-  workDate: string,
-  kind: LeaveKind,
-  hours: number | null,
-  createdBy: string | null
-): Promise<Leave> {
-  const { data, error } = await getSupabase()
-    .from('leaves')
-    .upsert(
-      {
-        doctor_id: doctorId,
-        work_date: workDate,
-        kind,
-        hours: kind === 'training' ? hours : null,
-        created_by: createdBy,
-      },
-      { onConflict: 'doctor_id,work_date' }
-    )
-    .select()
-    .single();
-  if (error) throw new Error(error.message);
-  return data as Leave;
-}
-
 /** Pose la même absence sur une plage de jours (bornes incluses). */
 export async function setLeaveRange(
   doctorId: string,
