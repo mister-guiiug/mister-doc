@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Info, RefreshCw } from 'lucide-react';
 import { useI18n } from '../../i18n/index.ts';
-import { Button } from '@mister-guiiug/dev-wpa-config/react/button';
+import { Button } from '@mister-guiiug/dev-pwa-config/react/button';
 import { SectionCard } from '../../components/ui/SectionCard.tsx';
 import { APP_BUILD, forceUpdate } from '../../lib/appVersion.ts';
 

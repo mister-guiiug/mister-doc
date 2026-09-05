@@ -13,7 +13,7 @@ const SIZES: Record<Size, string> = {
  * par {@link Tone} et deux tailles.
  *
  * POURQUOI CE COMPOSANT N'EST PAS CELUI DU SOCLE, décision réexaminée contre
- * `@mister-guiiug/dev-wpa-config` 3.24.0 et maintenue. Les deux n'ont pas le
+ * `@mister-guiiug/dev-pwa-config` 3.24.0 et maintenue. Les deux n'ont pas le
  * même AXE : `react/badge` décline un ton **sémantique**, fermé à six
  * intentions (`brand`, `success`, `warning`, `danger`, `info`, `muted`) ;
  * celui-ci décline un ton **chromatique métier** — `teal`/`indigo` séparent une

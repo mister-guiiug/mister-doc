@@ -9,7 +9,7 @@ import {
 } from '../../backend/shiftTypes.ts';
 import { setShiftTypes, type ShiftTypeDef } from '../../lib/shifts.ts';
 import { SectionCard } from '../../components/ui/SectionCard.tsx';
-import { Button } from '@mister-guiiug/dev-wpa-config/react/button';
+import { Button } from '@mister-guiiug/dev-pwa-config/react/button';
 import { useI18n } from '../../i18n/index.ts';
 import { ShiftTypeRow } from './ShiftTypeRow.tsx';
 import { ShiftTypeDialog } from './ShiftTypeDialog.tsx';

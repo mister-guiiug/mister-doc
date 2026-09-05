@@ -5,12 +5,12 @@ import {
   downloadPdf,
   textWidth,
   type Rgb,
-} from '@mister-guiiug/dev-wpa-config/pdf';
+} from '@mister-guiiug/dev-pwa-config/pdf';
 import {
   buildXlsx,
   downloadXlsx,
   type XlsxValue,
-} from '@mister-guiiug/dev-wpa-config/xlsx';
+} from '@mister-guiiug/dev-pwa-config/xlsx';
 
 /**
  * Exports de la page « Compteurs de l'équipe » (admin) dans trois formats :

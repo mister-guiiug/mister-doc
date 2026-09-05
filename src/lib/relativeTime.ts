@@ -1,4 +1,4 @@
-import { getDefaultLocale } from '@mister-guiiug/dev-wpa-config/format';
+import { getDefaultLocale } from '@mister-guiiug/dev-pwa-config/format';
 /**
  * Heure relative en français (« à l'instant », « il y a 5 min », « il y a 3 h »,
  * « il y a 2 j »), puis la date locale au-delà d'une semaine. Formateur partagé

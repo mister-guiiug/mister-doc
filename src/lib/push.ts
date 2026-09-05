@@ -4,7 +4,7 @@ import {
   pushSupport,
   type PushSupport,
   type PushTransport,
-} from '@mister-guiiug/dev-wpa-config/push';
+} from '@mister-guiiug/dev-pwa-config/push';
 import {
   deletePushSubscription,
   savePushSubscription,
@@ -16,7 +16,7 @@ import {
  * clé publique VAPID n'est pas configurée (`VITE_VAPID_PUBLIC_KEY`) : l'UI de
  * profil masque alors la section, l'app fonctionne normalement sans push.
  *
- * La MÉCANIQUE vient du socle (`@mister-guiiug/dev-wpa-config/push`) : état de
+ * La MÉCANIQUE vient du socle (`@mister-guiiug/dev-pwa-config/push`) : état de
  * la permission (et le fait de ne pas la redemander quand elle est déjà
  * tranchée), cycle de vie de l'abonnement, conversion de la clé VAPID
  * base64url → octets, sérialisation. Ne reste ici que ce qui est propre à

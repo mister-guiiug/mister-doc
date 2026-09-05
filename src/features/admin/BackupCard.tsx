@@ -7,9 +7,9 @@ import {
   RotateCcw,
   Info,
 } from 'lucide-react';
-import { useToast } from '@mister-guiiug/dev-wpa-config/react/toast';
-import { Button } from '@mister-guiiug/dev-wpa-config/react/button';
-import { useActionGuard } from '@mister-guiiug/dev-wpa-config/react/use-action-guard';
+import { useToast } from '@mister-guiiug/dev-pwa-config/react/toast';
+import { Button } from '@mister-guiiug/dev-pwa-config/react/button';
+import { useActionGuard } from '@mister-guiiug/dev-pwa-config/react/use-action-guard';
 import { SectionCard } from '../../components/ui/SectionCard.tsx';
 import { useConfirm } from '../../components/ui/confirmContext.ts';
 import { useI18n } from '../../i18n/index.ts';

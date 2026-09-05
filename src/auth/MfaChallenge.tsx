@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ShieldCheck, LogOut, KeyRound } from 'lucide-react';
 import { useAuth } from './useAuth.ts';
 import { useI18n } from '../i18n/index.ts';
-import { Button } from '@mister-guiiug/dev-wpa-config/react/button';
+import { Button } from '@mister-guiiug/dev-pwa-config/react/button';
 
 /**
  * Étape de vérification en deux étapes au login (comptes ayant activé la 2FA,

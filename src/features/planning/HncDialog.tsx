@@ -3,8 +3,8 @@ import { Trash2 } from 'lucide-react';
 import { fromISODate, mondayIndex } from '../../lib/dates.ts';
 import { HNC_MAX_HOURS } from '../../lib/hnc.ts';
 import type { Doctor, HncEntry } from '../../backend/types.ts';
-import { Sheet } from '@mister-guiiug/dev-wpa-config/react/sheet';
-import { Button } from '@mister-guiiug/dev-wpa-config/react/button';
+import { Sheet } from '@mister-guiiug/dev-pwa-config/react/sheet';
+import { Button } from '@mister-guiiug/dev-pwa-config/react/button';
 import { useI18n } from '../../i18n/index.ts';
 
 /**

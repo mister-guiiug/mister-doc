@@ -1,4 +1,4 @@
-import base from '@mister-guiiug/dev-wpa-config/eslint-react';
+import base from '@mister-guiiug/dev-pwa-config/eslint-react';
 
 /**
  * Config ESLint = base famille + garde-fous d'architecture propres au projet.

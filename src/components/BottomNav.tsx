@@ -7,7 +7,7 @@ import {
   Shield,
   UserRound,
 } from 'lucide-react';
-import { BottomNav as DwcBottomNav } from '@mister-guiiug/dev-wpa-config/react/bottom-nav';
+import { BottomNav as DwcBottomNav } from '@mister-guiiug/dev-pwa-config/react/bottom-nav';
 import { useAuth } from '../auth/useAuth.ts';
 import { useI18n } from '../i18n/index.ts';
 

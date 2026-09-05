@@ -6,7 +6,7 @@ import { setupAuthenticated } from './mockSupabase';
  * Scans d'accessibilité axe-core — WCAG 2.0/2.1 A et AA.
  *
  * Politique identique au helper famille
- * `@mister-guiiug/dev-wpa-config/playwright-a11y` (mêmes tags, même rapport),
+ * `@mister-guiiug/dev-pwa-config/playwright-a11y` (mêmes tags, même rapport),
  * recopiée ici : le sous-projet e2e/ reste autonome (aucune dépendance au
  * registre GitHub Packages, cf. e2e/package.json).
  */

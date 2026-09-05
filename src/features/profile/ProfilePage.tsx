@@ -1,7 +1,7 @@
 import { LogOut } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth.ts';
 import { useI18n } from '../../i18n/index.ts';
-import { Button } from '@mister-guiiug/dev-wpa-config/react/button';
+import { Button } from '@mister-guiiug/dev-pwa-config/react/button';
 import { ProfileHeader } from './ProfileHeader.tsx';
 import { IdentityCard } from './IdentityCard.tsx';
 import { AppearanceCard } from './AppearanceCard.tsx';

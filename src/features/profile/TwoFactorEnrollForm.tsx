@@ -1,5 +1,5 @@
 import { Check, X } from 'lucide-react';
-import { Button } from '@mister-guiiug/dev-wpa-config/react/button';
+import { Button } from '@mister-guiiug/dev-pwa-config/react/button';
 import { useI18n } from '../../i18n/index.ts';
 import type { TotpEnrollment } from '../../backend/mfa.ts';
 

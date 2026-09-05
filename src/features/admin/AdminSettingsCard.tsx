@@ -1,7 +1,7 @@
 import { AlarmClock, CalendarRange, Settings } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { Button } from '@mister-guiiug/dev-wpa-config/react/button';
-import { useActionGuard } from '@mister-guiiug/dev-wpa-config/react/use-action-guard';
+import { Button } from '@mister-guiiug/dev-pwa-config/react/button';
+import { useActionGuard } from '@mister-guiiug/dev-pwa-config/react/use-action-guard';
 import { SectionCard } from '../../components/ui/SectionCard.tsx';
 import { useI18n } from '../../i18n/index.ts';
 

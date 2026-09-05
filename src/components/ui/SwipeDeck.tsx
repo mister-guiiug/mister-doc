@@ -6,7 +6,7 @@ import {
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from 'react';
-import { useReducedMotion } from '@mister-guiiug/dev-wpa-config/react';
+import { useReducedMotion } from '@mister-guiiug/dev-pwa-config/react';
 
 /** Une vue empilée dans le deck. */
 export interface DeckView {

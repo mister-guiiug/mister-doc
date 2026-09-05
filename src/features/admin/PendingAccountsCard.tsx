@@ -1,7 +1,7 @@
 import { Clock, UserCheck, UserX } from 'lucide-react';
 import type { Doctor } from '../../backend/types.ts';
-import { Button } from '@mister-guiiug/dev-wpa-config/react/button';
-import { EmptyState } from '@mister-guiiug/dev-wpa-config/react/empty-state';
+import { Button } from '@mister-guiiug/dev-pwa-config/react/button';
+import { EmptyState } from '@mister-guiiug/dev-pwa-config/react/empty-state';
 import { SectionCard } from '../../components/ui/SectionCard.tsx';
 import { useConfirm } from '../../components/ui/confirmContext.ts';
 import { useI18n } from '../../i18n/index.ts';

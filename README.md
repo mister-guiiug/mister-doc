@@ -240,7 +240,7 @@ Au-delà : réponse `429` avec `Retry-After`. En cas d'échec de la RPC, on **la
 passer** (fail-open) pour ne jamais casser un abonnement légitime.
 
 **Pourquoi l'écriture du `.ics` n'est pas celle du socle.** Le module `./ical` de
-`@mister-guiiug/dev-wpa-config` (3.24.0) est promu de quatre réécritures RFC 5545,
+`@mister-guiiug/dev-pwa-config` (3.24.0) est promu de quatre réécritures RFC 5545,
 dont celle-ci, et corrige deux défauts de la nôtre : `DTSTAMP` recalculé à chaque
 événement (au lieu d'un seul par fichier, qui est la date de FABRICATION) et
 lignes non pliées à 75 octets. Il n'est pourtant **pas** importé, pour des raisons
@@ -308,7 +308,7 @@ alertes de validation, répétition hebdomadaire, copie de mois.
 
 ### Ce qui vient du socle, et ce qui reste local
 
-Les briques d'interface partagées viennent de `@mister-guiiug/dev-wpa-config`
+Les briques d'interface partagées viennent de `@mister-guiiug/dev-pwa-config`
 (`Button`, `TextField`, `EmptyState`, `Skeleton`, `ConfirmDialog`, `Toast`,
 `BottomNav`, `Sheet`, `useTheme`/`ThemeProvider`), habillées par
 `components.css` et les quinze jetons `--dwc-*` câblés dans `src/index.css`.

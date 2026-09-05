@@ -26,7 +26,7 @@ jobs:
       # reproductibles). Le lockfile inclut les binaires natifs Linux
       # (rollup/lightningcss/@tailwindcss-oxide) ET les helpers @emnapi (WASI),
       # donc l'install aboutit sur le runner Linux.
-      - uses: mister-guiiug/dev-wpa-config/.github/actions/setup-pwa@v3
+      - uses: mister-guiiug/dev-pwa-config/.github/actions/setup-pwa@v4
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 

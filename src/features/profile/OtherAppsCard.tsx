@@ -1,5 +1,5 @@
 import { LayoutGrid } from 'lucide-react';
-import { FamilyApps } from '@mister-guiiug/dev-wpa-config/react';
+import { FamilyApps } from '@mister-guiiug/dev-pwa-config/react';
 import { useI18n } from '../../i18n/index.ts';
 import { SectionCard } from '../../components/ui/SectionCard.tsx';
 

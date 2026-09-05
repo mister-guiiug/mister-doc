@@ -1,10 +1,10 @@
 @import 'tailwindcss';
-@import '@mister-guiiug/dev-wpa-config/tailwind-preset.css';
+@import '@mister-guiiug/dev-pwa-config/tailwind-preset.css';
 /* Habillage partagé des composants [data-dwc] du socle (Button, Field,
    ConfirmDialog, Toast, EmptyState, Skeleton, FamilyApps…). En
    `@layer components` : les utilitaires Tailwind et tout CSS non layered de
    ce fichier gardent la priorité. */
-@import '@mister-guiiug/dev-wpa-config/components.css';
+@import '@mister-guiiug/dev-pwa-config/components.css';
 
 /* Le thème (clair/sombre) est piloté par l'attribut data-theme posé par le
    script anti-FOUC dans index.html. On mappe la variante `dark:` de Tailwind

@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Repeat, X, Plus } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth.ts';
-import { useToast } from '@mister-guiiug/dev-wpa-config/react/toast';
-import { Button } from '@mister-guiiug/dev-wpa-config/react/button';
-import { useActionGuard } from '@mister-guiiug/dev-wpa-config/react/use-action-guard';
+import { useToast } from '@mister-guiiug/dev-pwa-config/react/toast';
+import { Button } from '@mister-guiiug/dev-pwa-config/react/button';
+import { useActionGuard } from '@mister-guiiug/dev-pwa-config/react/use-action-guard';
 import type { ShiftType } from '../../lib/shifts.ts';
 import { logError } from '../../lib/logger.ts';
 import { useI18n } from '../../i18n/index.ts';
