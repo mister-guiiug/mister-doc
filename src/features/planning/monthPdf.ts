@@ -9,14 +9,14 @@ import {
   buildPdf,
   downloadPdf,
   type Rgb,
-} from '@mister-guiiug/dev-wpa-config/pdf';
+} from '@mister-guiiug/dev-pwa-config/pdf';
 
 /**
  * Export d'un **vrai fichier PDF** du mois affiché : n° de semaine, jour, puis
  * une colonne par créneau CLINIQUE actif (configurable, cf. `shift_types`) avec
  * le médecin affecté. Les week-ends et jours fériés sont grisés ; les créneaux
  * non couverts ces jours-là (ex. S2J) sont neutralisés. Le binaire est produit
- * par le module `pdf` du socle (`@mister-guiiug/dev-wpa-config/pdf`) et
+ * par le module `pdf` du socle (`@mister-guiiug/dev-pwa-config/pdf`) et
  * téléchargé directement.
  */
 

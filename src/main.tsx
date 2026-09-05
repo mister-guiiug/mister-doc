@@ -3,8 +3,8 @@ import { createRoot } from 'react-dom/client';
 import {
   installErrorReporter,
   initSentry,
-} from '@mister-guiiug/dev-wpa-config/react/observability';
-import { ThemeProvider } from '@mister-guiiug/dev-wpa-config/react/theme-provider';
+} from '@mister-guiiug/dev-pwa-config/react/observability';
+import { ThemeProvider } from '@mister-guiiug/dev-pwa-config/react/theme-provider';
 import App from './App.tsx';
 import { ErrorBoundary } from './components/ErrorBoundary.tsx';
 import { I18nProvider } from './i18n/index.ts';

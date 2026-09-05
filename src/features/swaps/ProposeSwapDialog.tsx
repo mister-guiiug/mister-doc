@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Repeat, Loader2 } from 'lucide-react';
-import { Sheet } from '@mister-guiiug/dev-wpa-config/react/sheet';
+import { Sheet } from '@mister-guiiug/dev-pwa-config/react/sheet';
 import { fromISODate, mondayIndex, toISODate } from '../../lib/dates.ts';
 import { shiftLabel, type ShiftType } from '../../lib/shifts.ts';
 import { logError } from '../../lib/logger.ts';

@@ -183,7 +183,7 @@ webhook l'a seulement appelée.
 ## D'où vient le code
 
 La **mécanique** navigateur vient du socle
-(`@mister-guiiug/dev-wpa-config/push`) : état de la permission, cycle de vie de
+(`@mister-guiiug/dev-pwa-config/push`) : état de la permission, cycle de vie de
 l'abonnement, conversion de la clé VAPID base64url → octets, sérialisation, et
 la détection de support **avec sa raison** (le cas iOS ci-dessus).
 

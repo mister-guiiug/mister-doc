@@ -29,9 +29,9 @@ jobs:
       - uses: actions/checkout@v5
 
       # setup-node (registre GitHub Packages, scope @mister-guiiug) + npm ci
-      # des dépendances de l'app (dev-wpa-config).
+      # des dépendances de l'app (dev-pwa-config).
       - name: Dépendances de l'app
-        uses: mister-guiiug/dev-wpa-config/.github/actions/setup-pwa@v3
+        uses: mister-guiiug/dev-pwa-config/.github/actions/setup-pwa@v4
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 

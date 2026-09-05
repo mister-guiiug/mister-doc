@@ -2,7 +2,7 @@ import { defineConfig, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
-import { pwaSeoPlugin } from '@mister-guiiug/dev-wpa-config/vite-pwa-base';
+import { pwaSeoPlugin } from '@mister-guiiug/dev-pwa-config/vite-pwa-base';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 
@@ -84,7 +84,7 @@ export default defineConfig(({ command }) => {
       // non littéral) en littéral, que vite:import-analysis échoue ensuite à
       // résoudre en dev. Le package est un petit ESM pur : servir la source
       // telle quelle est sans coût.
-      exclude: ['@mister-guiiug/dev-wpa-config'],
+      exclude: ['@mister-guiiug/dev-pwa-config'],
     },
     define: {
       __APP_VERSION__: JSON.stringify(version),

@@ -1,6 +1,6 @@
 import { registerSW } from 'virtual:pwa-register';
-import { UpdatePromptBanner } from '@mister-guiiug/dev-wpa-config/react/update-prompt-banner';
-import type { RegisterSW } from '@mister-guiiug/dev-wpa-config/react/use-update-prompt';
+import { UpdatePromptBanner } from '@mister-guiiug/dev-pwa-config/react/update-prompt-banner';
+import type { RegisterSW } from '@mister-guiiug/dev-pwa-config/react/use-update-prompt';
 import { useI18n } from '../i18n/index.ts';
 import { logError } from '../lib/logger.ts';
 

@@ -3,7 +3,7 @@ import { fromISODate, mondayIndex } from '../../lib/dates.ts';
 import { shiftLabel, shiftHours, type ShiftType } from '../../lib/shifts.ts';
 import { useI18n } from '../../i18n/index.ts';
 import type { Doctor, Leave, Shift, WishKind } from '../../backend/types.ts';
-import { Sheet } from '@mister-guiiug/dev-wpa-config/react/sheet';
+import { Sheet } from '@mister-guiiug/dev-pwa-config/react/sheet';
 import { SegmentedControl } from '../../components/ui/SegmentedControl.tsx';
 import { AssignSlotActions } from './AssignSlotActions.tsx';
 import { AssignSlotHistory } from './AssignSlotHistory.tsx';

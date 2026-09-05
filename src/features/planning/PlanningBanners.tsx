@@ -1,5 +1,5 @@
 import { AlertTriangle, WifiOff } from 'lucide-react';
-import { useOnline } from '@mister-guiiug/dev-wpa-config/react/use-online';
+import { useOnline } from '@mister-guiiug/dev-pwa-config/react/use-online';
 import { useI18n } from '../../i18n/index.ts';
 import { ErrorMessage } from '../../components/ui/ErrorMessage.tsx';
 

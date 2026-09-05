@@ -1,10 +1,10 @@
 import { lazy, Suspense, type ReactNode } from 'react';
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { X } from 'lucide-react';
-import { ToastProvider } from '@mister-guiiug/dev-wpa-config/react/toast';
-import { IconsProvider } from '@mister-guiiug/dev-wpa-config/react/icons-context';
-import { LabelsProvider } from '@mister-guiiug/dev-wpa-config/react/labels';
-import { lucideIconSet } from '@mister-guiiug/dev-wpa-config/react/icons-lucide';
+import { ToastProvider } from '@mister-guiiug/dev-pwa-config/react/toast';
+import { IconsProvider } from '@mister-guiiug/dev-pwa-config/react/icons-context';
+import { LabelsProvider } from '@mister-guiiug/dev-pwa-config/react/labels';
+import { lucideIconSet } from '@mister-guiiug/dev-pwa-config/react/icons-lucide';
 import { AuthProvider } from './auth/AuthContext.tsx';
 import { AuthGate } from './auth/AuthGate.tsx';
 import { useAuth } from './auth/useAuth.ts';

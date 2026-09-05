@@ -1,8 +1,8 @@
 import { useId, useState } from 'react';
 import { Check } from 'lucide-react';
 import { DOCTOR_COLORS } from '../lib/colors.ts';
-import { Sheet } from '@mister-guiiug/dev-wpa-config/react/sheet';
-import { Button } from '@mister-guiiug/dev-wpa-config/react/button';
+import { Sheet } from '@mister-guiiug/dev-pwa-config/react/sheet';
+import { Button } from '@mister-guiiug/dev-pwa-config/react/button';
 import { useI18n } from '../i18n/index.ts';
 
 /**

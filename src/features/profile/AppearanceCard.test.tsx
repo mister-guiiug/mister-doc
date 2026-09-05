@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { ThemeProvider } from '@mister-guiiug/dev-wpa-config/react/theme-provider';
+import { ThemeProvider } from '@mister-guiiug/dev-pwa-config/react/theme-provider';
 import { I18nProvider } from '../../i18n/index.ts';
 import { AppearanceCard } from './AppearanceCard.tsx';
 

@@ -1,7 +1,7 @@
 import {
   Skeleton,
   SkeletonGroup,
-} from '@mister-guiiug/dev-wpa-config/react/skeleton';
+} from '@mister-guiiug/dev-pwa-config/react/skeleton';
 
 /**
  * Squelette de chargement du tableau des compteurs : esquisse la FORME du

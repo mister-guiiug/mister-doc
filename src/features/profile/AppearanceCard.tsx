@@ -1,5 +1,5 @@
 import { Monitor, Moon, Sun, SunMoon } from 'lucide-react';
-import { useThemeContext } from '@mister-guiiug/dev-wpa-config/react/theme-provider';
+import { useThemeContext } from '@mister-guiiug/dev-pwa-config/react/theme-provider';
 import { useI18n } from '../../i18n/index.ts';
 import { SectionCard } from '../../components/ui/SectionCard.tsx';
 import { SegmentedControl } from '../../components/ui/SegmentedControl.tsx';
