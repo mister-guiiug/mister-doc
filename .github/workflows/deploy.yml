@@ -1,3 +1,20 @@
+# Déploiement GitHub Pages, délégué au réutilisable de la famille.
+#
+# CE FICHIER ÉTAIT ÉCRIT À LA MAIN jusqu'au 06/09/2026 — et il lui manquait
+# ce que le réutilisable pose : le repli SPA `404.html` (un lien profond
+# servait la page 404 de GitHub, relevé d'AMELIORATIONS.md), `required-env`
+# (une variable vide partait en production sans un mot) et `VITE_BASE_PATH`
+# déduit du nom du dépôt.
+#
+# PAS DE `concurrency` ICI : le réutilisable déclare déjà le sien (`group:
+# pages`). Redoublé dans l'appelant, GitHub refuse le fichier AVANT de créer un
+# seul job, sans autre message que « workflow file issue ».
+#
+# Les VITE_* viennent des `vars` du dépôt, jamais des `secrets` : Vite les
+# copie dans le bundle, le secret ne masquerait que les journaux. La clé VAPID
+# est PUBLIQUE, comme la clé anon ; sans elle, `pushConfigured()` est faux et
+# l'opt-in aux notifications reste masqué en production — d'où sa présence
+# dans `required-env`.
 name: Déploiement GitHub Pages
 
 on:
@@ -11,45 +28,17 @@ permissions:
   id-token: write
   packages: read
 
-concurrency:
-  group: pages
-  cancel-in-progress: true
-
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-
-      # setup-node (registre GitHub Packages, scope @mister-guiiug) + npm ci.
-      # npm ci : installe STRICTEMENT depuis package-lock.json (builds
-      # reproductibles). Le lockfile inclut les binaires natifs Linux
-      # (rollup/lightningcss/@tailwindcss-oxide) ET les helpers @emnapi (WASI),
-      # donc l'install aboutit sur le runner Linux.
-      - uses: mister-guiiug/dev-pwa-config/.github/actions/setup-pwa@v4
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - run: npm run build
-        env:
-          VITE_BASE_PATH: /mister-doc/
-          VITE_PUBLIC_SITE_ORIGIN: https://${{ github.repository_owner }}.github.io
-          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
-          # Clé VAPID PUBLIQUE (destinée au bundle, comme la clé anon). Sans
-          # elle, `pushConfigured()` est faux et l'opt-in aux notifications
-          # push reste MASQUÉ en production — la fonctionnalité paraît absente.
-          VITE_VAPID_PUBLIC_KEY: ${{ vars.VITE_VAPID_PUBLIC_KEY }}
-      - uses: actions/upload-pages-artifact@v5
-        with:
-          path: dist
-
   deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v5
+    uses: mister-guiiug/dev-pwa-config/.github/workflows/pwa-deploy.yml@v4
+    with:
+      use-base-path: true
+      build-env: |
+        VITE_PUBLIC_SITE_ORIGIN=https://${{ github.repository_owner }}.github.io
+        VITE_SUPABASE_URL=${{ vars.VITE_SUPABASE_URL }}
+        VITE_SUPABASE_ANON_KEY=${{ vars.VITE_SUPABASE_ANON_KEY }}
+        VITE_VAPID_PUBLIC_KEY=${{ vars.VITE_VAPID_PUBLIC_KEY }}
+      required-env: |
+        VITE_SUPABASE_URL
+        VITE_SUPABASE_ANON_KEY
+        VITE_VAPID_PUBLIC_KEY
