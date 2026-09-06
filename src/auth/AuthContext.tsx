@@ -15,6 +15,13 @@ import { signInWithPasskey as passkeySignIn } from '../backend/passkey.ts';
 import { setIncludePentecote } from '../lib/dates.ts';
 import { frAuthError } from '../lib/authErrors.ts';
 import { idbGet, idbSet } from '../lib/idbCache.ts';
+import {
+  clearAll,
+  resetSyncQueue,
+  unsentPlanningOps,
+} from '../backend/syncQueue.ts';
+import { useConfirm } from '../components/ui/confirmContext.ts';
+import { useI18n } from '../i18n/index.ts';
 import type { Doctor } from '../backend/types.ts';
 import { AuthContext } from './useAuth.ts';
 
@@ -49,6 +56,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Incrémenté quand la config des créneaux change (Realtime) → re-render global
   // pour refléter libellés/heures/colonnes sans recharger la page.
   const [, bumpConfig] = useState(0);
+  // Pour la déconnexion : elle jette la file d'écritures hors ligne, et doit le
+  // demander avant. `ConfirmProvider` et `I18nProvider` enveloppent ce provider.
+  const confirm = useConfirm();
+  const { t } = useI18n();
 
   const refreshDoctor = useCallback(async () => {
     const sb = getSupabase();
@@ -172,7 +183,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: frAuthError(error.message) };
   }
 
+  /**
+   * LA FILE D'ÉCRITURES HORS LIGNE NE SURVIT PAS À LA DÉCONNEXION. Elle vit
+   * dans le `localStorage` de l'APPAREIL, pas dans la session : sur le poste
+   * partagé d'une salle de garde, les écritures laissées par le médecin qui
+   * part repartiraient sous la session du suivant — au nom du suivant dans le
+   * journal d'audit, et sous SES droits RLS.
+   *
+   * Les jeter est donc obligatoire, mais jamais en silence : ce sont des gestes
+   * que le médecin croit enregistrés. On les compte et on demande.
+   */
   async function signOut() {
+    const enAttente = unsentPlanningOps();
+    if (
+      enAttente > 0 &&
+      !(await confirm({
+        message: t('sync.signOutPending', { n: enAttente }),
+        danger: true,
+        confirmLabel: t('sync.signOutAnyway'),
+      }))
+    )
+      return;
+    clearAll();
+    resetSyncQueue();
     setPreviewMember(false);
     await getSupabase().auth.signOut();
   }
