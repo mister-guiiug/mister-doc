@@ -154,7 +154,7 @@ export function PrivacyBody({ mentions }: { mentions: MentionsExploitant }) {
 
         <p className="pt-2 text-xs text-slate-500 dark:text-slate-400">
           {t('privacy.lastUpdateLabel')}
-          {mentions.derniereMiseAJour}
+          {mentions.derniereMiseAJour[locale]}
         </p>
       </div>
     </>
