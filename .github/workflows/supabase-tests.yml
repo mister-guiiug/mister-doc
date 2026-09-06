@@ -1,0 +1,44 @@
+# Tests pgTAP, délégués au réutilisable de la famille.
+#
+# LE SEUL ENDROIT OÙ LES MIGRATIONS S'EXÉCUTENT VRAIMENT. Le poste de
+# développement n'a pas de démon Docker qui démarre, et `supabase.yml` n'applique
+# au projet hébergé que les migrations 0014→… (les treize premières ont été
+# posées à la main, hors CLI). Autrement dit : `0001`→`0027` n'avaient jamais été
+# jouées d'affilée sur une base vide — nulle part. Ici, la pile jetable du runner
+# le fait, puis joue `supabase/tests/`.
+#
+# ⚠️ CE WORKFLOW NE TOUCHE PAS LA BASE RÉELLE, et c'est compatible avec
+# l'avertissement de `supabase/config.toml`. Ce dernier interdit `supabase db
+# push` et `supabase db reset`, qui écrivent dans le projet LIÉ ; `supabase
+# start` démarre une pile locale, dans des conteneurs éphémères du runner. Le job
+# ne reçoit aucun secret, ne fait aucun `supabase link`, et n'a donc aucun moyen
+# d'atteindre le projet hébergé.
+#
+# CE QUE CE DÉPÔT-CI A À Y PROUVER. L'en-tête de `0001` énonce le modèle de
+# sécurité de l'application : dépôt public, clé anon dans le bundle, et une
+# BARRIÈRE D'APPROBATION en RLS pour seul verrou — plus un code d'amorçage qui
+# fait le premier administrateur. Trois affirmations qui n'avaient jamais été que
+# relues. `supabase/tests/barriere-approbation.test.sql` les exécute.
+name: Supabase tests
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/config.toml'
+      - 'supabase/migrations/**'
+      - 'supabase/tests/**'
+      - '.github/workflows/supabase-tests.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/config.toml'
+      - 'supabase/migrations/**'
+      - 'supabase/tests/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pgtap:
+    uses: mister-guiiug/dev-pwa-config/.github/workflows/pwa-supabase-test.yml@v4
