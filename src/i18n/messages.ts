@@ -711,6 +711,39 @@ export const messages = {
       // exige un nom accessible, posé quand l'appelant n'en fournit pas.
       title: 'Confirmation',
     },
+    // File d'écritures hors ligne (badge d'en-tête + panneau).
+    sync: {
+      queued: 'Hors ligne — enregistré, partira au retour du réseau.',
+      queueFull:
+        'Trop d’écritures en attente (200). Reconnectez-vous avant d’en ajouter.',
+      notYetSynced:
+        'Cette ligne n’est pas encore partie au serveur : reconnectez-vous pour la supprimer.',
+      labelPending: 'Envoi…',
+      labelOffline: '{n} en attente',
+      labelError: '{n} refusée(s)',
+      openPanel: 'État de la synchronisation',
+      panelTitle: 'Écritures hors ligne',
+      rejectedTitle: '{n} écriture(s) refusée(s)',
+      rejectedHelp:
+        'Elles ne sont PAS perdues, et rien n’a été écrasé. « Réessayer » les remet en file ; « Abandonner » les efface définitivement.',
+      retry: 'Réessayer',
+      forget: 'Abandonner',
+      waitingTitle: 'En attente ({n})',
+      waitingNone: 'Rien en attente.',
+      rejected: '{what} : refusé par le serveur — {reason}',
+      rejectedConflict:
+        '{what} : le créneau a été pris par {who} pendant que vous étiez hors ligne. Votre modification n’a pas été appliquée, et la sienne n’a pas été touchée.',
+      someone: 'quelqu’un d’autre',
+      opAssign: 'Garde {slot} du {date}',
+      opClear: 'Retrait de la garde {slot} du {date}',
+      opLeave: 'Absence du {from} au {to}',
+      opLeaveClear: 'Suppression d’une absence',
+      opHnc: '{hours} h non cliniques le {date}',
+      opHncClear: 'Suppression d’heures non cliniques',
+      signOutPending:
+        '{n} écriture(s) ne sont pas encore parties au serveur. Elles vivent sur CET appareil, pas dans votre compte : se déconnecter les supprime définitivement. Reconnectez-vous au réseau pour les envoyer d’abord.',
+      signOutAnyway: 'Se déconnecter et les perdre',
+    },
     privacy: {
       title: 'Politique de confidentialité',
       close: 'Fermer',
@@ -1477,6 +1510,37 @@ export const messages = {
     },
     confirm: {
       title: 'Confirmation',
+    },
+    sync: {
+      queued: 'Offline — saved, it will be sent when the network returns.',
+      queueFull: 'Too many pending writes (200). Reconnect before adding more.',
+      notYetSynced:
+        'This row has not reached the server yet: reconnect to delete it.',
+      labelPending: 'Sending…',
+      labelOffline: '{n} pending',
+      labelError: '{n} rejected',
+      openPanel: 'Sync status',
+      panelTitle: 'Offline writes',
+      rejectedTitle: '{n} rejected write(s)',
+      rejectedHelp:
+        'They are NOT lost, and nothing was overwritten. "Retry" puts them back in the queue; "Discard" deletes them for good.',
+      retry: 'Retry',
+      forget: 'Discard',
+      waitingTitle: 'Pending ({n})',
+      waitingNone: 'Nothing pending.',
+      rejected: '{what}: rejected by the server — {reason}',
+      rejectedConflict:
+        '{what}: the slot was taken by {who} while you were offline. Your change was not applied, and theirs was left untouched.',
+      someone: 'someone else',
+      opAssign: '{slot} shift on {date}',
+      opClear: 'Removal of the {slot} shift on {date}',
+      opLeave: 'Absence from {from} to {to}',
+      opLeaveClear: 'Deletion of an absence',
+      opHnc: '{hours} non-clinical hours on {date}',
+      opHncClear: 'Deletion of non-clinical hours',
+      signOutPending:
+        '{n} write(s) have not reached the server yet. They live on THIS device, not in your account: signing out deletes them for good. Reconnect to send them first.',
+      signOutAnyway: 'Sign out and lose them',
     },
     privacy: {
       title: 'Privacy policy',

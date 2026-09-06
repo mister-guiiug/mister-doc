@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import type { useToast } from '@mister-guiiug/dev-pwa-config/react/toast';
 import { useConfirm } from '../../components/ui/confirmContext.ts';
+import { addDays, fromISODate, toISODate } from '../../lib/dates.ts';
 import type { LeaveKind } from '../../lib/leaves.ts';
 import type { MonthCopyRow } from '../../lib/monthCopy.ts';
 import { planWeeklyRepeat } from '../../lib/repeatPlan.ts';
@@ -21,9 +22,20 @@ import {
   lockMonth,
   unlockMonth,
 } from '../../backend/locks.ts';
+import { enqueuePlanningOp, type PlanningOp } from '../../backend/syncQueue.ts';
 import { useI18n } from '../../i18n/index.ts';
 import type { SlotTarget } from './AssignDialog.tsx';
 import type { PlanningData } from './usePlanningData.ts';
+
+/**
+ * Le réseau, vu du navigateur. `navigator.onLine` ment dans un sens (il peut
+ * rester vrai derrière un portail captif d'hôpital) mais jamais dans l'autre :
+ * quand il dit faux, la requête ÉCHOUERA. C'est exactement la garantie dont on
+ * a besoin ici — décider d'enfiler plutôt que d'écrire.
+ */
+function isOffline(): boolean {
+  return typeof navigator !== 'undefined' && navigator.onLine === false;
+}
 
 /** Formate une clé ISO `YYYY-MM-DD` en `DD/MM/YYYY` (messages de confirmation). */
 function frDate(iso: string): string {
@@ -75,6 +87,27 @@ export function usePlanningMutations(data: PlanningData, ctx: MutationCtx) {
   );
 
   /**
+   * Enfile une écriture pour le retour du réseau, et le dit. Rend `true` quand
+   * elle est prise en charge — l'appelant garde alors sa mise à jour optimiste
+   * et n'appelle PAS le réseau.
+   *
+   * `false` = la file est pleine (200 écritures en attente, plafond du socle).
+   * L'appelant annule son optimisme : une écriture jetée en silence est bien
+   * pire qu'un refus, sur un planning de gardes plus encore qu'ailleurs.
+   */
+  const enfiler = useCallback(
+    (op: PlanningOp): boolean => {
+      if (!enqueuePlanningOp(op)) {
+        toast.error(t('sync.queueFull'));
+        return false;
+      }
+      toast.success(t('sync.queued'));
+      return true;
+    },
+    [toast, t]
+  );
+
+  /**
    * Affecte un médecin sur un créneau, éventuellement répété sur `weeks`
    * semaines (le jour cliqué + les mêmes jours de semaine suivants).
    *
@@ -100,6 +133,12 @@ export function usePlanningMutations(data: PlanningData, ctx: MutationCtx) {
       if (!first) return;
 
       const prev = shifts;
+      // L'occupant que le médecin a SOUS LES YEUX. C'est lui, et non l'état
+      // que le serveur aura dans deux heures, qui autorise le rejeu à écrire :
+      // cf. `assign_shift_if_unchanged` (migration 0027).
+      const occupantVu =
+        prev.find(s => s.work_date === first && s.shift_type === slot.shiftType)
+          ?.doctor_id ?? null;
       setShifts(cur => [
         ...cur.filter(
           s => !(s.work_date === first && s.shift_type === slot.shiftType)
@@ -114,6 +153,36 @@ export function usePlanningMutations(data: PlanningData, ctx: MutationCtx) {
           updated_at: '',
         } as Shift,
       ]);
+
+      // HORS LIGNE : on enfile au lieu d'échouer. La date cliquée emporte
+      // l'occupant vu ; les dates RÉPÉTÉES partent avec `expectedDoctorId:
+      // null` — « ne prends que si c'est libre », exactement la sémantique du
+      // `on conflict do nothing` de la RPC de lot qu'elles empruntent en ligne.
+      if (isOffline()) {
+        if (
+          !enfiler({
+            kind: 'shift.assign',
+            workDate: first,
+            shiftType: slot.shiftType,
+            doctorId,
+            expectedDoctorId: occupantVu,
+          })
+        ) {
+          setShifts(prev);
+          return;
+        }
+        for (const iso of rest) {
+          enfiler({
+            kind: 'shift.assign',
+            workDate: iso,
+            shiftType: slot.shiftType,
+            doctorId,
+            expectedDoctorId: null,
+          });
+        }
+        return;
+      }
+
       try {
         await assignShift(first, slot.shiftType, doctorId, doctor.id);
         // Les dates RÉPÉTÉES passent par la RPC de lot : une seule transaction,
@@ -157,17 +226,39 @@ export function usePlanningMutations(data: PlanningData, ctx: MutationCtx) {
         notifyError(e);
       }
     },
-    [doctor, shifts, locks, setShifts, loadData, toast, t, notifyError]
+    [doctor, shifts, locks, setShifts, loadData, toast, t, notifyError, enfiler]
   );
 
   const handleClearSlot = useCallback(
     async (slot: SlotTarget) => {
       const prev = shifts;
+      const occupantVu =
+        prev.find(
+          s => s.work_date === slot.iso && s.shift_type === slot.shiftType
+        )?.doctor_id ?? null;
       setShifts(cur =>
         cur.filter(
           s => !(s.work_date === slot.iso && s.shift_type === slot.shiftType)
         )
       );
+
+      // Hors ligne, on ne libère JAMAIS à l'aveugle : sans occupant connu il
+      // n'y a rien à retirer, et un rejeu « supprime qui que ce soit » est
+      // précisément le geste qui effacerait la garde d'un collègue.
+      if (isOffline()) {
+        if (occupantVu === null) return;
+        if (
+          !enfiler({
+            kind: 'shift.clear',
+            workDate: slot.iso,
+            shiftType: slot.shiftType,
+            expectedDoctorId: occupantVu,
+          })
+        )
+          setShifts(prev);
+        return;
+      }
+
       try {
         await clearShift(slot.iso, slot.shiftType);
         toast.success(t('planning.slotFreed'));
@@ -176,7 +267,7 @@ export function usePlanningMutations(data: PlanningData, ctx: MutationCtx) {
         notifyError(e);
       }
     },
-    [shifts, setShifts, toast, t, notifyError]
+    [shifts, setShifts, toast, t, notifyError, enfiler]
   );
 
   /**
@@ -213,6 +304,49 @@ export function usePlanningMutations(data: PlanningData, ctx: MutationCtx) {
       kind: LeaveKind,
       hours: number | null
     ) => {
+      if (isOffline()) {
+        if (
+          !enfiler({
+            kind: 'leave.set',
+            doctorId,
+            fromISO: from,
+            toISO: to,
+            leaveKind: kind,
+            hours,
+            createdBy: doctor?.id ?? null,
+          })
+        )
+          return;
+        // Écriture optimiste, indispensable ici : en ligne, cette mutation ne
+        // fait que recharger (`loadData`). Hors ligne, sans elle, le médecin
+        // poserait ses congés et ne verrait RIEN changer.
+        const jours: string[] = [];
+        for (
+          let d = fromISODate(from), fin = fromISODate(to);
+          d <= fin;
+          d = addDays(d, 1)
+        )
+          jours.push(toISODate(d));
+        setLeaves(cur => [
+          ...cur.filter(
+            l => !(l.doctor_id === doctorId && jours.includes(l.work_date))
+          ),
+          ...jours.map(
+            iso =>
+              ({
+                id: `tmp-leave-${doctorId}-${iso}`,
+                work_date: iso,
+                kind,
+                hours: kind === 'training' ? hours : null,
+                doctor_id: doctorId,
+                created_by: doctor?.id ?? null,
+                created_at: '',
+                updated_at: '',
+              }) as Leave
+          ),
+        ]);
+        return;
+      }
       try {
         await setLeaveRange(
           doctorId,
@@ -228,7 +362,7 @@ export function usePlanningMutations(data: PlanningData, ctx: MutationCtx) {
         notifyError(e);
       }
     },
-    [doctor, loadData, toast, t, notifyError]
+    [doctor, loadData, setLeaves, toast, t, notifyError, enfiler]
   );
 
   const handleRemoveLeave = useCallback(
@@ -245,8 +379,19 @@ export function usePlanningMutations(data: PlanningData, ctx: MutationCtx) {
         }))
       )
         return;
+      // Une ligne encore en file n'existe pas côté serveur : son identifiant
+      // est local. La supprimer « plus tard » n'aurait aucune cible — on le dit
+      // plutôt que d'enfiler une écriture vouée au rejet.
+      if (isOffline() && leave.id.startsWith('tmp-')) {
+        toast.error(t('sync.notYetSynced'));
+        return;
+      }
       const prev = leaves;
       setLeaves(cur => cur.filter(l => l.id !== leave.id));
+      if (isOffline()) {
+        if (!enfiler({ kind: 'leave.clear', id: leave.id })) setLeaves(prev);
+        return;
+      }
       try {
         await clearLeave(leave.id);
       } catch (e) {
@@ -254,7 +399,7 @@ export function usePlanningMutations(data: PlanningData, ctx: MutationCtx) {
         notifyError(e);
       }
     },
-    [confirm, doctorsById, leaves, setLeaves, t, notifyError]
+    [confirm, doctorsById, leaves, setLeaves, toast, t, notifyError, enfiler]
   );
 
   const handleSaveNote = useCallback(
@@ -336,6 +481,35 @@ export function usePlanningMutations(data: PlanningData, ctx: MutationCtx) {
 
   const handleSetHnc = useCallback(
     async (iso: string, doctorId: string, hours: number) => {
+      if (isOffline()) {
+        if (
+          !enfiler({
+            kind: 'hnc.set',
+            doctorId,
+            workDate: iso,
+            hours,
+            createdBy: doctor?.id ?? null,
+          })
+        )
+          return;
+        // Même raison que pour les congés : en ligne cette mutation ne fait que
+        // recharger, il n'y a donc aucune écriture optimiste à réutiliser.
+        setHnc(cur => [
+          ...cur.filter(
+            h => !(h.doctor_id === doctorId && h.work_date === iso)
+          ),
+          {
+            id: `tmp-hnc-${doctorId}-${iso}`,
+            doctor_id: doctorId,
+            work_date: iso,
+            hours,
+            created_by: doctor?.id ?? null,
+            created_at: '',
+            updated_at: '',
+          },
+        ]);
+        return;
+      }
       try {
         await saveHnc(doctorId, iso, hours, doctor?.id ?? null);
         await loadData();
@@ -344,7 +518,7 @@ export function usePlanningMutations(data: PlanningData, ctx: MutationCtx) {
         notifyError(e);
       }
     },
-    [doctor, loadData, toast, t, notifyError]
+    [doctor, loadData, setHnc, toast, t, notifyError, enfiler]
   );
 
   const handleClearHnc = useCallback(
@@ -364,8 +538,16 @@ export function usePlanningMutations(data: PlanningData, ctx: MutationCtx) {
         }))
       )
         return;
+      if (isOffline() && id.startsWith('tmp-')) {
+        toast.error(t('sync.notYetSynced'));
+        return;
+      }
       const prev = hnc;
       setHnc(cur => cur.filter(h => h.id !== id));
+      if (isOffline()) {
+        if (!enfiler({ kind: 'hnc.clear', id })) setHnc(prev);
+        return;
+      }
       try {
         await clearHnc(id);
       } catch (e) {
@@ -373,7 +555,7 @@ export function usePlanningMutations(data: PlanningData, ctx: MutationCtx) {
         notifyError(e);
       }
     },
-    [confirm, hnc, doctorsById, setHnc, t, notifyError]
+    [confirm, hnc, doctorsById, setHnc, toast, t, notifyError, enfiler]
   );
 
   const toggleLock = useCallback(async () => {

@@ -168,6 +168,18 @@ export function usePlanningData(year: number, month: number) {
     loadData().finally(() => setFirstLoad(false));
   }, [loadData]);
 
+  // AU RETOUR DU RÉSEAU, RELIRE. Le Realtime ne rejoue pas ce qu'on a manqué
+  // pendant la coupure : sans cela, un médecin qui revient en ligne garde à
+  // l'écran le mois d'il y a deux heures — et, depuis que les écritures sont
+  // différées, il pourrait aussi garder à l'écran une garde que le serveur a
+  // refusée. La file draine en parallèle ; son écriture déclenche à son tour
+  // un évènement Realtime, et les deux convergent.
+  useEffect(() => {
+    const relire = () => void loadData();
+    window.addEventListener('online', relire);
+    return () => window.removeEventListener('online', relire);
+  }, [loadData]);
+
   // Un seul rechargement anti-rebond pour toutes les tables : une rafale
   // d'événements Realtime (ou l'écho d'une édition optimiste) ne déclenche
   // qu'un rechargement au lieu de N. La référence est stable → les abonnements

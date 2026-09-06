@@ -11,6 +11,7 @@ import {
 import { useAuth } from '../auth/useAuth.ts';
 import { useI18n } from '../i18n/index.ts';
 import { NotificationsBell } from './NotificationsBell.tsx';
+import { SyncStatus } from '../features/sync/SyncStatus.tsx';
 
 export function Header() {
   const { doctor, isAdmin, previewMember, togglePreviewMember } = useAuth();
@@ -117,6 +118,10 @@ export function Header() {
               )}
             </button>
           )}
+          {/* L'état de la file d'écritures hors ligne. Ici et pas dans le
+              planning : une garde enfilée depuis « Mon planning » doit se voir
+              depuis le Profil. Le composant se tait quand la file est vide. */}
+          {doctor && <SyncStatus />}
           {doctor && <NotificationsBell />}
           {doctor && (
             <NavLink
