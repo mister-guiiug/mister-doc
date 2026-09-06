@@ -142,6 +142,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error ? frAuthError(error.message) : undefined };
   }
 
+  async function signInWithLink(email: string) {
+    const { error } = await getSupabase().auth.signInWithOtp({
+      email,
+      options: {
+        // Le retour du lien est calculé depuis l'origine SERVIE, jamais depuis
+        // une constante : le même bundle tourne en local et sur Pages. Cette
+        // adresse doit figurer dans la liste d'URL autorisées du projet
+        // Supabase (Authentication → URL Configuration), qui ne contient que
+        // localhost:3000 à la création — sinon le lien part et n'arrive nulle
+        // part. `flowType: 'pkce'` (lib/supabase.ts) renvoie `?code=`, que le
+        // HashRouter ne touche pas ; un jeton dans le fragment serait perdu.
+        emailRedirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
+        // Un compte se crée avec un nom, par `signUp`, et attend l'approbation
+        // d'un administrateur : un lien vers une adresse inconnue ne doit pas
+        // fabriquer un médecin sans nom.
+        shouldCreateUser: false,
+      },
+    });
+    if (!error) return {};
+    // Le message que Supabase rend quand l'adresse n'a pas de compte et que
+    // le lien ne peut pas en créer : le dire en clair, avec la sortie.
+    if (/signups? not allowed/i.test(error.message)) {
+      return {
+        error:
+          'Aucun compte pour cette adresse. Créez-en un (« Créer un compte »), ou vérifiez l’orthographe.',
+      };
+    }
+    return { error: frAuthError(error.message) };
+  }
+
   async function signOut() {
     setPreviewMember(false);
     await getSupabase().auth.signOut();
@@ -205,6 +235,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signIn,
         signUp,
         signOut,
+        signInWithLink,
         signInWithPasskey,
         verifyMfa,
         recoverMfa,
