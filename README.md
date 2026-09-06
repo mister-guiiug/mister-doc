@@ -97,6 +97,16 @@ métier, à partir d'un modèle simple de créneaux mensuels.
 
 - **PWA installable** (invite d'installation), shell applicatif en cache, mise à
   jour automatique du service worker + bouton de mise à jour forcée.
+- **Écriture hors ligne** : sans réseau, une affectation, une absence ou des
+  heures non cliniques sont **mises en file** (persistée dans le navigateur, elle
+  survit à un rechargement) et repartent seules au retour du réseau. Un badge
+  d'en-tête compte ce qui attend. Au rejeu, les créneaux passent par une
+  **écriture conditionnelle** (`assign_shift_if_unchanged`,
+  `clear_shift_if_unchanged`) : si un collègue a pris le créneau entre-temps,
+  c'est la base qui tranche, l'écriture est refusée, **nommément notifiée** et
+  conservée dans le panneau (« Réessayer » / « Abandonner »). Rien n'est écrasé,
+  rien n'est perdu en silence. La file appartient à l'**appareil** : la
+  déconnexion la jette, après confirmation.
 - Accessibilité (modales Échap + piège de focus), thème clair/sombre,
   optimisations mobile (safe-area, barre d'onglets basse).
 
