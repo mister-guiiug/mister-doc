@@ -129,6 +129,8 @@ export default function App() {
                           c'est le `pb-24` de `<main>` qui lui réserve sa
                           place. */}
                       <AppFooter
+                        version
+                        issues
                         className="mt-8 justify-center px-4"
                         repoUrl={repoUrl('mister-doc')}
                       />
