@@ -231,10 +231,18 @@ Signalées automatiquement (non bloquantes) :
 - **Sauvegarde/restauration** (admin) + **sauvegarde automatique hebdomadaire**.
 - **PWA installable**, utilisable hors-ligne (shell en cache), mise à jour
   automatique.
+- **Écriture hors-ligne** : les gestes de planning faits sans réseau
+  (affectation, libération, absence, heures non cliniques) sont mis en file et
+  envoyés au retour du réseau. Règle d'arbitrage : **un créneau a un seul
+  occupant**, et l'écriture différée n'est appliquée que si l'occupant est
+  encore celui que l'auteur avait sous les yeux. Sinon elle est **refusée** —
+  jamais appliquée par écrasement — et l'auteur est notifié avec le nom de
+  l'occupant. Le verrou de mois s'applique au rejeu comme à l'écriture directe :
+  une écriture visant un mois verrouillé est refusée, pas réessayée.
 
 ---
 
 > Détails d'implémentation : voir `README.md` et les migrations
-> `supabase/migrations/0001` → `0025`. Les compteurs, le numéro de semaine, les
+> `supabase/migrations/0001` → `0027`. Les compteurs, le numéro de semaine, les
 > créneaux configurables, la répétition hebdomadaire et la copie de mois sont
 > couverts par des tests (`src/lib/*.test.ts`).

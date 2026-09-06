@@ -131,6 +131,20 @@ export async function setupAuthenticated(
   // fiable en « hors-ligne » sans dépendre de la précédence des routes.
   const state = { offline: false };
 
+  /** Les RPC réellement reçues — de quoi PROUVER qu'une écriture est partie. */
+  const rpcCalls: { name: string; body: Record<string, unknown> }[] = [];
+
+  /**
+   * Le verdict de l'écriture CONDITIONNELLE (migration 0027). Mutable : un test
+   * de conflit a besoin que le serveur REFUSE, et le refus est le seul chemin
+   * par lequel l'application apprend qu'un collègue a pris le créneau.
+   */
+  const assignVerdict = {
+    applied: true,
+    holder_id: SELF.id as string | null,
+    holder_name: SELF.name as string | null,
+  };
+
   // Facteurs MFA renvoyés par `GET /auth/v1/user` (source de `listFactors()`).
   const factors = opts.mfa
     ? [{ id: 'factor-totp-1', factor_type: 'totp', status: 'verified' }]
@@ -185,6 +199,17 @@ export async function setupAuthenticated(
         user_metadata: { full_name: 'Dr E2E' },
         factors,
       });
+    // Écriture CONDITIONNELLE de créneau (migration 0027) : le chemin du REJEU
+    // d'une écriture hors ligne. On enregistre l'appel — un test qui se
+    // contenterait de voir le badge disparaître ne prouverait pas que la garde
+    // est réellement partie.
+    if (url.includes('/rpc/assign_shift_if_unchanged')) {
+      rpcCalls.push({
+        name: 'assign_shift_if_unchanged',
+        body: route.request().postDataJSON() as Record<string, unknown>,
+      });
+      return json(assignVerdict);
+    }
     if (url.includes('/rpc/ensure_self_doctor')) return json(SELF);
     if (url.includes('/rpc/get_settings'))
       return json({ pentecote_ferie: true });
@@ -204,6 +229,55 @@ export async function setupAuthenticated(
     goOffline() {
       state.offline = true;
     },
+
+    /**
+     * Coupure RÉELLE, telle que le navigateur la voit : `navigator.onLine`
+     * bascule ET l'évènement part. C'est ce que lisent `useOnline` du socle et
+     * la file d'écritures (`usePlanningMutations`) — `goOffline()` seul, qui
+     * ne fait qu'échouer les requêtes, les laisserait croire au réseau et
+     * l'application tenterait d'écrire au lieu d'enfiler.
+     *
+     * `page.context().setOffline()` n'est pas utilisé : il couperait aussi le
+     * serveur de dev Vite (HMR, modules chargés paresseusement) et rendrait le
+     * test bruyant pour rien.
+     */
+    async goOfflineHard() {
+      state.offline = true;
+      await page.evaluate(() => {
+        Object.defineProperty(navigator, 'onLine', {
+          configurable: true,
+          get: () => false,
+        });
+        window.dispatchEvent(new Event('offline'));
+      });
+    },
+
+    /** Retour du réseau : l'état, puis l'évènement qui déclenche le drain. */
+    async goOnlineHard() {
+      state.offline = false;
+      await page.evaluate(() => {
+        Object.defineProperty(navigator, 'onLine', {
+          configurable: true,
+          get: () => true,
+        });
+        window.dispatchEvent(new Event('online'));
+      });
+    },
+
+    /**
+     * Le créneau a été pris par quelqu'un d'autre pendant la coupure : la
+     * prochaine écriture conditionnelle sera REFUSÉE, et le serveur dira qui
+     * l'occupe. C'est exactement ce que rend `assign_shift_if_unchanged` quand
+     * le compare-and-set ne trouve plus l'occupant attendu.
+     */
+    slotTakenBy(name = MARTIN.name, id = MARTIN.id) {
+      assignVerdict.applied = false;
+      assignVerdict.holder_id = id;
+      assignVerdict.holder_name = name;
+    },
+
+    /** Les RPC reçues depuis le début du test. */
+    rpcCalls,
   };
 }
 
