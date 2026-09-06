@@ -17,6 +17,7 @@ jobs:
     uses: mister-guiiug/dev-pwa-config/.github/workflows/pwa-ci.yml@v4
     secrets: inherit
     with:
+      run-doctor: true # la checklist du parc, lue sur le dépôt et sur dist/ (AMELIORATIONS.md, T2)
       run-e2e: false # les E2E vivent dans e2e.yml (sous-projet isolé)
       # Valeurs FACTICES pour la validation d'env (src/lib/env.ts échoue au
       # chargement du module sans elles) : le test unitaire de backend/mfa.ts
