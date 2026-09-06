@@ -714,13 +714,18 @@ export const messages = {
     privacy: {
       title: 'Politique de confidentialité',
       close: 'Fermer',
-      templateWarningBefore:
-        "Modèle à compléter par l'exploitant : les mentions entre crochets",
-      templatePlaceholder: ' [À compléter] ',
-      templateWarningAfter: 'doivent être renseignées avant mise en service.',
+      // Le bandeau n'apparaît que si `mentionsIncompletes()` trouve encore une
+      // mention vide, et il NOMME celles qui manquent. Il ne contient plus le
+      // marqueur lui-même : celui-ci ne vit que dans `exploitant.ts`, ce qui
+      // permet au test de le refuser partout ailleurs sans faux positif.
+      templateWarning:
+        "Modèle incomplet : les mentions juridiques de l'exploitant ne sont pas encore renseignées ({mentions}). Ne pas mettre en service en l'état.",
+      mentionResponsable: 'responsable du traitement',
+      mentionBaseLegale: 'base légale',
+      mentionConservation: 'durée de conservation',
+      mentionContact: 'contact',
+      mentionDerniereMiseAJour: 'date de mise à jour',
       controllerTitle: 'Responsable du traitement',
-      controllerBody:
-        "[À compléter : nom de l'établissement / du responsable, adresse, e-mail de contact, et le cas échéant délégué à la protection des données (DPO)].",
       collectedTitle: 'Données collectées',
       collectedIdentity: 'Identité',
       collectedIdentityBody:
@@ -734,8 +739,8 @@ export const messages = {
       purposeTitle: 'Finalités et base légale',
       purposeBody1: 'Les données servent uniquement à ',
       purposeBold: 'organiser et consulter le planning de gardes',
-      purposeBody2:
-        " de l'équipe. Base légale : [À compléter — p. ex. exécution d'une mission / intérêt légitime de l'établissement].",
+      // La phrase s'arrête ici : la base légale vient de `exploitant.ts`.
+      purposeBody2: " de l'équipe. Base légale : ",
       hostingTitle: 'Hébergement et destinataires',
       hostingBody1: 'Les données sont hébergées par ',
       hostingSupabase: 'Supabase',
@@ -746,8 +751,9 @@ export const messages = {
       hostingBody4:
         ". Seuls les membres approuvés de l'équipe et les administrateurs accèdent au planning.",
       retentionTitle: 'Durée de conservation',
-      retentionBody:
-        '[À compléter : durée de conservation des comptes et des données de planning]. Les données sont supprimées ou anonymisées à la clôture du compte (voir « Vos droits »).',
+      // La durée elle-même vient de `exploitant.ts` et précède cette phrase.
+      retentionAfter:
+        ' Les données sont supprimées ou anonymisées à la clôture du compte (voir « Vos droits »).',
       securityTitle: 'Sécurité',
       securityBody1: 'Accès protégé par mot de passe (8 caractères min.) et ',
       securityBold1: 'double authentification (TOTP)',
@@ -775,11 +781,13 @@ export const messages = {
       rightsEraseItalic: 'en attente',
       rightsEraseBody2:
         " peut supprimer lui-même sa demande. Pour un compte approuvé, contactez un administrateur : vos données d'identité sont supprimées ou anonymisées ; l'historique de planning peut être conservé sous forme anonymisée au titre de l'intérêt légitime de l'établissement.",
-      rightsContact:
-        'Pour exercer ces droits ou une réclamation : [À compléter — contact]. Vous pouvez aussi saisir la ',
+      // Le contact vient de `exploitant.ts` et s'intercale entre les deux.
+      rightsContactBefore: 'Pour exercer ces droits ou une réclamation : ',
+      rightsContactAfter: ' Vous pouvez aussi saisir la ',
       rightsCnil: 'CNIL',
       rightsCnilUrl: ' (www.cnil.fr).',
-      lastUpdate: 'Dernière mise à jour : [À compléter].',
+      // La date vient de `exploitant.ts`.
+      lastUpdateLabel: 'Dernière mise à jour : ',
     },
   },
 
@@ -1473,13 +1481,14 @@ export const messages = {
     privacy: {
       title: 'Privacy policy',
       close: 'Close',
-      templateWarningBefore:
-        'Template to be completed by the operator: the bracketed items',
-      templatePlaceholder: ' [To complete] ',
-      templateWarningAfter: 'must be filled in before going live.',
+      templateWarning:
+        "Incomplete template: the operator's legal notices are not filled in yet ({mentions}). Do not go live as is.",
+      mentionResponsable: 'data controller',
+      mentionBaseLegale: 'legal basis',
+      mentionConservation: 'retention period',
+      mentionContact: 'contact',
+      mentionDerniereMiseAJour: 'last updated date',
       controllerTitle: 'Data controller',
-      controllerBody:
-        '[To complete: name of the establishment / controller, address, contact email, and where applicable the data protection officer (DPO)].',
       collectedTitle: 'Data collected',
       collectedIdentity: 'Identity',
       collectedIdentityBody:
@@ -1493,8 +1502,7 @@ export const messages = {
       purposeTitle: 'Purposes and legal basis',
       purposeBody1: 'The data is used solely to ',
       purposeBold: 'organise and view the on-call schedule',
-      purposeBody2:
-        " of the team. Legal basis: [To complete — e.g. performance of a task / the establishment's legitimate interest].",
+      purposeBody2: ' of the team. Legal basis: ',
       hostingTitle: 'Hosting and recipients',
       hostingBody1: 'The data is hosted by ',
       hostingSupabase: 'Supabase',
@@ -1505,8 +1513,8 @@ export const messages = {
       hostingBody4:
         '. Only approved team members and administrators can access the schedule.',
       retentionTitle: 'Retention period',
-      retentionBody:
-        '[To complete: retention period for accounts and schedule data]. Data is deleted or anonymised when the account is closed (see "Your rights").',
+      retentionAfter:
+        ' Data is deleted or anonymised when the account is closed (see "Your rights").',
       securityTitle: 'Security',
       securityBody1: 'Access protected by password (8 characters min.) and ',
       securityBold1: 'two-factor authentication (TOTP)',
@@ -1532,11 +1540,11 @@ export const messages = {
       rightsEraseItalic: 'pending',
       rightsEraseBody2:
         " account can delete its own request. For an approved account, contact an administrator: your identity data is deleted or anonymised; the schedule history may be kept in anonymised form under the establishment's legitimate interest.",
-      rightsContact:
-        'To exercise these rights or file a complaint: [To complete — contact]. You can also refer the matter to the ',
+      rightsContactBefore: 'To exercise these rights or file a complaint: ',
+      rightsContactAfter: ' You can also refer the matter to the ',
       rightsCnil: 'CNIL',
       rightsCnilUrl: ' (www.cnil.fr).',
-      lastUpdate: 'Last updated: [To complete].',
+      lastUpdateLabel: 'Last updated: ',
     },
   },
 } as const;

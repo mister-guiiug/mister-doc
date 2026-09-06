@@ -1,11 +1,22 @@
 import { Sheet } from '@mister-guiiug/dev-pwa-config/react/sheet';
 import { useI18n } from '../../i18n/index.ts';
+import {
+  mentions as mentionsExploitant,
+  mentionsIncompletes,
+  type MentionsExploitant,
+} from './exploitant.ts';
 
 /**
- * Politique de confidentialité (RGPD). Les FAITS TECHNIQUES sont exacts ; les
- * mentions juridiques propres à l'établissement (responsable du traitement,
- * coordonnées, base légale, durées) sont des PLACEHOLDERS « [À compléter] » que
- * l'exploitant doit renseigner. Ne pas publier tel quel sans les compléter.
+ * Politique de confidentialité (RGPD). Les FAITS TECHNIQUES sont exacts et
+ * vivent ici ; les quatre mentions propres à l'établissement (responsable du
+ * traitement, base légale, durée de conservation, contact) et la date de
+ * publication viennent de `exploitant.ts` — un seul fichier à remplir, au lieu
+ * de placeholders semés dans le catalogue i18n, dont cinq étaient partis en
+ * production.
+ *
+ * Tant qu'une mention manque, un bandeau le dit et la NOMME ; il disparaît de
+ * lui-même quand `exploitant.ts` est rempli. `exploitant.test.tsx` refuse le
+ * marqueur dans tout ce qui est servi.
  */
 export function PrivacyDialog({ onClose }: { onClose: () => void }) {
   const { t } = useI18n();
@@ -16,6 +27,29 @@ export function PrivacyDialog({ onClose }: { onClose: () => void }) {
       title={t('privacy.title')}
       closeLabel={t('common.close')}
     >
+      <PrivacyBody mentions={mentionsExploitant} />
+    </Sheet>
+  );
+}
+
+/**
+ * Le corps du texte, séparé du `Sheet` et paramétré par les mentions. Le
+ * paramètre n'existe QUE pour que le test puisse rendre la page avec un jeu de
+ * mentions complet sans truquer un module : `PrivacyDialog` lui passe toujours
+ * celles de `exploitant.ts`, et c'est le seul appelant en production.
+ */
+export function PrivacyBody({ mentions }: { mentions: MentionsExploitant }) {
+  const { t, locale } = useI18n();
+  const manquantes = mentionsIncompletes(mentions);
+  const labels: Record<string, string> = {
+    responsable: t('privacy.mentionResponsable'),
+    baseLegale: t('privacy.mentionBaseLegale'),
+    conservation: t('privacy.mentionConservation'),
+    contact: t('privacy.mentionContact'),
+    derniereMiseAJour: t('privacy.mentionDerniereMiseAJour'),
+  };
+  return (
+    <>
       {/* tabIndex : la zone qui défile (`sheet-body`) doit rester atteignable
           au clavier. Elle ne contient aucun élément focusable — que du texte —
           et c'est exactement le cas que la règle axe `scrollable-region-
@@ -25,14 +59,19 @@ export function PrivacyDialog({ onClose }: { onClose: () => void }) {
         tabIndex={0}
         className="space-y-4 text-sm leading-relaxed text-slate-600 dark:text-slate-300"
       >
-        <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
-          {t('privacy.templateWarningBefore')}
-          <span className="font-mono">{t('privacy.templatePlaceholder')}</span>
-          {t('privacy.templateWarningAfter')}
-        </p>
+        {manquantes.length > 0 && (
+          <p
+            role="alert"
+            className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-950/30 dark:text-amber-300"
+          >
+            {t('privacy.templateWarning', {
+              mentions: manquantes.map(nom => labels[nom] ?? nom).join(', '),
+            })}
+          </p>
+        )}
 
         <Section title={t('privacy.controllerTitle')}>
-          {t('privacy.controllerBody')}
+          {phrase(mentions.responsable[locale])}
         </Section>
 
         <Section title={t('privacy.collectedTitle')}>
@@ -56,6 +95,7 @@ export function PrivacyDialog({ onClose }: { onClose: () => void }) {
           {t('privacy.purposeBody1')}
           <b>{t('privacy.purposeBold')}</b>
           {t('privacy.purposeBody2')}
+          {phrase(mentions.baseLegale[locale])}
         </Section>
 
         <Section title={t('privacy.hostingTitle')}>
@@ -69,7 +109,8 @@ export function PrivacyDialog({ onClose }: { onClose: () => void }) {
         </Section>
 
         <Section title={t('privacy.retentionTitle')}>
-          {t('privacy.retentionBody')}
+          {phrase(mentions.conservation[locale])}
+          {t('privacy.retentionAfter')}
         </Section>
 
         <Section title={t('privacy.securityTitle')}>
@@ -104,17 +145,29 @@ export function PrivacyDialog({ onClose }: { onClose: () => void }) {
               {t('privacy.rightsEraseBody2')}
             </li>
           </ul>
-          {t('privacy.rightsContact')}
+          {t('privacy.rightsContactBefore')}
+          {phrase(mentions.contact[locale])}
+          {t('privacy.rightsContactAfter')}
           <b>{t('privacy.rightsCnil')}</b>
           {t('privacy.rightsCnilUrl')}
         </Section>
 
         <p className="pt-2 text-xs text-slate-500 dark:text-slate-400">
-          {t('privacy.lastUpdate')}
+          {t('privacy.lastUpdateLabel')}
+          {mentions.derniereMiseAJour}
         </p>
       </div>
-    </Sheet>
+    </>
   );
+}
+
+/**
+ * Ajoute le point final si l'exploitant ne l'a pas écrit : ses valeurs
+ * s'intercalent au milieu de phrases (« Base légale : … »), et une ponctuation
+ * oubliée y serait visible.
+ */
+function phrase(valeur: string): string {
+  return /[.!?]$/.test(valeur.trimEnd()) ? valeur : `${valeur}.`;
 }
 
 function Section({
