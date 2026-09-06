@@ -18,9 +18,20 @@ test.describe('Page de connexion', () => {
       page.getByRole('heading', { name: 'mister-doc' })
     ).toBeVisible();
 
-    // Mode connexion : pas de champ « Nom affiché », bouton « Se connecter ».
-    // `exact` : distinguer du bouton « Se connecter avec l'empreinte » (passkey).
+    // Mode connexion : pas de champ « Nom affiché », et LE LIEN D'ABORD — pas
+    // de mot de passe demandé, un bouton qui envoie un lien.
     await expect(page.getByLabel('Nom affiché')).toHaveCount(0);
+    await expect(page.getByLabel('Mot de passe')).toHaveCount(0);
+    await expect(
+      page.getByRole('button', { name: 'Recevoir un lien de connexion' })
+    ).toBeVisible();
+
+    // Le mot de passe reste à un clic. `exact` : distinguer « Se connecter »
+    // de « Se connecter avec un mot de passe » et de la passkey.
+    await page
+      .getByRole('button', { name: 'Se connecter avec un mot de passe' })
+      .click();
+    await expect(page.getByLabel('Mot de passe')).toBeVisible();
     await expect(
       page.getByRole('button', { name: 'Se connecter', exact: true })
     ).toBeVisible();
@@ -49,6 +60,9 @@ test.describe('Page de connexion', () => {
     await page.goto('/');
     // getByLabel repose sur l'association htmlFor/id générée par `Field`.
     await expect(page.getByLabel('E-mail')).toBeVisible();
+    await page
+      .getByRole('button', { name: 'Se connecter avec un mot de passe' })
+      .click();
     await expect(page.getByLabel('Mot de passe')).toBeVisible();
   });
 

@@ -29,6 +29,14 @@ export interface AuthValue {
     name: string
   ) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
+  /**
+   * Un lien à usage unique, par e-mail : l'application ne voit passer aucun
+   * secret et n'en stocke aucun. L'entrée par défaut depuis l'étape 5
+   * d'AMELIORATIONS.md ; le mot de passe et la passkey restent possibles.
+   * Réservé aux comptes existants : créer un compte demande un nom et passe
+   * par `signUp`.
+   */
+  signInWithLink: (email: string) => Promise<{ error?: string }>;
   /** Connexion passwordless par passkey (empreinte / Face ID / Windows Hello). */
   signInWithPasskey: () => Promise<{ error?: string }>;
   /** Valide le code TOTP à 6 chiffres au login (élève la session en aal2). */
