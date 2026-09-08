@@ -163,8 +163,8 @@ export default defineConfig(({ command }) => {
         },
         manifest: {
           id: '/mister-doc/',
-          name: 'mister-doc — Planning de gardes',
-          short_name: 'mister-doc',
+          name: 'Mister Doc — Planning de gardes',
+          short_name: 'Mister Doc',
           description:
             "Synchronisation du planning de gardes des médecins d'un hôpital : vue mensuelle des créneaux, numéro de semaine, compteurs week-end et heures par médecin.",
           theme_color: '#0f766e',
