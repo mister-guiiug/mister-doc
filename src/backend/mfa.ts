@@ -1,3 +1,4 @@
+import type { Session } from '@supabase/supabase-js';
 import { getSupabase } from '../lib/supabase.ts';
 import { frAuthError } from '../lib/authErrors.ts';
 
@@ -32,15 +33,58 @@ export function mfaChallengeNeeded(a: AssuranceLevel): boolean {
 }
 
 /**
- * Niveau d'assurance courant/atteignable. Lecture **locale** de la session (le
- * claim `aal` du JWT + `session.user.factors`) : aucun appel réseau, donc sûr
- * hors-ligne (échec → l'appelant retombe sur « pas de défi »).
+ * Niveau d'assurance courant/atteignable, DEMANDÉ À SUPABASE.
+ *
+ * Le commentaire disait ici « aucun appel réseau, donc sûr hors-ligne ». C'est
+ * faux, et ça a coûté cher : `getAuthenticatorAssuranceLevel()` commence par
+ * `auth.getSession()`, lequel RENOUVELLE le jeton quand il est périmé. Sans
+ * réseau, cet appel tourne une demi-minute avant de renoncer. La lecture
+ * réellement locale est `assuranceLevelFromSession`, juste en dessous.
  */
 export async function getAssuranceLevel(): Promise<AssuranceLevel> {
   const { data, error } =
     await getSupabase().auth.mfa.getAuthenticatorAssuranceLevel();
   if (error) throw new Error(error.message);
   return { current: data.currentLevel, next: data.nextLevel };
+}
+
+/**
+ * LE MÊME NIVEAU, CALCULÉ SUR PLACE À PARTIR D'UNE SESSION DÉJÀ EN MAIN.
+ *
+ * Reproduit à l'identique la règle de `@supabase/auth-js` : le niveau COURANT
+ * est le claim `aal` du jeton d'accès ; le niveau ATTEIGNABLE vaut `aal2` dès
+ * qu'un facteur vérifié existe sur l'utilisateur de la session. La seule chose
+ * que la bibliothèque fait en plus est d'aller CHERCHER cette session — c'est
+ * précisément l'appel qu'on veut éviter au démarrage hors ligne.
+ *
+ * LE DÉFI TOTP N'EST DONC PAS CONTOURNÉ QUAND LE RÉSEAU MANQUE. Une session
+ * restée en `aal1` avec un facteur vérifié rend toujours « défi requis », et la
+ * porte se referme comme en ligne. C'est ce qui distingue ce calcul d'un
+ * `setMfaRequired(false)` de confort.
+ *
+ * Le jeton n'est pas VÉRIFIÉ ici — sa signature ne se contrôle que côté
+ * serveur. On ne lui fait pas confiance pour autant : c'est le serveur qui
+ * refuse les écritures d'une session `aal1`, et hors ligne il n'y a de toute
+ * façon rien à écrire.
+ */
+export function assuranceLevelFromSession(session: Session): AssuranceLevel {
+  const current = claimAal(session.access_token);
+  const verifie = session.user?.factors?.some(f => f.status === 'verified');
+  return { current, next: verifie ? 'aal2' : current };
+}
+
+/** Le claim `aal` du jeton, ou null si le jeton n'est pas lisible. */
+function claimAal(accessToken: string): string | null {
+  try {
+    const charge = accessToken.split('.')[1];
+    if (!charge) return null;
+    const json = atob(charge.replace(/-/g, '+').replace(/_/g, '/'));
+    const payload: unknown = JSON.parse(json);
+    const aal = (payload as Record<string, unknown> | null)?.aal;
+    return typeof aal === 'string' ? aal : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Identifiant du 1er facteur TOTP **vérifié**, ou null (appel réseau : `getUser`). */
