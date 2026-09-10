@@ -16,7 +16,10 @@ import { signInWithPasskey as passkeySignIn } from '../backend/passkey.ts';
 import { setIncludePentecote } from '../lib/dates.ts';
 import { frAuthError } from '../lib/authErrors.ts';
 import { idbGet, idbSet } from '../lib/idbCache.ts';
-import { storedSession } from '../lib/storedSession.ts';
+import {
+  navigateurHorsLigne,
+  storedSupabaseSession,
+} from '@mister-guiiug/dev-pwa-config/auth/stored-session';
 import {
   clearAll,
   resetSyncQueue,
@@ -172,11 +175,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let minuteur: ReturnType<typeof setTimeout> | undefined;
 
     async function amorcer() {
-      const stockee = storedSession();
+      const stockee = storedSupabaseSession() as Session | null;
 
       // Hors ligne : ne rien demander à Supabase. Il n'a que le réseau pour
       // répondre, et il mettra une demi-minute à l'admettre.
-      if (!navigator.onLine && stockee) {
+      //
+      // `navigateurHorsLigne()` teste `onLine === false`, jamais `!onLine` :
+      // hors navigateur la propriété n'existe pas, et `!undefined` ferait
+      // croire à une coupure permanente.
+      if (navigateurHorsLigne() && stockee) {
         await hydrate(stockee, true);
         return;
       }
