@@ -24,15 +24,24 @@ import { useAuth } from './useAuth.ts';
 // `vi.hoisted` : les fabriques de `vi.mock` sont remontées en tête de
 // fichier, avant les `const` ordinaires — sans cela elles liraient des
 // variables non encore initialisées.
-const { getSession, onAuthStateChange, ensureSelfDoctor, getAssuranceLevel } =
-  vi.hoisted(() => ({
-    getSession: vi.fn(),
-    onAuthStateChange: vi.fn(() => ({
-      data: { subscription: { unsubscribe: vi.fn() } },
-    })),
-    ensureSelfDoctor: vi.fn(),
-    getAssuranceLevel: vi.fn(),
-  }));
+const {
+  getSession,
+  onAuthStateChange,
+  ensureSelfDoctor,
+  getAssuranceLevel,
+  rappels,
+} = vi.hoisted(() => ({
+  getSession: vi.fn(),
+  // On RETIENT le rappel : c'est lui qui reçoit le « pas de session » que
+  // Supabase finit par émettre hors ligne, et qui éjectait le médecin.
+  onAuthStateChange: vi.fn((rappel: (e: string, s: unknown) => void) => {
+    rappels.push(rappel);
+    return { data: { subscription: { unsubscribe: vi.fn() } } };
+  }),
+  ensureSelfDoctor: vi.fn(),
+  getAssuranceLevel: vi.fn(),
+  rappels: [] as Array<(e: string, s: unknown) => void>,
+}));
 
 vi.mock('../lib/supabase.ts', () => ({
   getSupabase: () => ({ auth: { getSession, onAuthStateChange } }),
@@ -123,6 +132,7 @@ function simulerHorsLigne(horsLigne: boolean) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  rappels.length = 0;
   localStorage.clear();
   onLineOriginal ??= Object.getOwnPropertyDescriptor(
     Navigator.prototype,
@@ -172,6 +182,43 @@ describe('démarrage hors ligne', () => {
     monter();
 
     await waitFor(() => expect(screen.getByText(/defi-totp/)).toBeTruthy());
+  });
+
+  it('un « pas de session » venu du réseau muet n’éjecte PAS', async () => {
+    /*
+      Corriger l'amorçage ne suffisait pas. Supabase s'abonne en émettant
+      l'état initial, et cet état passe par le renouvellement du jeton : hors
+      ligne, il annonce « pas de session » une demi-minute plus tard. Le
+      médecin, entré depuis trente secondes, se retrouvait dehors — mesuré sur
+      un build de production après #75.
+
+      La distinction tient au stockage : une VRAIE déconnexion efface la
+      session avant d'émettre l'évènement. Ici elle est encore là.
+    */
+    simulerHorsLigne(true);
+    rangerSessionPerimee();
+    monter();
+    await waitFor(() => expect(screen.getByText(/Docteur Test/)).toBeTruthy());
+
+    for (const rappel of rappels) rappel('INITIAL_SESSION', null);
+
+    // Le médecin est toujours là, une seconde plus tard comme après.
+    await waitFor(() => expect(screen.getByText(/Docteur Test/)).toBeTruthy());
+    expect(screen.queryByText(/sans-session/)).toBeNull();
+  });
+
+  it('une déconnexion VRAIE ferme bien la porte, même sans réseau', async () => {
+    // Supabase efface la session AVANT d'émettre : le stockage vide est la
+    // signature d'une déconnexion voulue, et la garde ne doit pas la retenir.
+    simulerHorsLigne(true);
+    rangerSessionPerimee();
+    monter();
+    await waitFor(() => expect(screen.getByText(/Docteur Test/)).toBeTruthy());
+
+    localStorage.clear();
+    for (const rappel of rappels) rappel('SIGNED_OUT', null);
+
+    await waitFor(() => expect(screen.getByText(/sans-session/)).toBeTruthy());
   });
 
   it('sans session en cache, laisse la porte à l’écran de connexion', async () => {
