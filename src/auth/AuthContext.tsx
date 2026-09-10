@@ -204,7 +204,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     void amorcer();
     const { data: sub } = sb.auth.onAuthStateChange((_event, s) => {
-      void hydrate(s);
+      /**
+       * LE SILENCE DU RÉSEAU N'EST PAS UNE DÉCONNEXION.
+       *
+       * Corriger l'amorçage ne suffisait pas. Supabase s'abonne en émettant
+       * l'état initial, et cet état passe par le renouvellement du jeton :
+       * hors ligne il n'aboutit pas, et au bout d'une demi-minute la
+       * bibliothèque annonce « pas de session ». Le médecin, entré depuis
+       * trente secondes, se retrouvait éjecté sur l'écran de connexion.
+       * Mesuré sur un build de production après #75 : ouverte à 3 s, éjectée
+       * avant 30.
+       *
+       * LA DISTINCTION TIENT AU STOCKAGE, et elle est nette : lors d'une
+       * vraie déconnexion, Supabase EFFACE la session AVANT d'émettre
+       * `SIGNED_OUT`. Si elle est encore là, c'est qu'il n'a déconnecté
+       * personne — il a renoncé à joindre le serveur. Une déconnexion
+       * demandée sans réseau reste donc honorée : le stockage est vidé
+       * d'abord, la garde ne se déclenche pas.
+       */
+      if (!s && navigateurHorsLigne() && storedSupabaseSession()) return;
+
+      void hydrate(s, navigateurHorsLigne());
     });
     return () => {
       vivant = false;
