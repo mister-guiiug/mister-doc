@@ -6,6 +6,7 @@ import { getSettings } from '../backend/settings.ts';
 import { listShiftTypes } from '../backend/shiftTypes.ts';
 import { setShiftTypes } from '../lib/shifts.ts';
 import {
+  assuranceLevelFromSession,
   challengeTotp,
   getAssuranceLevel,
   mfaChallengeNeeded,
@@ -15,6 +16,7 @@ import { signInWithPasskey as passkeySignIn } from '../backend/passkey.ts';
 import { setIncludePentecote } from '../lib/dates.ts';
 import { frAuthError } from '../lib/authErrors.ts';
 import { idbGet, idbSet } from '../lib/idbCache.ts';
+import { storedSession } from '../lib/storedSession.ts';
 import {
   clearAll,
   resetSyncQueue,
@@ -44,6 +46,25 @@ async function applySettings(approved: boolean) {
     /* défauts conservés */
   }
 }
+
+/**
+ * COMBIEN DE TEMPS ON ACCEPTE D'ATTENDRE SUPABASE AU DÉMARRAGE.
+ *
+ * `auth.getSession()` n'est pas une lecture : jeton d'accès périmé, il part le
+ * renouveler, avec des reprises à intervalle croissant bornées par sa propre
+ * fenêtre de rafraîchissement — une trentaine de secondes. Derrière un portail
+ * captif ou un Wi-Fi d'hôpital qui s'associe sans router, c'est autant de
+ * sablier avant l'écran de connexion.
+ *
+ * Passé ce délai, on démarre sur la session écrite sur l'appareil et on laisse
+ * `onAuthStateChange` corriger : un renouvellement réussi rendra
+ * `TOKEN_REFRESHED`, un jeton révoqué rendra `SIGNED_OUT`. Aucun des deux ne
+ * demande qu'on attende ici.
+ */
+const ATTENTE_MAX_MS = 5_000;
+
+/** Marqueur d'attente dépassée, distinct de `null` (« pas de session »). */
+const TROP_LONG = Symbol('attente dépassée');
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -84,17 +105,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const sb = getSupabase();
 
-    async function hydrate(s: Session | null) {
+    /**
+     * @param depuisLeCache Démarrage sans réseau : on ne DEMANDE rien à
+     * Supabase, on lit ce qui est déjà sur l'appareil. Les `catch` ci-dessous
+     * savaient déjà retomber sur le cache — mais ils n'y arrivaient qu'APRÈS
+     * l'échec, et chaque échec coûte la demi-minute de renouvellement du jeton.
+     * Deux appels, une minute de sablier, pour finir sur des données qu'on
+     * avait dès la première milliseconde.
+     */
+    async function hydrate(s: Session | null, depuisLeCache = false) {
       setSession(s);
       if (s) {
-        // Défi TOTP éventuel : lecture locale de l'assurance (claim `aal` +
-        // facteurs de la session). Best-effort → hors-ligne on ne bloque pas.
+        const key = `self-doctor:${s.user.id}`;
+
+        if (depuisLeCache) {
+          // L'assurance se calcule sur place — le défi TOTP reste donc EXIGÉ
+          // hors ligne si la session est en `aal1` avec un facteur vérifié.
+          setMfaRequired(mfaChallengeNeeded(assuranceLevelFromSession(s)));
+          setDoctor((await idbGet<Doctor>(key)) ?? null);
+          setLoading(false);
+          return;
+        }
+
+        // Défi TOTP éventuel. Best-effort → un échec ne bloque pas la porte.
         try {
           setMfaRequired(mfaChallengeNeeded(await getAssuranceLevel()));
         } catch {
           setMfaRequired(false);
         }
-        const key = `self-doctor:${s.user.id}`;
         try {
           const name =
             (s.user.user_metadata?.full_name as string | undefined) ??
@@ -104,8 +142,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           void idbSet(key, d);
           await applySettings(d.approved);
         } catch {
-          // Hors-ligne / réseau : replier sur le médecin en cache pour rester
-          // utilisable (consultation du planning mis en cache).
+          // Réseau tombé en cours de route : replier sur le médecin en cache
+          // pour rester utilisable (consultation du planning mis en cache).
           setDoctor((await idbGet<Doctor>(key)) ?? null);
         }
       } else {
@@ -115,11 +153,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     }
 
-    sb.auth.getSession().then(({ data }) => hydrate(data.session));
+    /**
+     * L'AMORÇAGE NE DOIT JAMAIS DÉPENDRE DU RÉSEAU.
+     *
+     * Avant, il en dépendait entièrement : `getSession()` était appelé sans
+     * condition, et hors ligne avec un jeton périmé — c'est-à-dire dès qu'une
+     * heure a passé — il tournait 27 secondes avant de renoncer et d'annoncer
+     * « pas de session ». La porte affichait alors l'écran de CONNEXION, qu'on
+     * ne peut pas franchir sans réseau : le médecin de garde, au sous-sol, se
+     * retrouvait dehors de son propre planning, pourtant en cache sur son
+     * téléphone.
+     *
+     * Le repli ne dégrade rien quand le réseau est là : `hydrate` est le même,
+     * et les rappels d'état de Supabase corrigent la session dès qu'elle est
+     * renouvelée ou révoquée.
+     */
+    let vivant = true;
+    let minuteur: ReturnType<typeof setTimeout> | undefined;
+
+    async function amorcer() {
+      const stockee = storedSession();
+
+      // Hors ligne : ne rien demander à Supabase. Il n'a que le réseau pour
+      // répondre, et il mettra une demi-minute à l'admettre.
+      if (!navigator.onLine && stockee) {
+        await hydrate(stockee, true);
+        return;
+      }
+
+      // En ligne — ou ce que le navigateur appelle ainsi. `navigator.onLine`
+      // ne dit que « une interface est active » : il est vrai derrière un
+      // portail captif comme sur un Wi-Fi qui ne route rien. D'où le délai.
+      const issue = await Promise.race([
+        sb.auth.getSession().then(({ data }) => data.session),
+        new Promise<typeof TROP_LONG>(resoudre => {
+          minuteur = setTimeout(() => resoudre(TROP_LONG), ATTENTE_MAX_MS);
+        }),
+      ]);
+      clearTimeout(minuteur);
+      if (!vivant) return;
+      await hydrate(issue === TROP_LONG ? stockee : issue, issue === TROP_LONG);
+    }
+
+    void amorcer();
     const { data: sub } = sb.auth.onAuthStateChange((_event, s) => {
       void hydrate(s);
     });
-    return () => sub.subscription.unsubscribe();
+    return () => {
+      vivant = false;
+      clearTimeout(minuteur);
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
   // Rafraîchit la config des créneaux quand un admin la modifie (Realtime).
