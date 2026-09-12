@@ -37,7 +37,7 @@ export function InstallPrompt() {
 
   useEffect(() => {
     if (isStandalone()) return;
-    let dismissed = false;
+    let dismissed: boolean;
     try {
       dismissed = localStorage.getItem(DISMISS_KEY) === '1';
     } catch {

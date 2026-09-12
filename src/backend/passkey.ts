@@ -58,7 +58,9 @@ export async function signInWithPasskey(): Promise<void> {
     const { error } = await getSupabase().auth.signInWithPasskey();
     if (error) throw error;
   } catch (e) {
-    throw new Error(frPasskeyError(e));
+    // `cause` garde l'erreur d'origine sous le message français : sans elle,
+    // la pile WebAuthn disparaissait et il ne restait qu'une phrase à lire.
+    throw new Error(frPasskeyError(e), { cause: e });
   }
 }
 
@@ -68,7 +70,9 @@ export async function registerPasskey(): Promise<void> {
     const { error } = await getSupabase().auth.registerPasskey();
     if (error) throw error;
   } catch (e) {
-    throw new Error(frPasskeyError(e));
+    // `cause` garde l'erreur d'origine sous le message français : sans elle,
+    // la pile WebAuthn disparaissait et il ne restait qu'une phrase à lire.
+    throw new Error(frPasskeyError(e), { cause: e });
   }
 }
 
