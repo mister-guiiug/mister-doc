@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../auth/useAuth.ts';
 import { useToast } from '@mister-guiiug/dev-pwa-config/react/toast';
+import { PwaInstallPrompt } from '@mister-guiiug/dev-pwa-config/react/pwa-install-prompt';
 import { useI18n } from '../../i18n/index.ts';
 import { fromISODate, toISODate } from '../../lib/dates.ts';
 import type { ShiftType } from '../../lib/shifts.ts';
@@ -308,6 +309,11 @@ export function PlanningView() {
         onCloseHnc={() => setHncDate(null)}
         onCloseCopyMonth={() => setCopyMonthOpen(false)}
       />
+
+      {/* `dismissKey` REPREND LA CLÉ DU BANDEAU MAISON : le socle la lit comme
+          un refus d'avant sa cadence et le traduit en report d'un mois, au lieu
+          de reproposer l'installation à qui l'avait déjà écartée. */}
+      <PwaInstallPrompt dismissKey="mister-doc:install-dismissed" />
     </div>
   );
 }

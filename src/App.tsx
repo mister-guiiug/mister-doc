@@ -14,7 +14,6 @@ import { useI18n } from './i18n/index.ts';
 import { ConfirmProvider } from './components/ui/ConfirmProvider.tsx';
 import { Header } from './components/Header.tsx';
 import { BottomNav } from './components/BottomNav.tsx';
-import { InstallPrompt } from './components/InstallPrompt.tsx';
 import { OfflineBanner } from './components/OfflineBanner.tsx';
 import { UpdatePrompt } from './components/UpdatePrompt.tsx';
 import { FullScreenSpinner } from './components/Spinner.tsx';
@@ -139,7 +138,12 @@ export default function App() {
                   </div>
                 </HashRouter>
               </AuthGate>
-              <InstallPrompt />
+              {/* L'INVITE D'INSTALLATION A QUITTÉ LA COQUILLE pour le
+                  planning. Le bandeau maison était une barre flottante empilée
+                  au-dessus de la navigation ; celui du socle est un élément de
+                  flux, qui n'aurait ici aucune place définie. Et il parle
+                  désormais aussi aux iPhone, donc bien plus souvent : sur le
+                  planning, le praticien est au repos. */}
               <UpdatePrompt />
             </AuthProvider>
           </ConfirmProvider>
