@@ -49,6 +49,7 @@ export function UpdatePrompt() {
 
   return (
     <UpdatePromptBanner
+      checkEvery="1h"
       registerSW={registerSWLogged}
       title={t('update.available')}
       updateLabel={t('update.reload')}
