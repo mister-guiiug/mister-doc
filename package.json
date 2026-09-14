@@ -17,7 +17,8 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "npm --prefix e2e test",
     "type-check": "tsc -b",
-    "icons": "node scripts/generate-pwa-icons.mjs",
+    "icons": "pwa-icons --source public/favicon.svg --out public/icons --sizes 192,512 --no-apple",
+    "icons:maskable": "node scripts/generate-maskable.mjs",
     "prepare": "husky || true"
   },
   "bundleBudget": {

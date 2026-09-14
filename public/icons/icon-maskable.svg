@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Mister Doc">
+  <!--
+    LE MASKABLE, ET POURQUOI CE N'EST PAS `favicon.svg` EN PLUS PETIT.
+
+    Un maskable se DESSINE à fond perdu. Poser la tuile entière, coins arrondis
+    compris, sur un aplat laisse voir le RACCORD, et le masque d'Android —
+    cercle, goutte, carré arrondi — le révèle au lieu de le cacher.
+
+    UNE SEULE DIFFÉRENCE AVEC `favicon.svg` : le `rx="14"` disparaît. Le teal,
+    le M et la pastille sont identiques, au pixel. Pas de réduction, pas de
+    recentrage.
+
+    POURQUOI AUCUNE RÉDUCTION N'EST NÉCESSAIRE, mesuré plutôt qu'estimé. La zone
+    de sécurité est le disque de 80 % de la toile, rayon 25,6 en repère 64. Le
+    point du M le plus éloigné du centre est le pied gauche, (14, 44), à 21,6.
+    La pastille va plus loin : centre (48, 24) à 17,9, plus son rayon de 4, soit
+    21,9. C'est elle qui commande, et il lui reste 3,7 de marge.
+
+    CE FICHIER REMPLACE UN SVG ÉCRIT DANS LE SCRIPT. Jusqu'au 14/09/2026,
+    `scripts/generate-pwa-icons.mjs` portait sa propre version du M, en dur, et
+    elle avait DÉRIVÉ de celle-ci : le M y touchait presque les bords et la
+    pastille chevauchait sa branche droite. L'onglet montrait un dessin, l'écran
+    d'accueil un autre. Il n'y a plus qu'une source, et c'est `favicon.svg`.
+  -->
+  <rect width="64" height="64" fill="#0f766e" />
+  <path d="M14 44V20h6l6 12 6-12h6v24h-6V31l-6 11-6-11v13z" fill="#fff" />
+  <circle cx="48" cy="24" r="4" fill="#5eead4" />
+</svg>
