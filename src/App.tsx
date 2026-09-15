@@ -1,6 +1,14 @@
 import { lazy, Suspense, type ReactNode } from 'react';
-import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
+import {
+  HashRouter,
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+} from 'react-router-dom';
 import { X } from 'lucide-react';
+import { ConsentBanner } from '@mister-guiiug/dev-pwa-config/react/consent-banner';
+import { usePageViews } from '@mister-guiiug/dev-pwa-config/react/use-page-views';
 import { ToastProvider } from '@mister-guiiug/dev-pwa-config/react/toast';
 import { IconsProvider } from '@mister-guiiug/dev-pwa-config/react/icons-context';
 import { LabelsProvider } from '@mister-guiiug/dev-pwa-config/react/labels';
@@ -53,6 +61,41 @@ function AdminRoute({ children }: { children: ReactNode }) {
    contrat de rôles : on branche lucide, le jeu d'icônes de l'app, plutôt que
    de laisser cohabiter deux langages visuels. */
 const DWC_ICONS = lucideIconSet({ close: X });
+
+/**
+ * La mesure d'audience, et rien d'autre.
+ *
+ * UN COMPOSANT PLUTÔT QUE DEUX LIGNES DANS `App` : `useLocation` n'existe que
+ * SOUS le routeur, et `App` monte `HashRouter` — l'appeler là-haut lèverait.
+ * Ce composant se rend donc dans `<main>`, à l'intérieur.
+ *
+ * UNE VUE DE PAGE PAR NAVIGATION. GA4 n'en envoie qu'une par chargement de
+ * document : sous `HashRouter`, toute la navigation serait invisible et la
+ * durée de session fausse. Le hook ne fait rien sans consentement, il se monte
+ * donc sans condition.
+ *
+ * PAS DE `policyHref`, ET C'EST DÉLIBÉRÉ. La politique de confidentialité de
+ * cette app est un DIALOGUE (`PrivacyDialog`), pas une route : il n'y a pas
+ * d'URL à mettre dans un lien. Et surtout, ses mentions légales portent encore
+ * `[À compléter]` — responsable du traitement, base légale, durées de
+ * conservation. Y renvoyer depuis un bandeau de consentement donnerait à lire
+ * un document qui ne peut pas fonder la collecte.
+ *
+ * C'est aussi pourquoi `VITE_GA_MEASUREMENT_ID` ne doit PAS être posée sur ce
+ * dépôt avant que ces mentions soient renseignées : sans elle, ce composant ne
+ * rend rien et rien n'est mesuré.
+ */
+function Mesure() {
+  const { pathname } = useLocation();
+  usePageViews(pathname);
+
+  return (
+    <ConsentBanner
+      gaMeasurementId={import.meta.env.VITE_GA_MEASUREMENT_ID}
+      className="mt-8 px-4"
+    />
+  );
+}
 
 export default function App() {
   const { t, locale } = useI18n();
@@ -127,6 +170,7 @@ export default function App() {
                           `<main>` parce que la barre basse est fixe et que
                           c'est le `pb-24` de `<main>` qui lui réserve sa
                           place. */}
+                      <Mesure />
                       <AppFooter
                         version
                         issues

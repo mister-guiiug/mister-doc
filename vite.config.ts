@@ -35,19 +35,29 @@ function cspPlugin(isDev: boolean): Plugin {
               .update((m[1] ?? '').replace(/\r\n/g, '\n'))
               .digest('base64')}'`
         );
+        // LES HÔTES DE GOOGLE, pour la mesure d'audience. `ConsentBanner`
+        // injecte `gtag/js` APRÈS l'accord de l'utilisateur ; sans ces entrées
+        // la politique le refuserait, et l'échec ne se verrait qu'en console,
+        // sur le site déployé, une fois le consentement donné.
+        //
+        // Ce plugin est une copie locale de `cspPlugin` du socle, qui a une
+        // option `analytics: true` pour exactement ça. Migrer dessus est un
+        // autre chantier ; en attendant, les hôtes sont les mêmes.
+        const GTM = 'https://www.googletagmanager.com';
+        const GA = 'https://*.google-analytics.com';
         const scriptSrc = isDev
           ? "'self' 'unsafe-inline'"
           : ["'self'", ...hashes].join(' ');
         const csp = [
           "default-src 'self'",
-          `script-src ${scriptSrc}`,
+          `script-src ${scriptSrc} ${GTM}`,
           "style-src 'self' 'unsafe-inline'",
           // github.io : icônes du catalogue famille (grille « Nos autres
           // applications ») — en prod 'self' suffit (même origine), l'entrée
           // explicite sert au dev local.
-          "img-src 'self' data: blob: https://mister-guiiug.github.io",
+          `img-src 'self' data: blob: https://mister-guiiug.github.io ${GTM} ${GA}`,
           "font-src 'self' data:",
-          "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+          `connect-src 'self' https://*.supabase.co wss://*.supabase.co ${GA} https://*.analytics.google.com https://*.googletagmanager.com`,
           "manifest-src 'self'",
           "worker-src 'self'",
           "object-src 'none'",
