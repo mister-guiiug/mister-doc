@@ -41,7 +41,7 @@ const registerSWLogged: RegisterSW = options =>
  *    dans `App.tsx` ;
  *  - le placement flottant en bas d'écran, par-dessus `BottomNav`.
  *
- * `snoozeHours` reste à 0 (défaut) : le bouton secondaire ÉCARTE le bandeau
+ * `snoozeHours` est à 0, et ÉCRIT : le bouton secondaire ÉCARTE le bandeau
  * pour la session, exactement comme la croix qu'il remplace.
  */
 export function UpdatePrompt() {
@@ -49,6 +49,7 @@ export function UpdatePrompt() {
 
   return (
     <UpdatePromptBanner
+      snoozeHours={0}
       checkEvery="1h"
       registerSW={registerSWLogged}
       title={t('update.available')}
