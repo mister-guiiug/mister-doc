@@ -39,6 +39,7 @@ jobs:
         VITE_SUPABASE_ANON_KEY=${{ vars.VITE_SUPABASE_ANON_KEY }}
         VITE_VAPID_PUBLIC_KEY=${{ vars.VITE_VAPID_PUBLIC_KEY }}
         VITE_GA_MEASUREMENT_ID=${{ vars.VITE_GA_MEASUREMENT_ID }}
+        VITE_SENTRY_DSN=${{ vars.VITE_SENTRY_DSN }}
       required-env: |
         VITE_SUPABASE_URL
         VITE_SUPABASE_ANON_KEY
