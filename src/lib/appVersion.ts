@@ -1,13 +1,4 @@
 /**
- * Version de l'application. `APP_BUILD` est UNIQUE par déploiement (sha du
- * commit en CI, horodatage en local) : deux bundles différents affichent deux
- * chaînes différentes, ce qui permet de vérifier qu'une mise à jour a bien pris.
- */
-const APP_VERSION: string = __APP_VERSION__;
-const BUILD_ID: string = __BUILD_ID__;
-export const APP_BUILD = `v${APP_VERSION} · ${BUILD_ID}`;
-
-/**
  * La portée de CETTE app — préfixe d'URL qui la distingue de ses voisines.
  *
  * DEUX SOURCES, DANS CET ORDRE. Celle de la registration fait autorité : c'est
