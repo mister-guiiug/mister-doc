@@ -74,11 +74,9 @@ describe('UpdatePrompt', () => {
     expect(banner).toBeInTheDocument();
     // L'habillage partagé s'accroche à cet attribut (components.css).
     expect(banner).toHaveAttribute('data-dwc', 'update-banner');
+    expect(screen.getByText('Mise à jour disponible')).toBeInTheDocument();
     expect(
-      screen.getByText('Une nouvelle version est disponible.')
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Recharger' })
+      screen.getByRole('button', { name: 'Mettre à jour' })
     ).toBeInTheDocument();
   });
 
@@ -87,7 +85,7 @@ describe('UpdatePrompt', () => {
     renderPrompt();
     announceUpdate();
 
-    await user.click(screen.getByRole('button', { name: 'Fermer' }));
+    await user.click(screen.getByRole('button', { name: 'Plus tard' }));
 
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
@@ -96,9 +94,9 @@ describe('UpdatePrompt', () => {
     renderPrompt('en');
     announceUpdate();
 
-    expect(screen.getByText('A new version is available.')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Reload' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument();
+    expect(screen.getByText('Update available')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Update' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Later' })).toBeInTheDocument();
   });
 
   it('journalise encore un enregistrement de service worker raté', () => {
