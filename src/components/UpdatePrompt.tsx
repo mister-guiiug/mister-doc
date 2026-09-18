@@ -1,7 +1,6 @@
 import { registerSW } from 'virtual:pwa-register';
 import { UpdatePromptBanner } from '@mister-guiiug/dev-pwa-config/react/update-prompt-banner';
 import type { RegisterSW } from '@mister-guiiug/dev-pwa-config/react/use-update-prompt';
-import { useI18n } from '../i18n/index.ts';
 import { logError } from '../lib/logger.ts';
 
 /**
@@ -45,17 +44,11 @@ const registerSWLogged: RegisterSW = options =>
  * pour la session, exactement comme la croix qu'il remplace.
  */
 export function UpdatePrompt() {
-  const { t } = useI18n();
-
   return (
     <UpdatePromptBanner
       snoozeHours={0}
       checkEvery="1h"
       registerSW={registerSWLogged}
-      title={t('update.available')}
-      updateLabel={t('update.reload')}
-      updatingLabel={t('update.updating')}
-      dismissLabel={t('common.close')}
       // `components.css` habille la boîte (fond, filet, rayon, cibles
       // tactiles) mais pas sa PLACE : elle flotte au-dessus de `BottomNav`
       // (z-30) et de la zone sûre iOS, comme la bannière qu'elle remplace.

@@ -28,7 +28,6 @@ export const messages = {
       validate: 'Valider',
       verify: 'Vérifier',
       retry: 'Réessayer',
-      reload: 'Recharger',
       send: 'Envoyer',
       generate: 'Générer',
       loading: 'Chargement…',
@@ -696,11 +695,6 @@ export const messages = {
       install: 'Installer',
       close: 'Fermer',
     },
-    update: {
-      available: 'Une nouvelle version est disponible.',
-      reload: 'Recharger',
-      updating: 'Mise à jour…',
-    },
     connection: {
       offline:
         'Hors connexion — le planning affiché peut être périmé, et aucune modification ne partira.',
@@ -840,7 +834,6 @@ export const messages = {
       validate: 'Submit',
       verify: 'Verify',
       retry: 'Try again',
-      reload: 'Reload',
       send: 'Send',
       generate: 'Generate',
       loading: 'Loading…',
@@ -1496,11 +1489,6 @@ export const messages = {
       benefits: 'Quick access, full screen, offline.',
       install: 'Install',
       close: 'Close',
-    },
-    update: {
-      available: 'A new version is available.',
-      reload: 'Reload',
-      updating: 'Updating…',
     },
     connection: {
       offline:
