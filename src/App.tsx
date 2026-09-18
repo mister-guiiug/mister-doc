@@ -69,10 +69,11 @@ const DWC_ICONS = lucideIconSet({ close: X });
  * SOUS le routeur, et `App` monte `HashRouter` — l'appeler là-haut lèverait.
  * Ce composant se rend donc dans `<main>`, à l'intérieur.
  *
- * UNE VUE DE PAGE PAR NAVIGATION. GA4 n'en envoie qu'une par chargement de
- * document : sous `HashRouter`, toute la navigation serait invisible et la
- * durée de session fausse. Le hook ne fait rien sans consentement, il se monte
- * donc sans condition.
+ * UNE VUE DE PAGE PAR NAVIGATION — ni zéro, ni deux. Sans ce hook, sous
+ * `HashRouter`, toute la navigation serait invisible et la durée de session
+ * fausse ; et si on laissait PostHog compter seul, chaque navigation serait
+ * comptée DEUX fois, d'où le `capture_pageview: false` du socle. Le hook ne
+ * fait rien sans consentement, il se monte donc sans condition.
  *
  * PAS DE `policyHref`, ET C'EST DÉLIBÉRÉ. La politique de confidentialité de
  * cette app est un DIALOGUE (`PrivacyDialog`), pas une route : il n'y a pas
@@ -81,7 +82,7 @@ const DWC_ICONS = lucideIconSet({ close: X });
  * conservation. Y renvoyer depuis un bandeau de consentement donnerait à lire
  * un document qui ne peut pas fonder la collecte.
  *
- * C'est aussi pourquoi `VITE_GA_MEASUREMENT_ID` ne doit PAS être posée sur ce
+ * C'est aussi pourquoi `VITE_POSTHOG_KEY` ne doit PAS être posée sur ce
  * dépôt avant que ces mentions soient renseignées : sans elle, ce composant ne
  * rend rien et rien n'est mesuré.
  */
@@ -91,7 +92,8 @@ function Mesure() {
 
   return (
     <ConsentBanner
-      gaMeasurementId={import.meta.env.VITE_GA_MEASUREMENT_ID}
+      posthogKey={import.meta.env.VITE_POSTHOG_KEY}
+      loader={() => import('posthog-js/dist/module.slim.js')}
       className="mt-8 px-4"
     />
   );
