@@ -35,29 +35,33 @@ function cspPlugin(isDev: boolean): Plugin {
               .update((m[1] ?? '').replace(/\r\n/g, '\n'))
               .digest('base64')}'`
         );
-        // LES HÔTES DE GOOGLE, pour la mesure d'audience. `ConsentBanner`
-        // injecte `gtag/js` APRÈS l'accord de l'utilisateur ; sans ces entrées
+        // LES HÔTES DE POSTHOG, nuage EUROPÉEN (ADR 0012). `ConsentBanner`
+        // charge le client APRÈS l'accord de l'utilisateur ; sans ces entrées
         // la politique le refuserait, et l'échec ne se verrait qu'en console,
         // sur le site déployé, une fois le consentement donné.
+        //
+        // `PH_ASSETS` EN `script-src` N'EST PAS UNE PRUDENCE : mesuré le
+        // 19/09/2026, `posthog-js` charge sa configuration distante depuis cet
+        // hôte à chaque `init`, en `initiatorType: "script"`.
         //
         // Ce plugin est une copie locale de `cspPlugin` du socle, qui a une
         // option `analytics: true` pour exactement ça. Migrer dessus est un
         // autre chantier ; en attendant, les hôtes sont les mêmes.
-        const GTM = 'https://www.googletagmanager.com';
-        const GA = 'https://*.google-analytics.com';
+        const PH_ASSETS = 'https://eu-assets.i.posthog.com';
+        const PH = 'https://eu.i.posthog.com';
         const scriptSrc = isDev
           ? "'self' 'unsafe-inline'"
           : ["'self'", ...hashes].join(' ');
         const csp = [
           "default-src 'self'",
-          `script-src ${scriptSrc} ${GTM}`,
+          `script-src ${scriptSrc} ${PH_ASSETS}`,
           "style-src 'self' 'unsafe-inline'",
           // github.io : icônes du catalogue famille (grille « Nos autres
           // applications ») — en prod 'self' suffit (même origine), l'entrée
           // explicite sert au dev local.
-          `img-src 'self' data: blob: https://mister-guiiug.github.io ${GTM} ${GA}`,
+          `img-src 'self' data: blob: https://mister-guiiug.github.io`,
           "font-src 'self' data:",
-          `connect-src 'self' https://*.supabase.co wss://*.supabase.co ${GA} https://*.analytics.google.com https://*.googletagmanager.com`,
+          `connect-src 'self' https://*.supabase.co wss://*.supabase.co ${PH} ${PH_ASSETS}`,
           "manifest-src 'self'",
           "worker-src 'self'",
           "object-src 'none'",
@@ -119,6 +123,14 @@ export default defineConfig(({ command }) => {
             // à 0,1 kB près. Le total ne voit pas la différence,
             // `bundleBudget.preloadGzipKb` si.
             if (norm.includes('/@sentry/')) return 'sentry';
+            // ET POSTHOG POUR LA MÊME RAISON, EN PLUS GRAVE. Sentry préchargé
+            // coûtait du poids ; PostHog préchargé casse une PROMESSE : l'ADR
+            // 0012 dit que rien n'est chargé avant l'accord, et le socle ne
+            // l'appelle qu'après. Sans cette ligne, la bibliothèque tombe
+            // dans `vendor`, qui est PRÉCHARGÉ — elle serait donc
+            // téléchargée chez un visiteur qui refuse. C'est `preloadGzipKb`
+            // qui le voit, jamais le total.
+            if (norm.includes('/posthog-js/')) return 'posthog';
             if (norm.includes('/@supabase/')) return 'supabase';
             if (norm.includes('/lucide-react/')) return 'icons';
             if (

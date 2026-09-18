@@ -11,14 +11,15 @@ interface ImportMetaEnv {
   readonly VITE_VAPID_PUBLIC_KEY?: string;
   readonly VITE_SENTRY_DSN?: string;
   /**
-   * Identifiant de mesure GA4 (`G-…`), propre à CETTE application.
+   * Clé de projet PostHog (`phc_…`), nuage EUROPÉEN — ADR 0012. La MÊME pour
+   * tout le parc ; publique par conception, donc `vars` et jamais `secrets`.
    *
    * NE PAS LA POSER tant que les mentions légales de `PrivacyDialog` portent
    * `[À compléter]` : sans responsable du traitement ni base légale, la
    * politique ne peut pas fonder la collecte. Absente, le bandeau de
    * consentement ne rend rien et rien n'est mesuré.
    */
-  readonly VITE_GA_MEASUREMENT_ID?: string;
+  readonly VITE_POSTHOG_KEY?: string;
 }
 
 interface ImportMeta {

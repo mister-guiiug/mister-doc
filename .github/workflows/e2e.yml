@@ -31,7 +31,7 @@ jobs:
       # setup-node (registre GitHub Packages, scope @mister-guiiug) + npm ci
       # des dépendances de l'app (dev-pwa-config).
       - name: Dépendances de l'app
-        uses: mister-guiiug/dev-pwa-config/.github/actions/setup-pwa@v4
+        uses: mister-guiiug/dev-pwa-config/.github/actions/setup-pwa@v6
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
