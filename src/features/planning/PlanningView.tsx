@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../auth/useAuth.ts';
 import { useToast } from '@mister-guiiug/dev-pwa-config/react/toast';
+import { GESTES, trackEvent } from '@mister-guiiug/dev-pwa-config/analytics';
 import { PwaInstallPrompt } from '@mister-guiiug/dev-pwa-config/react/pwa-install-prompt';
 import { useI18n } from '../../i18n/index.ts';
 import { fromISODate, toISODate } from '../../lib/dates.ts';
@@ -156,6 +157,10 @@ export function PlanningView() {
   const monthTitle = `${m.common.months[month]} ${year}`;
 
   function handleExportPdf() {
+    // Le mois emporté en PDF : la sortie de l'outil, celle qu'on affiche au
+    // mur ou qu'on envoie. Seul le format part — ni le mois, ni un nom, ni
+    // une garde.
+    trackEvent(GESTES.EXPORT, { format: 'pdf' });
     exportMonthPdf({
       title: monthTitle,
       weeks: data.weeks,

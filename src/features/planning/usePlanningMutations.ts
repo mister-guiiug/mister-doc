@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import type { useToast } from '@mister-guiiug/dev-pwa-config/react/toast';
+import { GESTES, trackEvent } from '@mister-guiiug/dev-pwa-config/analytics';
 import { useConfirm } from '../../components/ui/confirmContext.ts';
 import { addDays, fromISODate, toISODate } from '../../lib/dates.ts';
 import type { LeaveKind } from '../../lib/leaves.ts';
@@ -220,6 +221,26 @@ export function usePlanningMutations(data: PlanningData, ctx: MutationCtx) {
             t('assign.repeatSkippedLocked', { n: plan.skippedLocked })
           );
         if (taken > 0) parts.push(t('assign.repeatSkippedTaken', { n: taken }));
+        /*
+         * AFFECTER UNE GARDE — le geste qui fait le planning, et le seul qui
+         * se répète des dizaines de fois par mois.
+         *
+         * ICI, DANS LE HOOK DE MUTATIONS, et pas dans les quatre écrans qui
+         * l'appellent : c'est le point de passage obligé, et un seul endroit
+         * ne peut pas diverger. Après les écritures, avant le message de
+         * succès : une erreur défait l'optimisme et part dans le `catch`.
+         *
+         * `repetee` dit si la répétition hebdomadaire a servi — c'est la
+         * seule fonction récente de cet écran, et personne ne sait si elle
+         * sert.
+         *
+         * NI LE MÉDECIN, NI LA DATE, NI LE TYPE DE CRÉNEAU. Les types de
+         * créneaux sont CONFIGURÉS par l'équipe (`backend/shiftTypes.ts`) :
+         * leurs libellés sont de la saisie, et une saisie ne sort pas d'ici.
+         * Le nombre de gardes écrites n'en sort pas non plus — il dirait la
+         * taille du service.
+         */
+        trackEvent(GESTES.CREATION, { objet: 'garde', repetee: weeks > 1 });
         toast.success(parts.join(' '));
       } catch (e) {
         setShifts(prev);
@@ -459,6 +480,25 @@ export function usePlanningMutations(data: PlanningData, ctx: MutationCtx) {
       try {
         if (next === null) await clearWish(doctor.id, iso);
         else await setWish(doctor.id, iso, next, null);
+        /*
+         * POSER UN VŒU — l'autre moitié du dialogue : le planning se fait
+         * avec ce que chacun a demandé, encore faut-il que le bouton serve.
+         *
+         * `valeur` est l'état SUR LEQUEL le bouton retombe, dans le cycle
+         * fermé de l'app : préférer, éviter, ou retirer. Il répond à une
+         * question qu'aucun autre chiffre ne pose — « éviter » sert-il autant
+         * que « préférer » ?
+         *
+         * NI LE MÉDECIN, NI LA DATE. Un vœu daté et nommé dirait quand
+         * quelqu'un ne veut pas travailler : c'est exactement ce qui ne sort
+         * pas d'ici. Et le socle ne crée aucun profil de personne
+         * (`person_profiles: 'identified_only'`, ce parc n'identifie
+         * personne).
+         */
+        trackEvent(GESTES.CREATION, {
+          objet: 'voeu',
+          valeur: next ?? 'retire',
+        });
       } catch (e) {
         notifyError(e);
         await loadData();
@@ -471,6 +511,21 @@ export function usePlanningMutations(data: PlanningData, ctx: MutationCtx) {
     async (slot: SlotTarget, toDoctor: string | null, message: string) => {
       try {
         await proposeSwap(slot.iso, slot.shiftType, toDoctor, message);
+        /*
+         * PROPOSER UN ÉCHANGE — la raison d'être collective de l'outil :
+         * synchroniser un planning hors de l'outil métier, c'est d'abord
+         * pouvoir s'arranger entre collègues.
+         *
+         * `ouvert` sépare l'offre lancée à tout le service de la demande
+         * adressée à quelqu'un : deux usages différents du même bouton.
+         *
+         * NI LE DESTINATAIRE, NI LA DATE, NI LE MESSAGE — qui est saisi, et
+         * qui dit souvent pourquoi on ne peut pas être là.
+         */
+        trackEvent(GESTES.CREATION, {
+          objet: 'echange',
+          ouvert: toDoctor === null,
+        });
         toast.success(t('planning.swapSent'));
       } catch (e) {
         notifyError(e);
@@ -563,6 +618,20 @@ export function usePlanningMutations(data: PlanningData, ctx: MutationCtx) {
       if (locked) await unlockMonth(year, month);
       else await lockMonth(year, month, doctor?.id ?? null);
       setLocks(await listLocks());
+      /*
+       * VERROUILLER LE MOIS, c'est le publier : à partir de là, le planning
+       * ne bouge plus. C'est l'acte d'administration de cet outil, et le
+       * compter dit si le cycle mensuel est vraiment mené à son terme.
+       *
+       * `verrouille` porte le SENS du geste — on ferme, ou on rouvre.
+       * L'inverse de `locked`, qui décrit encore l'état d'avant. Ni le mois,
+       * ni l'année, ni qui a fermé.
+       */
+      trackEvent(GESTES.OPERATION, {
+        nom: 'verrouillage_mois',
+        etape: 'reussie',
+        verrouille: !locked,
+      });
       toast.success(
         locked
           ? t('planning.monthUnlockedToast')
