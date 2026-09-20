@@ -13,7 +13,8 @@ export async function listMonthShifts(
   month: number
 ): Promise<Shift[]> {
   const [from, to] = monthBounds(year, month);
-  const { data, error } = await getSupabase()
+  const sb = await getSupabase();
+  const { data, error } = await sb
     .from('shifts')
     .select('*')
     .neq('shift_type', 'S3')
@@ -29,7 +30,8 @@ export async function listShiftsBetween(
   fromISO: string,
   toISO: string
 ): Promise<Shift[]> {
-  const { data, error } = await getSupabase()
+  const sb = await getSupabase();
+  const { data, error } = await sb
     .from('shifts')
     .select('*')
     .neq('shift_type', 'S3')
@@ -46,7 +48,8 @@ export async function assignShift(
   doctorId: string,
   createdBy: string | null
 ): Promise<Shift> {
-  const { data, error } = await getSupabase()
+  const sb = await getSupabase();
+  const { data, error } = await sb
     .from('shifts')
     .upsert(
       {
@@ -72,7 +75,8 @@ export async function assignShift(
 export async function assignShiftsBulk(
   rows: readonly MonthCopyRow[]
 ): Promise<number> {
-  const { data, error } = await getSupabase().rpc('assign_shifts_bulk', {
+  const sb = await getSupabase();
+  const { data, error } = await sb.rpc('assign_shifts_bulk', {
     p_rows: rows,
   });
   if (error) throw new Error(error.message);
@@ -118,7 +122,8 @@ export async function assignShiftIfUnchanged(
   doctorId: string,
   expectedDoctorId: string | null
 ): Promise<ShiftWriteResult> {
-  const { data, error } = await getSupabase().rpc('assign_shift_if_unchanged', {
+  const sb = await getSupabase();
+  const { data, error } = await sb.rpc('assign_shift_if_unchanged', {
     p_work_date: workDate,
     p_shift_type: shiftType,
     p_doctor_id: doctorId,
@@ -134,7 +139,8 @@ export async function clearShiftIfUnchanged(
   shiftType: ShiftType,
   expectedDoctorId: string
 ): Promise<ShiftWriteResult> {
-  const { data, error } = await getSupabase().rpc('clear_shift_if_unchanged', {
+  const sb = await getSupabase();
+  const { data, error } = await sb.rpc('clear_shift_if_unchanged', {
     p_work_date: workDate,
     p_shift_type: shiftType,
     p_expected_doctor_id: expectedDoctorId,
@@ -148,7 +154,8 @@ export async function clearShift(
   workDate: string,
   shiftType: ShiftType
 ): Promise<void> {
-  const { error } = await getSupabase()
+  const sb = await getSupabase();
+  const { error } = await sb
     .from('shifts')
     .delete()
     .eq('work_date', workDate)

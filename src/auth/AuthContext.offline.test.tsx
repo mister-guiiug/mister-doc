@@ -44,7 +44,8 @@ const {
 }));
 
 vi.mock('../lib/supabase.ts', () => ({
-  getSupabase: () => ({ auth: { getSession, onAuthStateChange } }),
+  // Asynchrone, comme la fabrique du socle : le contexte attend le client.
+  getSupabase: async () => ({ auth: { getSession, onAuthStateChange } }),
   subscribeTable: () => () => {},
 }));
 vi.mock('../backend/doctors.ts', () => ({ ensureSelfDoctor }));

@@ -13,7 +13,8 @@ export async function listMonthHnc(
   month: number
 ): Promise<HncEntry[]> {
   const [from, to] = monthBounds(year, month);
-  const { data, error } = await getSupabase()
+  const sb = await getSupabase();
+  const { data, error } = await sb
     .from('hnc_hours')
     .select('*')
     .gte('work_date', from)
@@ -28,7 +29,8 @@ export async function listHncBetween(
   fromISO: string,
   toISO: string
 ): Promise<HncEntry[]> {
-  const { data, error } = await getSupabase()
+  const sb = await getSupabase();
+  const { data, error } = await sb
     .from('hnc_hours')
     .select('*')
     .gte('work_date', fromISO)
@@ -44,7 +46,8 @@ export async function setHnc(
   hours: number,
   createdBy: string | null
 ): Promise<HncEntry> {
-  const { data, error } = await getSupabase()
+  const sb = await getSupabase();
+  const { data, error } = await sb
     .from('hnc_hours')
     .upsert(
       {
@@ -63,7 +66,8 @@ export async function setHnc(
 
 /** Supprime une entrée HNC. */
 export async function clearHnc(id: string): Promise<void> {
-  const { error } = await getSupabase().from('hnc_hours').delete().eq('id', id);
+  const sb = await getSupabase();
+  const { error } = await sb.from('hnc_hours').delete().eq('id', id);
   if (error) throw new Error(error.message);
 }
 

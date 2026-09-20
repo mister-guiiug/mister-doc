@@ -55,7 +55,8 @@ function frPasskeyError(e: unknown): string {
  */
 export async function signInWithPasskey(): Promise<void> {
   try {
-    const { error } = await getSupabase().auth.signInWithPasskey();
+    const sb = await getSupabase();
+    const { error } = await sb.auth.signInWithPasskey();
     if (error) throw error;
   } catch (e) {
     // `cause` garde l'erreur d'origine sous le message français : sans elle,
@@ -67,7 +68,8 @@ export async function signInWithPasskey(): Promise<void> {
 /** Enregistre une nouvelle passkey pour le compte connecté (exige une session). */
 export async function registerPasskey(): Promise<void> {
   try {
-    const { error } = await getSupabase().auth.registerPasskey();
+    const sb = await getSupabase();
+    const { error } = await sb.auth.registerPasskey();
     if (error) throw error;
   } catch (e) {
     // `cause` garde l'erreur d'origine sous le message français : sans elle,
@@ -78,7 +80,8 @@ export async function registerPasskey(): Promise<void> {
 
 /** Liste les passkeys enregistrées pour le compte connecté. */
 export async function listPasskeys(): Promise<Passkey[]> {
-  const { data, error } = await getSupabase().auth.passkey.list();
+  const sb = await getSupabase();
+  const { data, error } = await sb.auth.passkey.list();
   if (error) throw new Error(frPasskeyError(error));
   return (data ?? []).map(p => ({
     id: p.id,
@@ -90,6 +93,7 @@ export async function listPasskeys(): Promise<Passkey[]> {
 
 /** Retire une passkey : l'appareil correspondant ne pourra plus s'en servir. */
 export async function deletePasskey(passkeyId: string): Promise<void> {
-  const { error } = await getSupabase().auth.passkey.delete({ passkeyId });
+  const sb = await getSupabase();
+  const { error } = await sb.auth.passkey.delete({ passkeyId });
   if (error) throw new Error(frPasskeyError(error));
 }

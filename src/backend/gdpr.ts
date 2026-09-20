@@ -9,7 +9,7 @@ import type { Doctor } from './types.ts';
 export async function exportMyData(
   doctor: Doctor
 ): Promise<Record<string, unknown>> {
-  const sb = getSupabase();
+  const sb = await getSupabase();
   const id = doctor.id;
 
   const [shifts, leaves, hnc, wishes, notes, swaps, notifs] = await Promise.all(

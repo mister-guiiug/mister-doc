@@ -14,7 +14,8 @@ export async function listMonthWishes(
   month: number
 ): Promise<Wish[]> {
   const [from, to] = monthBounds(year, month);
-  const { data, error } = await getSupabase()
+  const sb = await getSupabase();
+  const { data, error } = await sb
     .from('wishes')
     .select('*')
     .gte('work_date', from)
@@ -30,7 +31,8 @@ export async function setWish(
   kind: WishKind,
   note: string | null
 ): Promise<void> {
-  const { error } = await getSupabase()
+  const sb = await getSupabase();
+  const { error } = await sb
     .from('wishes')
     .upsert(
       { doctor_id: doctorId, work_date: workDate, kind, note },
@@ -43,7 +45,8 @@ export async function clearWish(
   doctorId: string,
   workDate: string
 ): Promise<void> {
-  const { error } = await getSupabase()
+  const sb = await getSupabase();
+  const { error } = await sb
     .from('wishes')
     .delete()
     .eq('doctor_id', doctorId)

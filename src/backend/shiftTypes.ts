@@ -45,7 +45,8 @@ function toDef(r: ShiftTypeRow): ShiftTypeDef {
 
 /** Liste des types de créneaux, triés par ordre d'affichage. */
 export async function listShiftTypes(): Promise<ShiftTypeDef[]> {
-  const { data, error } = await getSupabase()
+  const sb = await getSupabase();
+  const { data, error } = await sb
     .from('shift_types')
     .select(
       'code,label,hours,sort_order,clinical,is_night,weekend,start_time,end_time,end_day_offset,color,active'
@@ -57,7 +58,8 @@ export async function listShiftTypes(): Promise<ShiftTypeDef[]> {
 
 /** Créer / mettre à jour un type (admin). */
 export async function adminUpsertShiftType(def: ShiftTypeDef): Promise<void> {
-  const { error } = await getSupabase().rpc('admin_upsert_shift_type', {
+  const sb = await getSupabase();
+  const { error } = await sb.rpc('admin_upsert_shift_type', {
     p_code: def.code,
     p_label: def.label,
     p_hours: def.hours,
@@ -78,7 +80,8 @@ export async function adminSetShiftTypeActive(
   code: string,
   active: boolean
 ): Promise<void> {
-  const { error } = await getSupabase().rpc('admin_set_shift_type_active', {
+  const sb = await getSupabase();
+  const { error } = await sb.rpc('admin_set_shift_type_active', {
     p_code: code,
     p_active: active,
   });
@@ -87,7 +90,8 @@ export async function adminSetShiftTypeActive(
 
 /** Réordonner les types selon la liste de codes fournie (admin). */
 export async function adminReorderShiftTypes(codes: string[]): Promise<void> {
-  const { error } = await getSupabase().rpc('admin_reorder_shift_types', {
+  const sb = await getSupabase();
+  const { error } = await sb.rpc('admin_reorder_shift_types', {
     p_codes: codes,
   });
   if (error) throw new Error(error.message);
@@ -95,7 +99,8 @@ export async function adminReorderShiftTypes(codes: string[]): Promise<void> {
 
 /** Supprimer un type inutilisé (admin) ; échoue s'il est référencé. */
 export async function adminDeleteShiftType(code: string): Promise<void> {
-  const { error } = await getSupabase().rpc('admin_delete_shift_type', {
+  const sb = await getSupabase();
+  const { error } = await sb.rpc('admin_delete_shift_type', {
     p_code: code,
   });
   if (error) throw new Error(error.message);

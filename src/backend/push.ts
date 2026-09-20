@@ -12,7 +12,8 @@ export async function savePushSubscription(
   doctorId: string,
   k: PushKeys
 ): Promise<void> {
-  const { error } = await getSupabase().from('push_subscriptions').upsert(
+  const sb = await getSupabase();
+  const { error } = await sb.from('push_subscriptions').upsert(
     {
       endpoint: k.endpoint,
       doctor_id: doctorId,
@@ -26,7 +27,8 @@ export async function savePushSubscription(
 
 /** Retire l'abonnement push (par endpoint). */
 export async function deletePushSubscription(endpoint: string): Promise<void> {
-  const { error } = await getSupabase()
+  const sb = await getSupabase();
+  const { error } = await sb
     .from('push_subscriptions')
     .delete()
     .eq('endpoint', endpoint);

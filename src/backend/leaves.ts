@@ -9,7 +9,8 @@ export async function listMonthLeaves(
   month: number
 ): Promise<Leave[]> {
   const [from, to] = monthBounds(year, month);
-  const { data, error } = await getSupabase()
+  const sb = await getSupabase();
+  const { data, error } = await sb
     .from('leaves')
     .select('*')
     .gte('work_date', from)
@@ -24,7 +25,8 @@ export async function listLeavesBetween(
   fromISO: string,
   toISO: string
 ): Promise<Leave[]> {
-  const { data, error } = await getSupabase()
+  const sb = await getSupabase();
+  const { data, error } = await sb
     .from('leaves')
     .select('*')
     .gte('work_date', fromISO)
@@ -61,14 +63,16 @@ export async function setLeaveRange(
     });
     cursor.setDate(cursor.getDate() + 1);
   }
-  const { error } = await getSupabase()
+  const sb = await getSupabase();
+  const { error } = await sb
     .from('leaves')
     .upsert(rows, { onConflict: 'doctor_id,work_date' });
   if (error) throw new Error(error.message);
 }
 
 export async function clearLeave(id: string): Promise<void> {
-  const { error } = await getSupabase().from('leaves').delete().eq('id', id);
+  const sb = await getSupabase();
+  const { error } = await sb.from('leaves').delete().eq('id', id);
   if (error) throw new Error(error.message);
 }
 

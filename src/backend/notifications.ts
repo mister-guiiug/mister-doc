@@ -3,7 +3,8 @@ import type { Notification } from './types.ts';
 
 /** Dernières notifications du médecin connecté (RLS : les siennes seulement). */
 export async function listNotifications(limit = 30): Promise<Notification[]> {
-  const { data, error } = await getSupabase()
+  const sb = await getSupabase();
+  const { data, error } = await sb
     .from('notifications')
     .select('*')
     .order('created_at', { ascending: false })
@@ -13,12 +14,14 @@ export async function listNotifications(limit = 30): Promise<Notification[]> {
 }
 
 export async function markAllRead(): Promise<void> {
-  const { error } = await getSupabase().rpc('mark_all_notifications_read');
+  const sb = await getSupabase();
+  const { error } = await sb.rpc('mark_all_notifications_read');
   if (error) throw new Error(error.message);
 }
 
 export async function markRead(id: string): Promise<void> {
-  const { error } = await getSupabase()
+  const sb = await getSupabase();
+  const { error } = await sb
     .from('notifications')
     .update({ read: true })
     .eq('id', id);
@@ -26,10 +29,8 @@ export async function markRead(id: string): Promise<void> {
 }
 
 export async function deleteNotification(id: string): Promise<void> {
-  const { error } = await getSupabase()
-    .from('notifications')
-    .delete()
-    .eq('id', id);
+  const sb = await getSupabase();
+  const { error } = await sb.from('notifications').delete().eq('id', id);
   if (error) throw new Error(error.message);
 }
 

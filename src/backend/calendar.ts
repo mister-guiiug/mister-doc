@@ -7,7 +7,8 @@ import { env } from '../lib/env.ts';
  * n'existe pas encore (base non migrée) → l'appelant retombe en mode legacy.
  */
 export async function calendarTokenStatus(): Promise<boolean | null> {
-  const { data, error } = await getSupabase().rpc('calendar_token_status');
+  const sb = await getSupabase();
+  const { data, error } = await sb.rpc('calendar_token_status');
   if (error) return null;
   return Boolean(data);
 }
@@ -17,14 +18,16 @@ export async function calendarTokenStatus(): Promise<boolean | null> {
  * uniquement en repli quand `calendar_token_status` n'existe pas encore.
  */
 export async function getMyCalendarToken(): Promise<string> {
-  const { data, error } = await getSupabase().rpc('my_calendar_token');
+  const sb = await getSupabase();
+  const { data, error } = await sb.rpc('my_calendar_token');
   if (error) throw new Error(error.message);
   return data as string;
 }
 
 /** Régénère le token personnel (révoque l'ancien). */
 export async function rotateCalendarToken(): Promise<string> {
-  const { data, error } = await getSupabase().rpc('rotate_calendar_token');
+  const sb = await getSupabase();
+  const { data, error } = await sb.rpc('rotate_calendar_token');
   if (error) throw new Error(error.message);
   return data as string;
 }
