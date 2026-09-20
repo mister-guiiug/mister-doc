@@ -81,6 +81,7 @@ export const messages = {
       counters: 'Compteurs',
       admin: 'Admin',
       profile: 'Profil',
+      loading: 'Chargement…',
     },
     header: {
       previewActive: 'Aperçu médecin actif — revenir en vue admin',
@@ -887,6 +888,7 @@ export const messages = {
       counters: 'Counters',
       admin: 'Admin',
       profile: 'Profile',
+      loading: 'Loading…',
     },
     header: {
       previewActive: 'Doctor preview on — back to admin view',

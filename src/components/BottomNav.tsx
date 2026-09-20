@@ -1,6 +1,7 @@
-import { Link, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import {
   CalendarDays,
+  LoaderCircle,
   CalendarCheck,
   Repeat,
   BarChart3,
@@ -10,6 +11,11 @@ import {
 import { BottomNav as DwcBottomNav } from '@mister-guiiug/dev-pwa-config/react/bottom-nav';
 import { useAuth } from '../auth/useAuth.ts';
 import { useI18n } from '../i18n/index.ts';
+import {
+  LienDeMenu,
+  NavigationDuMenu,
+  useTransitionDeMenu,
+} from './nav-transition.tsx';
 
 /**
  * Barre d'onglets basse (mobile uniquement ; sur ≥ sm la navigation est dans
@@ -31,6 +37,7 @@ export function BottomNav() {
   const { doctor, isAdmin } = useAuth();
   const { t } = useI18n();
   const { pathname } = useLocation();
+  const { enCours, enAttente, versLaVue } = useTransitionDeMenu();
   if (!doctor) return null;
 
   const items = [
@@ -72,21 +79,43 @@ export function BottomNav() {
   ];
 
   return (
-    <DwcBottomNav
-      items={items}
-      currentPath={pathname}
-      label={t('nav.main')}
-      maxVisible={6}
-      // Le socle 3.32.0 a élargi `linkComponent` à `ComponentType<any>` : le
-      // type refusait jusque-là tout composant à prop OBLIGATOIRE, donc
-      // précisément `Link` et son `to` — l'usage que sa propre documentation
-      // donne en exemple. Sept apps portaient la même conversion.
-      //
-      // `Link` et non `NavLink` : l'état courant est calculé par le socle à
-      // partir de `currentPath`, il n'y a qu'une seule source de vérité.
-      linkComponent={Link}
-      hrefProp="to"
-      className="fixed inset-x-0 bottom-0 z-30 bg-white/95 backdrop-blur sm:hidden dark:bg-slate-900/95"
-    />
+    <NavigationDuMenu.Provider value={{ versLaVue, enAttente }}>
+      <DwcBottomNav
+        // LA PASTILLE DE L'ENTRÉE CLIQUÉE TOURNE pendant que son morceau
+        // arrive. C'est le seul retour visible : le repli de `Suspense` ne
+        // paraîtra pas, React 19 gardant l'écran courant le temps de la
+        // transition.
+        items={items.map(item =>
+          enAttente === item.href
+            ? {
+                ...item,
+                icon: <LoaderCircle className="size-5 animate-spin" />,
+              }
+            : item
+        )}
+        currentPath={pathname}
+        label={t('nav.main')}
+        maxVisible={6}
+        // Le socle 3.32.0 a élargi `linkComponent` à `ComponentType<any>` : le
+        // type refusait jusque-là tout composant à prop OBLIGATOIRE, donc
+        // précisément `Link` et son `to` — l'usage que sa propre documentation
+        // donne en exemple. Sept apps portaient la même conversion.
+        //
+        // `LienDeMenu` enveloppe un `Link`, et NON un `NavLink` : l'état
+        // courant est calculé par le socle à partir de `currentPath`, il n'y a
+        // qu'une seule source de vérité. Il y ajoute le geste qui ouvre la
+        // transition — le socle ne passe pas l'événement à `onNavigate`, le
+        // composant de lien est le seul endroit qui l'ait.
+        linkComponent={LienDeMenu}
+        hrefProp="to"
+        className="fixed inset-x-0 bottom-0 z-30 bg-white/95 backdrop-blur sm:hidden dark:bg-slate-900/95"
+      />
+      {/* HORS DES LIENS, pour ne pas changer leur nom accessible en cours de
+          route : un lecteur d'écran annoncerait « Échanges, chargement… » puis
+          « Échanges », sur le lien qui a le focus. */}
+      <span className="sr-only" role="status" aria-live="polite">
+        {enCours ? t('nav.loading') : ''}
+      </span>
+    </NavigationDuMenu.Provider>
   );
 }
