@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, type ReactNode } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
 import {
   HashRouter,
   Navigate,
@@ -14,6 +14,7 @@ import { IconsProvider } from '@mister-guiiug/dev-pwa-config/react/icons-context
 import { LabelsProvider } from '@mister-guiiug/dev-pwa-config/react/labels';
 import { lucideIconSet } from '@mister-guiiug/dev-pwa-config/react/icons-lucide';
 import { AppFooter } from '@mister-guiiug/dev-pwa-config/react/app-footer';
+import { useIdlePrefetch } from '@mister-guiiug/dev-pwa-config/react/use-prefetch';
 import { repoUrl } from '@mister-guiiug/dev-pwa-config/apps-catalog';
 import { AuthProvider } from './auth/AuthContext.tsx';
 import { AuthGate } from './auth/AuthGate.tsx';
@@ -29,7 +30,7 @@ import { PlanningView } from './features/planning/PlanningView.tsx';
 
 // CHAQUE IMPORT D'UNE VUE PRÉCHARGÉE EST NOMMÉ, parce qu'il sert DEUX FOIS : à
 // `lazy` ci-dessous, et au préchargement à l'inactivité de
-// `usePrechargeLesVuesDuMenu`. Deux `import()` du même spécificateur ne
+// `chargeLesVuesDuMenu`. Deux `import()` du même spécificateur ne
 // téléchargent qu'une fois — le registre de modules dédoublonne — mais encore
 // faut-il que ce soit LITTÉRALEMENT le même spécificateur, sinon le bundler
 // émet deux morceaux et le préchargement ne sert plus à rien.
@@ -49,9 +50,6 @@ const chargeProfil = () => import('./features/profile/ProfilePage.tsx');
  */
 const CHARGEURS_DU_MENU = [chargeMonPlanning, chargeEchanges, chargeProfil];
 
-/** `navigator.connection` n'est pas dans les types du DOM : il reste un brouillon. */
-type NavigateurEconome = Navigator & { connection?: { saveData?: boolean } };
-
 /**
  * PRÉCHARGE LES VUES DU MENU DÈS QUE LE FIL PRINCIPAL SOUFFLE.
  *
@@ -62,41 +60,23 @@ type NavigateurEconome = Navigator & { connection?: { saveData?: boolean } };
  * mister-settle, 161 ms sur mister-molkky, pendant lesquelles l'URL indique
  * déjà la nouvelle route et l'écran affiche encore l'ancien.
  *
+ * LE MOMENT ET LES GARDES SONT AU SOCLE (`useIdlePrefetch`, dans `App`) :
+ * `requestIdleCallback` avec un délai de repli là où il manque, abstention
+ * quand le visiteur épargne son forfait (`saveData`) ou en 2G, rejets avalés,
+ * chaque chargeur lancé UNE fois. Il reconnaît un chargeur à son IDENTITÉ —
+ * d'où un seul chargeur pour les trois vues, défini une fois pour toutes ici
+ * plutôt que dans le composant, où il changerait à chaque rendu.
+ *
+ * `allSettled`, pas `all` : un morceau qui manque n'empêche pas les deux autres
+ * d'arriver. Et un échec ici est sans conséquence : au clic, `lazy` redemandera
+ * le morceau et c'est LUI qui portera l'erreur, dans son propre `Suspense`.
+ *
  * N'entre PAS dans `bundleBudget.preloadGzipKb` : ce budget ne compte que ce
  * qui est `modulepreload` dans le document, et un `import()` tardif n'y entre
  * pas.
  */
-function usePrechargeLesVuesDuMenu() {
-  useEffect(() => {
-    // `saveData` : le visiteur a demandé qu'on épargne son forfait. On ne
-    // télécharge alors que ce qu'il demande vraiment — et c'est précisément
-    // pour ce cas-là que les menus, eux, savent désormais dire qu'ils chargent.
-    if ((navigator as NavigateurEconome).connection?.saveData) return;
-
-    let annule = false;
-    const precharge = () => {
-      if (annule) return;
-      // Un échec ici est sans conséquence : au clic, `lazy` redemandera le
-      // morceau et c'est LUI qui portera l'erreur, dans son propre `Suspense`.
-      for (const charge of CHARGEURS_DU_MENU) void charge().catch(() => {});
-    };
-
-    // `requestIdleCallback` manque encore à Safari avant la 17 ; le repli
-    // minuté vaut mieux que rien.
-    if (typeof window.requestIdleCallback === 'function') {
-      const id = window.requestIdleCallback(precharge, { timeout: 3000 });
-      return () => {
-        annule = true;
-        window.cancelIdleCallback?.(id);
-      };
-    }
-    const id = window.setTimeout(precharge, 1200);
-    return () => {
-      annule = true;
-      window.clearTimeout(id);
-    };
-  }, []);
-}
+const chargeLesVuesDuMenu = () =>
+  Promise.allSettled(CHARGEURS_DU_MENU.map(charge => charge()));
 
 const MyPlanningView = lazy(() =>
   chargeMonPlanning().then(m => ({ default: m.MyPlanningView }))
@@ -167,7 +147,7 @@ function Mesure() {
 }
 
 export default function App() {
-  usePrechargeLesVuesDuMenu();
+  useIdlePrefetch(chargeLesVuesDuMenu);
   const { t, locale } = useI18n();
   return (
     <IconsProvider icons={DWC_ICONS}>
