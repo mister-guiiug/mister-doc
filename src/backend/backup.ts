@@ -3,7 +3,8 @@ import type { BackupMeta } from './types.ts';
 
 /** Crée + renvoie un instantané complet (admin). */
 export async function adminBackup(): Promise<unknown> {
-  const { data, error } = await getSupabase().rpc('admin_backup');
+  const sb = await getSupabase();
+  const { data, error } = await sb.rpc('admin_backup');
   if (error) throw new Error(error.message);
   return data;
 }
@@ -13,7 +14,8 @@ export async function adminRestore(
   payload: unknown,
   mode: 'merge' | 'replace'
 ): Promise<void> {
-  const { error } = await getSupabase().rpc('admin_restore', {
+  const sb = await getSupabase();
+  const { error } = await sb.rpc('admin_restore', {
     p_payload: payload,
     p_mode: mode,
   });
@@ -22,7 +24,8 @@ export async function adminRestore(
 
 /** Métadonnées des sauvegardes stockées (sans le payload). */
 export async function listBackups(): Promise<BackupMeta[]> {
-  const { data, error } = await getSupabase()
+  const sb = await getSupabase();
+  const { data, error } = await sb
     .from('backups')
     .select('id,kind,size,created_at')
     .order('created_at', { ascending: false });
@@ -32,7 +35,8 @@ export async function listBackups(): Promise<BackupMeta[]> {
 
 /** Récupère le payload d'une sauvegarde stockée (pour téléchargement/restauration). */
 export async function getBackupPayload(id: string): Promise<unknown> {
-  const { data, error } = await getSupabase()
+  const sb = await getSupabase();
+  const { data, error } = await sb
     .from('backups')
     .select('payload')
     .eq('id', id)
@@ -42,6 +46,7 @@ export async function getBackupPayload(id: string): Promise<unknown> {
 }
 
 export async function deleteBackup(id: string): Promise<void> {
-  const { error } = await getSupabase().from('backups').delete().eq('id', id);
+  const sb = await getSupabase();
+  const { error } = await sb.from('backups').delete().eq('id', id);
   if (error) throw new Error(error.message);
 }

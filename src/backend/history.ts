@@ -8,7 +8,8 @@ export async function listSlotHistory(
   shiftType: ShiftType,
   limit = 10
 ): Promise<ShiftHistory[]> {
-  const { data, error } = await getSupabase()
+  const sb = await getSupabase();
+  const { data, error } = await sb
     .from('shift_history')
     .select('*')
     .eq('work_date', workDate)

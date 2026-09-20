@@ -9,7 +9,8 @@ import type { Doctor } from './types.ts';
 
 /** Upsert de la fiche du médecin connecté (à chaque login). */
 export async function ensureSelfDoctor(name?: string): Promise<Doctor> {
-  const { data, error } = await getSupabase().rpc('ensure_self_doctor', {
+  const sb = await getSupabase();
+  const { data, error } = await sb.rpc('ensure_self_doctor', {
     p_name: name ?? null,
   });
   if (error) throw new Error(error.message);
@@ -20,7 +21,8 @@ export async function updateMyProfile(
   name: string,
   color: string
 ): Promise<Doctor> {
-  const { data, error } = await getSupabase().rpc('update_my_profile', {
+  const sb = await getSupabase();
+  const { data, error } = await sb.rpc('update_my_profile', {
     p_name: name,
     p_color: color,
   });
@@ -33,7 +35,8 @@ export async function updateMyProfile(
  * uniquement) : retire la fiche médecin et l'utilisateur d'authentification.
  */
 export async function deleteMyAccount(): Promise<void> {
-  const { error } = await getSupabase().rpc('delete_my_account');
+  const sb = await getSupabase();
+  const { error } = await sb.rpc('delete_my_account');
   if (error) throw new Error(error.message);
 }
 
@@ -44,7 +47,8 @@ export async function deleteMyAccount(): Promise<void> {
  * identité anonymisée. Appelable par le médecin lui-même ou par un admin.
  */
 export async function anonymizeDoctor(id: string): Promise<void> {
-  const { error } = await getSupabase().rpc('anonymize_doctor', { p_id: id });
+  const sb = await getSupabase();
+  const { error } = await sb.rpc('anonymize_doctor', { p_id: id });
   if (error) throw new Error(error.message);
 }
 
@@ -54,13 +58,15 @@ export async function anonymizeDoctor(id: string): Promise<void> {
  * reconnecte ensuite avec son seul mot de passe.
  */
 export async function adminResetMfa(id: string): Promise<void> {
-  const { error } = await getSupabase().rpc('admin_reset_mfa', { p_id: id });
+  const sb = await getSupabase();
+  const { error } = await sb.rpc('admin_reset_mfa', { p_id: id });
   if (error) throw new Error(error.message);
 }
 
 /** Devenir le premier admin via le code de bootstrap. */
 export async function claimAdmin(code: string): Promise<Doctor> {
-  const { data, error } = await getSupabase().rpc('claim_admin', {
+  const sb = await getSupabase();
+  const { data, error } = await sb.rpc('claim_admin', {
     p_code: code,
   });
   if (error) throw new Error(error.message);
@@ -69,7 +75,8 @@ export async function claimAdmin(code: string): Promise<Doctor> {
 
 /** Roster complet (visible par les médecins approuvés). */
 export async function listDoctors(): Promise<Doctor[]> {
-  const { data, error } = await getSupabase()
+  const sb = await getSupabase();
+  const { data, error } = await sb
     .from('doctors')
     // Colonnes EXPLICITES : jamais `calendar_token` (lien d'abonnement secret).
     // La migration 0015 en interdit la lecture aux clients au niveau des privilèges ;
@@ -85,7 +92,8 @@ export async function adminSetDoctor(
   approved: boolean | null,
   isAdmin: boolean | null
 ): Promise<Doctor> {
-  const { data, error } = await getSupabase().rpc('admin_set_doctor', {
+  const sb = await getSupabase();
+  const { data, error } = await sb.rpc('admin_set_doctor', {
     p_id: id,
     p_approved: approved,
     p_is_admin: isAdmin,
@@ -100,7 +108,8 @@ export async function adminUpdateDoctor(
   name: string,
   color: string
 ): Promise<Doctor> {
-  const { data, error } = await getSupabase().rpc('admin_update_doctor', {
+  const sb = await getSupabase();
+  const { data, error } = await sb.rpc('admin_update_doctor', {
     p_id: id,
     p_name: name,
     p_color: color,
@@ -113,7 +122,8 @@ export async function adminAddRoster(
   name: string,
   color = '#2563eb'
 ): Promise<Doctor> {
-  const { data, error } = await getSupabase().rpc('admin_add_roster', {
+  const sb = await getSupabase();
+  const { data, error } = await sb.rpc('admin_add_roster', {
     p_name: name,
     p_color: color,
   });
@@ -122,7 +132,8 @@ export async function adminAddRoster(
 }
 
 export async function adminDeleteDoctor(id: string): Promise<void> {
-  const { error } = await getSupabase().rpc('admin_delete_doctor', {
+  const sb = await getSupabase();
+  const { error } = await sb.rpc('admin_delete_doctor', {
     p_id: id,
   });
   if (error) throw new Error(error.message);
@@ -130,7 +141,8 @@ export async function adminDeleteDoctor(id: string): Promise<void> {
 
 /** Admin : rejeter une demande en attente (supprime la fiche + le compte auth). */
 export async function adminRejectDoctor(id: string): Promise<void> {
-  const { error } = await getSupabase().rpc('admin_reject_doctor', {
+  const sb = await getSupabase();
+  const { error } = await sb.rpc('admin_reject_doctor', {
     p_id: id,
   });
   if (error) throw new Error(error.message);

@@ -2,7 +2,8 @@ import { getSupabase, subscribeTable } from '../lib/supabase.ts';
 import type { LockedMonth } from './types.ts';
 
 export async function listLocks(): Promise<LockedMonth[]> {
-  const { data, error } = await getSupabase().from('locked_months').select('*');
+  const sb = await getSupabase();
+  const { data, error } = await sb.from('locked_months').select('*');
   if (error) throw new Error(error.message);
   return (data ?? []) as LockedMonth[];
 }
@@ -20,14 +21,16 @@ export async function lockMonth(
   month: number,
   lockedBy: string | null
 ): Promise<void> {
-  const { error } = await getSupabase()
+  const sb = await getSupabase();
+  const { error } = await sb
     .from('locked_months')
     .insert({ year, month, locked_by: lockedBy });
   if (error) throw new Error(error.message);
 }
 
 export async function unlockMonth(year: number, month: number): Promise<void> {
-  const { error } = await getSupabase()
+  const sb = await getSupabase();
+  const { error } = await sb
     .from('locked_months')
     .delete()
     .eq('year', year)

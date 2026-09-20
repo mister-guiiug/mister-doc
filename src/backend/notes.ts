@@ -14,7 +14,8 @@ export async function listMonthNotes(
   month: number
 ): Promise<DayNote[]> {
   const [from, to] = monthBounds(year, month);
-  const { data, error } = await getSupabase()
+  const sb = await getSupabase();
+  const { data, error } = await sb
     .from('day_notes')
     .select('*')
     .gte('work_date', from)
@@ -28,7 +29,8 @@ export async function setNote(
   note: string,
   createdBy: string | null
 ): Promise<void> {
-  const { error } = await getSupabase()
+  const sb = await getSupabase();
+  const { error } = await sb
     .from('day_notes')
     .upsert(
       { work_date: workDate, note, created_by: createdBy },
@@ -38,7 +40,8 @@ export async function setNote(
 }
 
 export async function clearNote(workDate: string): Promise<void> {
-  const { error } = await getSupabase()
+  const sb = await getSupabase();
+  const { error } = await sb
     .from('day_notes')
     .delete()
     .eq('work_date', workDate);

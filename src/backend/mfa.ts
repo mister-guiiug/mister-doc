@@ -42,8 +42,8 @@ export function mfaChallengeNeeded(a: AssuranceLevel): boolean {
  * réellement locale est `assuranceLevelFromSession`, juste en dessous.
  */
 export async function getAssuranceLevel(): Promise<AssuranceLevel> {
-  const { data, error } =
-    await getSupabase().auth.mfa.getAuthenticatorAssuranceLevel();
+  const sb = await getSupabase();
+  const { data, error } = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
   if (error) throw new Error(error.message);
   return { current: data.currentLevel, next: data.nextLevel };
 }
@@ -89,7 +89,8 @@ function claimAal(accessToken: string): string | null {
 
 /** Identifiant du 1er facteur TOTP **vérifié**, ou null (appel réseau : `getUser`). */
 export async function verifiedTotpFactorId(): Promise<string | null> {
-  const { data, error } = await getSupabase().auth.mfa.listFactors();
+  const sb = await getSupabase();
+  const { data, error } = await sb.auth.mfa.listFactors();
   if (error) throw new Error(frAuthError(error.message));
   return data.totp[0]?.id ?? null;
 }
@@ -100,7 +101,7 @@ export async function verifiedTotpFactorId(): Promise<string | null> {
  * sont d'abord nettoyés (évite l'accumulation et les conflits de nom).
  */
 export async function enrollTotp(): Promise<TotpEnrollment> {
-  const sb = getSupabase();
+  const sb = await getSupabase();
   const { data: list } = await sb.auth.mfa.listFactors();
   const stale = (list?.all ?? []).filter(
     f => f.factor_type === 'totp' && f.status !== 'verified'
@@ -125,7 +126,8 @@ export async function confirmTotpEnrollment(
   factorId: string,
   code: string
 ): Promise<void> {
-  const { error } = await getSupabase().auth.mfa.challengeAndVerify({
+  const sb = await getSupabase();
+  const { error } = await sb.auth.mfa.challengeAndVerify({
     factorId,
     code: code.trim(),
   });
@@ -135,7 +137,8 @@ export async function confirmTotpEnrollment(
 /** Annule un enrôlement en cours (retire le facteur non vérifié). Best-effort. */
 export async function cancelTotpEnrollment(factorId: string): Promise<void> {
   try {
-    await getSupabase().auth.mfa.unenroll({ factorId });
+    const sb = await getSupabase();
+    await sb.auth.mfa.unenroll({ factorId });
   } catch {
     /* le prochain enrôlement nettoiera de toute façon les facteurs orphelins */
   }
@@ -143,7 +146,7 @@ export async function cancelTotpEnrollment(factorId: string): Promise<void> {
 
 /** Désactive la 2FA : retire tous les facteurs TOTP du compte. */
 export async function disableTotp(): Promise<void> {
-  const sb = getSupabase();
+  const sb = await getSupabase();
   const { data: list, error } = await sb.auth.mfa.listFactors();
   if (error) throw new Error(frAuthError(error.message));
   const totp = (list.all ?? []).filter(f => f.factor_type === 'totp');
@@ -161,7 +164,8 @@ export async function disableTotp(): Promise<void> {
 export async function challengeTotp(code: string): Promise<void> {
   const factorId = await verifiedTotpFactorId();
   if (!factorId) throw new Error('Aucun facteur TOTP à vérifier.');
-  const { error } = await getSupabase().auth.mfa.challengeAndVerify({
+  const sb = await getSupabase();
+  const { error } = await sb.auth.mfa.challengeAndVerify({
     factorId,
     code: code.trim(),
   });
@@ -173,9 +177,8 @@ export async function challengeTotp(code: string): Promise<void> {
  * fois (à afficher/enregistrer). Invalide les anciens. Seul leur hash est stocké.
  */
 export async function generateRecoveryCodes(): Promise<string[]> {
-  const { data, error } = await getSupabase().rpc(
-    'generate_mfa_recovery_codes'
-  );
+  const sb = await getSupabase();
+  const { data, error } = await sb.rpc('generate_mfa_recovery_codes');
   if (error) throw new Error(frAuthError(error.message));
   return (data as string[] | null) ?? [];
 }
@@ -185,7 +188,8 @@ export async function generateRecoveryCodes(): Promise<string[]> {
  * `true` si le code est accepté (l'accès n'exige alors plus l'étape à 6 chiffres).
  */
 export async function redeemRecoveryCode(code: string): Promise<boolean> {
-  const { data, error } = await getSupabase().rpc('use_mfa_recovery_code', {
+  const sb = await getSupabase();
+  const { data, error } = await sb.rpc('use_mfa_recovery_code', {
     p_code: code,
   });
   if (error) throw new Error(frAuthError(error.message));

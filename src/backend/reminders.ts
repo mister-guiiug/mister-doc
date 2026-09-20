@@ -6,7 +6,8 @@ import { getSupabase } from '../lib/supabase.ts';
  * pg_cron quotidien les envoie automatiquement. Renvoie le nombre créé.
  */
 export async function sendReminders(): Promise<number> {
-  const { data, error } = await getSupabase().rpc('admin_send_reminders');
+  const sb = await getSupabase();
+  const { data, error } = await sb.rpc('admin_send_reminders');
   if (error) throw new Error(error.message);
   return (data as number | null) ?? 0;
 }
@@ -18,7 +19,8 @@ export async function sendReminders(): Promise<number> {
  * soir. Renvoie le nombre de récapitulatifs créés.
  */
 export async function sendWeeklyDigest(): Promise<number> {
-  const { data, error } = await getSupabase().rpc('admin_send_weekly_digest');
+  const sb = await getSupabase();
+  const { data, error } = await sb.rpc('admin_send_weekly_digest');
   if (error) throw new Error(error.message);
   return (data as number | null) ?? 0;
 }

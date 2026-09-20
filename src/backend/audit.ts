@@ -6,7 +6,8 @@ import type { AuditEntry } from './types.ts';
  * d'abord. Tri par `id` (identité monotone) = ordre d'insertion, sans index dédié.
  */
 export async function listAuditLog(limit = 50): Promise<AuditEntry[]> {
-  const { data, error } = await getSupabase()
+  const sb = await getSupabase();
+  const { data, error } = await sb
     .from('audit_log')
     .select('*')
     .order('id', { ascending: false })

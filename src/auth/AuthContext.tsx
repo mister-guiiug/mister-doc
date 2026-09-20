@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import type { Session } from '@supabase/supabase-js';
+import type { Session, SupabaseClient } from '@supabase/supabase-js';
 import { getSupabase, subscribeTable } from '../lib/supabase.ts';
 import { ensureSelfDoctor } from '../backend/doctors.ts';
 import { getSettings } from '../backend/settings.ts';
@@ -86,7 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { t } = useI18n();
 
   const refreshDoctor = useCallback(async () => {
-    const sb = getSupabase();
+    const sb = await getSupabase();
     const { data } = await sb.auth.getSession();
     if (!data.session) {
       setDoctor(null);
@@ -106,8 +106,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const sb = getSupabase();
-
     /**
      * @param depuisLeCache Démarrage sans réseau : on ne DEMANDE rien à
      * Supabase, on lit ce qui est déjà sur l'appareil. Les `catch` ci-dessous
@@ -173,8 +171,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
      */
     let vivant = true;
     let minuteur: ReturnType<typeof setTimeout> | undefined;
+    let desabonner: (() => void) | undefined;
 
-    async function amorcer() {
+    async function amorcer(sb: SupabaseClient) {
       const stockee = storedSupabaseSession() as Session | null;
 
       // Hors ligne : ne rien demander à Supabase. Il n'a que le réseau pour
@@ -202,34 +201,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await hydrate(issue === TROP_LONG ? stockee : issue, issue === TROP_LONG);
     }
 
-    void amorcer();
-    const { data: sub } = sb.auth.onAuthStateChange((_event, s) => {
-      /**
-       * LE SILENCE DU RÉSEAU N'EST PAS UNE DÉCONNEXION.
-       *
-       * Corriger l'amorçage ne suffisait pas. Supabase s'abonne en émettant
-       * l'état initial, et cet état passe par le renouvellement du jeton :
-       * hors ligne il n'aboutit pas, et au bout d'une demi-minute la
-       * bibliothèque annonce « pas de session ». Le médecin, entré depuis
-       * trente secondes, se retrouvait éjecté sur l'écran de connexion.
-       * Mesuré sur un build de production après #75 : ouverte à 3 s, éjectée
-       * avant 30.
-       *
-       * LA DISTINCTION TIENT AU STOCKAGE, et elle est nette : lors d'une
-       * vraie déconnexion, Supabase EFFACE la session AVANT d'émettre
-       * `SIGNED_OUT`. Si elle est encore là, c'est qu'il n'a déconnecté
-       * personne — il a renoncé à joindre le serveur. Une déconnexion
-       * demandée sans réseau reste donc honorée : le stockage est vidé
-       * d'abord, la garde ne se déclenche pas.
-       */
-      if (!s && navigateurHorsLigne() && storedSupabaseSession()) return;
+    // LE CLIENT ARRIVE PAR UNE PROMESSE — c'est le contrat de la fabrique du
+    // socle. Elle se résout en une micro-tâche (le SDK est importé
+    // statiquement, voir lib/supabase.ts), mais un démontage peut survenir
+    // AVANT : `vivant` est alors faux et rien ne s'abonne. La continuation
+    // s'exécute d'un bloc, donc soit elle voit `vivant` faux, soit
+    // `desabonner` est posé avant que le nettoyage ne s'exécute.
+    void getSupabase().then(sb => {
+      if (!vivant) return;
+      void amorcer(sb);
+      const { data: sub } = sb.auth.onAuthStateChange((_event, s) => {
+        /**
+         * LE SILENCE DU RÉSEAU N'EST PAS UNE DÉCONNEXION.
+         *
+         * Corriger l'amorçage ne suffisait pas. Supabase s'abonne en émettant
+         * l'état initial, et cet état passe par le renouvellement du jeton :
+         * hors ligne il n'aboutit pas, et au bout d'une demi-minute la
+         * bibliothèque annonce « pas de session ». Le médecin, entré depuis
+         * trente secondes, se retrouvait éjecté sur l'écran de connexion.
+         * Mesuré sur un build de production après #75 : ouverte à 3 s, éjectée
+         * avant 30.
+         *
+         * LA DISTINCTION TIENT AU STOCKAGE, et elle est nette : lors d'une
+         * vraie déconnexion, Supabase EFFACE la session AVANT d'émettre
+         * `SIGNED_OUT`. Si elle est encore là, c'est qu'il n'a déconnecté
+         * personne — il a renoncé à joindre le serveur. Une déconnexion
+         * demandée sans réseau reste donc honorée : le stockage est vidé
+         * d'abord, la garde ne se déclenche pas.
+         */
+        if (!s && navigateurHorsLigne() && storedSupabaseSession()) return;
 
-      void hydrate(s, navigateurHorsLigne());
+        void hydrate(s, navigateurHorsLigne());
+      });
+      desabonner = () => sub.subscription.unsubscribe();
     });
     return () => {
       vivant = false;
       clearTimeout(minuteur);
-      sub.subscription.unsubscribe();
+      desabonner?.();
     };
   }, []);
 
@@ -248,7 +257,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [approved]);
 
   async function signIn(email: string, password: string) {
-    const { error } = await getSupabase().auth.signInWithPassword({
+    const sb = await getSupabase();
+    const { error } = await sb.auth.signInWithPassword({
       email,
       password,
     });
@@ -256,7 +266,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signUp(email: string, password: string, name: string) {
-    const { error } = await getSupabase().auth.signUp({
+    const sb = await getSupabase();
+    const { error } = await sb.auth.signUp({
       email,
       password,
       options: { data: { full_name: name.trim() } },
@@ -265,7 +276,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signInWithLink(email: string) {
-    const { error } = await getSupabase().auth.signInWithOtp({
+    const sb = await getSupabase();
+    const { error } = await sb.auth.signInWithOtp({
       email,
       options: {
         // Le retour du lien est calculé depuis l'origine SERVIE, jamais depuis
@@ -318,7 +330,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearAll();
     resetSyncQueue();
     setPreviewMember(false);
-    await getSupabase().auth.signOut();
+    const sb = await getSupabase();
+    await sb.auth.signOut();
   }
 
   /**
@@ -356,7 +369,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       // Le facteur TOTP a été retiré : rafraîchir la session pour que
       // `user.factors` (lu localement par l'assurance) reflète sa suppression.
-      await getSupabase().auth.refreshSession();
+      const sb = await getSupabase();
+      await sb.auth.refreshSession();
       setMfaRequired(false);
       return {};
     } catch (e) {
