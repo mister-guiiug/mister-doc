@@ -1,7 +1,9 @@
+import type { MouseEvent } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   CalendarDays,
   CalendarCheck,
+  LoaderCircle,
   Shield,
   ShieldCheck,
   ShieldOff,
@@ -9,6 +11,7 @@ import {
   Repeat,
 } from 'lucide-react';
 import { useAuth } from '../auth/useAuth.ts';
+import { useTransitionDeMenu } from './nav-transition.tsx';
 import { useI18n } from '../i18n/index.ts';
 import { NotificationsBell } from './NotificationsBell.tsx';
 import { SyncStatus } from '../features/sync/SyncStatus.tsx';
@@ -23,6 +26,18 @@ export function Header() {
         ? 'bg-teal-700 text-white'
         : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
     }`;
+
+  /*
+   * MÊME DÉFAUT QUE LA BARRE BASSE, MÊME CORRECTIF. Sans transition à nous, un
+   * clic ici reste muet pendant tout l'aller-retour du morceau : react-router
+   * ouvre sa propre transition, et React 19 garde alors l'écran déjà affiché
+   * plutôt que de montrer le repli de `Suspense`. Voir `nav-transition.tsx`.
+   */
+  const { enCours, enAttente, versLaVue } = useTransitionDeMenu();
+  const enAttenteDe = (to: string) => ({
+    onClick: (e: MouseEvent<HTMLAnchorElement>) => versLaVue(e, to),
+    'aria-busy': enAttente === to || undefined,
+  });
 
   return (
     <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/85 pt-[env(safe-area-inset-top)] backdrop-blur dark:border-slate-800 dark:bg-slate-900/85">
@@ -41,7 +56,7 @@ export function Header() {
           aria-label={t('nav.main')}
           className="hidden items-center gap-1 sm:flex"
         >
-          <NavLink to="/" end className={linkClass}>
+          <NavLink to="/" end className={linkClass} {...enAttenteDe('/')}>
             {t('nav.planning')}
           </NavLink>
           {doctor && (
@@ -49,9 +64,14 @@ export function Header() {
               to="/mon-planning"
               className={linkClass}
               title={t('nav.myPlanning')}
+              {...enAttenteDe('/mon-planning')}
             >
               <span className="flex items-center gap-1">
-                <CalendarCheck className="size-4" />
+                {enAttente === '/mon-planning' ? (
+                  <LoaderCircle className="size-4 animate-spin" />
+                ) : (
+                  <CalendarCheck className="size-4" />
+                )}
                 {t('nav.me')}
               </span>
             </NavLink>
@@ -61,9 +81,14 @@ export function Header() {
               to="/echanges"
               className={linkClass}
               title={t('nav.swaps')}
+              {...enAttenteDe('/echanges')}
             >
               <span className="flex items-center gap-1">
-                <Repeat className="size-4" />
+                {enAttente === '/echanges' ? (
+                  <LoaderCircle className="size-4 animate-spin" />
+                ) : (
+                  <Repeat className="size-4" />
+                )}
                 {t('nav.swaps')}
               </span>
             </NavLink>
@@ -74,20 +99,40 @@ export function Header() {
                 to="/compteurs"
                 className={linkClass}
                 title={t('nav.counters')}
+                {...enAttenteDe('/compteurs')}
               >
                 <span className="flex items-center gap-1">
-                  <BarChart3 className="size-4" />
+                  {enAttente === '/compteurs' ? (
+                    <LoaderCircle className="size-4 animate-spin" />
+                  ) : (
+                    <BarChart3 className="size-4" />
+                  )}
                   {t('nav.counters')}
                 </span>
               </NavLink>
-              <NavLink to="/admin" className={linkClass} title={t('nav.admin')}>
+              <NavLink
+                to="/admin"
+                className={linkClass}
+                title={t('nav.admin')}
+                {...enAttenteDe('/admin')}
+              >
                 <span className="flex items-center gap-1">
-                  <Shield className="size-4" />
+                  {enAttente === '/admin' ? (
+                    <LoaderCircle className="size-4 animate-spin" />
+                  ) : (
+                    <Shield className="size-4" />
+                  )}
                   {t('nav.admin')}
                 </span>
               </NavLink>
             </>
           )}
+          {/* HORS DES LIENS, pour ne pas changer leur nom accessible en cours
+              de route : un lecteur d'écran annoncerait « Échanges,
+              chargement… » puis « Échanges », sur le lien qui a le focus. */}
+          <span className="sr-only" role="status" aria-live="polite">
+            {enCours ? t('nav.loading') : ''}
+          </span>
         </nav>
 
         <div className="ml-auto flex items-center gap-1 sm:gap-2">
