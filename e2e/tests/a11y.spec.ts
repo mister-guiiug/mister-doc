@@ -87,10 +87,21 @@ test.describe('Accessibilité — WCAG A/AA', () => {
   test('profil authentifié sans violation', async ({ page }) => {
     await setupAuthenticated(page);
     await page.goto('/#/profil');
-    // La grille FamilyApps est rendue : cibler une CARTE visible. Le titre
-    // `[data-dwc="family-apps-title"]` est un heading sr-only (masqué by design),
-    // donc pas `toBeVisible`.
+
+    // La grille est REPLIÉE par catégorie (`groupBy`) : ses cartes existent
+    // dans le DOM mais restent cachées tant qu'un groupe n'est pas ouvert.
+    // C'est ce que cette assertion a attrapé quand le repli est arrivé — elle
+    // visait une carte visible, et en trouvait neuf, toutes masquées.
+    const groupes = page.locator('[data-dwc="family-app-group"]');
+    await expect(groupes.first()).toBeVisible();
+    await expect(page.locator('[data-dwc="family-app"]').first()).toBeHidden();
+
+    // Déplié, on retrouve la carte — et c'est l'état qu'axe doit analyser : un
+    // contenu masqué par `<details>` n'est pas scanné, la règle qui le couvre
+    // passerait donc sans rien avoir lu.
+    await groupes.first().locator('summary').click();
     await expect(page.locator('[data-dwc="family-app"]').first()).toBeVisible();
+
     await expectNoA11yViolations(page);
   });
 });
