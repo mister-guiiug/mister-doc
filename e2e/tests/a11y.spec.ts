@@ -88,18 +88,13 @@ test.describe('Accessibilité — WCAG A/AA', () => {
     await setupAuthenticated(page);
     await page.goto('/#/profil');
 
-    // La grille est REPLIÉE par catégorie (`groupBy`) : ses cartes existent
-    // dans le DOM mais restent cachées tant qu'un groupe n'est pas ouvert.
-    // C'est ce que cette assertion a attrapé quand le repli est arrivé — elle
-    // visait une carte visible, et en trouvait neuf, toutes masquées.
+    // La grille est groupée par catégorie (`groupBy`), et depuis le socle 6.6.0
+    // les groupes naissent DÉPLIÉS. Ce qui compte ici n'a pas changé : `axe` ne
+    // lit pas un `<details>` fermé, donc une grille repliée faisait passer la
+    // règle sans avoir analysé une seule carte. On vérifie que les cartes sont
+    // bien visibles AVANT l'audit — il n'y a plus de `summary` à cliquer.
     const groupes = page.locator('[data-dwc="family-app-group"]');
     await expect(groupes.first()).toBeVisible();
-    await expect(page.locator('[data-dwc="family-app"]').first()).toBeHidden();
-
-    // Déplié, on retrouve la carte — et c'est l'état qu'axe doit analyser : un
-    // contenu masqué par `<details>` n'est pas scanné, la règle qui le couvre
-    // passerait donc sans rien avoir lu.
-    await groupes.first().locator('summary').click();
     await expect(page.locator('[data-dwc="family-app"]').first()).toBeVisible();
 
     await expectNoA11yViolations(page);
