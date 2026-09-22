@@ -26,7 +26,7 @@ jobs:
       VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
       VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       # setup-node (registre GitHub Packages, scope @mister-guiiug) + npm ci
       # des dépendances de l'app (dev-pwa-config).
