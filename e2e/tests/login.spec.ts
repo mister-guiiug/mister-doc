@@ -15,7 +15,7 @@ test.describe('Page de connexion', () => {
     await page.goto('/');
 
     await expect(
-      page.getByRole('heading', { name: 'mister-doc' })
+      page.getByRole('heading', { name: 'Mister Doc' })
     ).toBeVisible();
 
     // Mode connexion : pas de champ « Nom affiché », et LE LIEN D'ABORD — pas

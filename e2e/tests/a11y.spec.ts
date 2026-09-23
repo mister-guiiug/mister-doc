@@ -59,7 +59,7 @@ test.describe('Accessibilité — WCAG A/AA', () => {
     await page.route(/supabase\.co/, route => route.abort());
     await page.goto('/');
     await expect(
-      page.getByRole('heading', { name: 'mister-doc' })
+      page.getByRole('heading', { name: 'Mister Doc' })
     ).toBeVisible();
     await expectNoA11yViolations(page);
   });
