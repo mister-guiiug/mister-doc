@@ -75,6 +75,14 @@ export function LoginPage() {
           <p className="text-sm text-slate-500 dark:text-slate-400">
             {t('login.subtitle')}
           </p>
+          {/* CE QU'ON Y FAIT, devant le formulaire. C'est le premier écran de
+              tout visiteur, et le seul que voit un moteur : relevé du
+              23/09/2026, il n'y lisait que « mister-doc » et un formulaire.
+              La fonctionnalité la plus distinctive de l'app - la bourse aux
+              gardes - n'y figurait nulle part. */}
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            {t('login.pitch')}
+          </p>
         </div>
 
         {sentTo ? (

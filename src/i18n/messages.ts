@@ -91,8 +91,10 @@ export const messages = {
       myProfile: 'Mon profil',
     },
     login: {
-      title: 'mister-doc',
+      title: 'Mister Doc',
       subtitle: "Planning de gardes des médecins d'un hôpital",
+      pitch:
+        "Édition en temps réel, bourse aux gardes, vue mensuelle, compteurs de week-ends et d'heures.",
       modeAria: 'Connexion ou création de compte',
       signin: 'Connexion',
       signup: 'Créer un compte',
@@ -898,8 +900,10 @@ export const messages = {
       myProfile: 'My profile',
     },
     login: {
-      title: 'mister-doc',
+      title: 'Mister Doc',
       subtitle: 'On-call scheduling for a hospital’s doctors',
+      pitch:
+        'Real-time editing, shift swaps, monthly view, weekend and hours counters.',
       modeAria: 'Sign in or create an account',
       signin: 'Sign in',
       signup: 'Create account',
