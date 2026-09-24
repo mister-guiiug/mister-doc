@@ -14,6 +14,8 @@ import { PushCard } from './PushCard.tsx';
 import { PrivacyCard } from './PrivacyCard.tsx';
 import { AppInfoCard } from './AppInfoCard.tsx';
 import { OtherAppsCard } from './OtherAppsCard.tsx';
+import { AppFooter } from '@mister-guiiug/dev-pwa-config/react/app-footer';
+import { repoUrl } from '@mister-guiiug/dev-pwa-config/apps-catalog';
 
 /**
  * Écran « Profil » : assemblage des cartes de réglages. Chaque carte est
@@ -72,6 +74,15 @@ export function ProfilePage() {
       >
         <LogOut className="size-4" /> {t('profile.signOut')}
       </Button>
+
+      {/* Le code source, le soutien et le signalement : ici et sur l'accueil,
+          nulle part ailleurs (règle famille du 06/09/2026). */}
+      <AppFooter
+        version
+        issues
+        className="mt-8 justify-center px-4"
+        repoUrl={repoUrl('mister-doc')}
+      />
     </div>
   );
 }

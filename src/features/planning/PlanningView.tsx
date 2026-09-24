@@ -19,6 +19,8 @@ import { PlanningDialogs } from './PlanningDialogs.tsx';
 import { FullScreenSpinner } from '../../components/Spinner.tsx';
 import { usePlanningData } from './usePlanningData.ts';
 import { usePlanningMutations } from './usePlanningMutations.ts';
+import { AppFooter } from '@mister-guiiug/dev-pwa-config/react/app-footer';
+import { repoUrl } from '@mister-guiiug/dev-pwa-config/apps-catalog';
 
 export function PlanningView() {
   const { doctor, isAdmin } = useAuth();
@@ -319,6 +321,15 @@ export function PlanningView() {
           un refus d'avant sa cadence et le traduit en report d'un mois, au lieu
           de reproposer l'installation à qui l'avait déjà écartée. */}
       <PwaInstallPrompt dismissKey="mister-doc:install-dismissed" />
+
+      {/* Le code source, le soutien et le signalement : ici, sur l'accueil,
+          et sur le Profil, nulle part ailleurs (règle famille du 06/09/2026). */}
+      <AppFooter
+        version
+        issues
+        className="mt-8 justify-center px-4"
+        repoUrl={repoUrl('mister-doc')}
+      />
     </div>
   );
 }
