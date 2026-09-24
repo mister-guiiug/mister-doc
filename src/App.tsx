@@ -13,9 +13,7 @@ import { ToastProvider } from '@mister-guiiug/dev-pwa-config/react/toast';
 import { IconsProvider } from '@mister-guiiug/dev-pwa-config/react/icons-context';
 import { LabelsProvider } from '@mister-guiiug/dev-pwa-config/react/labels';
 import { lucideIconSet } from '@mister-guiiug/dev-pwa-config/react/icons-lucide';
-import { AppFooter } from '@mister-guiiug/dev-pwa-config/react/app-footer';
 import { useIdlePrefetch } from '@mister-guiiug/dev-pwa-config/react/use-prefetch';
-import { repoUrl } from '@mister-guiiug/dev-pwa-config/apps-catalog';
 import { AuthProvider } from './auth/AuthContext.tsx';
 import { AuthGate } from './auth/AuthGate.tsx';
 import { useAuth } from './auth/useAuth.ts';
@@ -213,20 +211,10 @@ export default function App() {
                         </Routes>
                       </Suspense>
 
-                      {/* HORS des routes : le code source et le soutien sont
-                          ainsi sur le premier écran comme sur le Profil — la
-                          règle famille. Écrit dans un `element={…}`, ce pied
-                          de page ne vaudrait que pour une route. Il est DANS
-                          `<main>` parce que la barre basse est fixe et que
-                          c'est le `pb-24` de `<main>` qui lui réserve sa
-                          place. */}
+                      {/* PAS DE PIED DE PAGE ICI : la règle famille
+                          (06/09/2026) le veut sur l'accueil (PlanningView) et
+                          le Profil seulement. */}
                       <Mesure />
-                      <AppFooter
-                        version
-                        issues
-                        className="mt-8 justify-center px-4"
-                        repoUrl={repoUrl('mister-doc')}
-                      />
                     </main>
                     <BottomNav />
                   </div>
