@@ -29,7 +29,7 @@
     "_pourquoi": "RELEVÉ DE 453 À 511 LE 19/09/2026 : `posthog-js` entre avec l'ADR 0012, le parc quittant GA4 pour PostHog en Europe. 464 kB mesurés, 511 = mesure + 10 % (la formule du cliquet du socle). LE MORCEAU EST DIFFÉRÉ ET LE RESTE : il n'est chargé qu'APRÈS l'accord, et un visiteur qui refuse ne le télécharge jamais — c'est `preloadGzipKb`, inchangé par ce commit, qui garde le chemin critique. Le `loader` vise `posthog-js/dist/module.slim.js` : 48,9 kB gzip au lieu de 97,6 pour l'entrée par défaut, en laissant dehors l'enregistrement de session, l'autocapture, les sondages et la barre d'outils — que l'ADR 0012 coupe de toute façon. MESURER EN CI, PAS EN LOCAL."
   },
   "dependencies": {
-    "@sentry/react": "^10.75.3",
+    "@sentry/react": "^11.0.0",
     "@supabase/supabase-js": "^2.117.1",
     "lucide-react": "^1.47.0",
     "posthog-js": "^1.434.11",
@@ -39,7 +39,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@mister-guiiug/dev-pwa-config": "^6.13.0",
+    "@mister-guiiug/dev-pwa-config": "^6.15.1",
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
