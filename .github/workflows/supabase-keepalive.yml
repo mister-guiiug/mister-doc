@@ -1,0 +1,18 @@
+# Garde le projet Supabase éveillé : un projet Free se met en pause après sept
+# jours sans activité, et mister-doc — le planning des gardes — cesserait alors
+# de répondre sans prévenir. Le réutilisable du socle fait une lecture anonyme
+# (RLS respectée) ; les deux valeurs viennent des variables du dépôt, déjà lues
+# par le déploiement.
+name: Supabase keep-alive
+
+on:
+  schedule:
+    - cron: '41 3 */3 * *' # ~tous les 3 jours (< 7 j) — décalé des autres dépôts
+  workflow_dispatch:
+
+jobs:
+  keepalive:
+    uses: mister-guiiug/dev-pwa-config/.github/workflows/pwa-supabase-keepalive.yml@v6
+    secrets:
+      VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
