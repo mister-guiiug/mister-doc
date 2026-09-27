@@ -55,7 +55,7 @@ Un planning diffusé bouge toujours : un imprévu, un échange entre collègues.
 
 ## Comment Mister Doc vous aide
 
-Mister Doc est une application de planning de gardes pour une équipe de médecins hospitaliers, utilisée à côté de l'outil de l'établissement.
+[Mister Doc](https://mister-guiiug.github.io/mister-doc/) est une application de planning de gardes pour une équipe de médecins hospitaliers, utilisée à côté de l'outil de l'établissement.
 
 - **Une vue mensuelle** par semaine, avec des créneaux configurables (heures, nuit, requis le week-end) et les jours fériés français calculés.
 - **Des alertes** : garde au lendemain d'une nuit, garde pendant une absence, plusieurs créneaux le même jour.
