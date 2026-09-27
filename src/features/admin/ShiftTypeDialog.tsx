@@ -159,7 +159,7 @@ export function ShiftTypeDialog({
             type="color"
             value={draft.color ?? '#94a3b8'}
             onChange={e => set('color', e.target.value)}
-            className="h-8 w-12 rounded border border-slate-300 dark:border-slate-600"
+            className="touch-target w-12 rounded border border-slate-300 dark:border-slate-600"
           />
           {draft.color && (
             <button
