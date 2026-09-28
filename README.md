@@ -6,8 +6,8 @@ métier, à partir d'un modèle simple de créneaux mensuels.
 
 > Reprend les bonnes pratiques de la famille d'applications `miss-*`/`mister-*`
 > (React 19 + Vite + TypeScript strict, Tailwind 4, `vite-plugin-pwa`, CSP en
-> défense en profondeur, Supabase avec RLS), en version **autonome** (aucune
-> dépendance à un registre npm privé).
+> défense en profondeur, Supabase avec RLS). Les briques partagées viennent du
+> paquet `@mister-guiiug/dev-pwa-config`, publié sur GitHub Packages.
 
 ## Fonctionnalités
 
@@ -95,8 +95,10 @@ métier, à partir d'un modèle simple de créneaux mensuels.
 
 ### Technique
 
-- **PWA installable** (invite d'installation), shell applicatif en cache, mise à
-  jour automatique du service worker + bouton de mise à jour forcée.
+- **PWA installable** (invite d'installation), shell applicatif en cache ;
+  nouvelle version téléchargée en fond puis proposée par un bandeau (vérifiée
+  toutes les heures, appliquée quand l'utilisateur l'accepte), et bouton de mise
+  à jour forcée.
 - **Écriture hors ligne** : sans réseau, une affectation, une absence ou des
   heures non cliniques sont **mises en file** (persistée dans le navigateur, elle
   survit à un rechargement) et repartent seules au retour du réseau. Un badge
@@ -130,8 +132,10 @@ Le dépôt est **public** et la clé `anon` Supabase est présente dans le bundl
 **Connexion** : mot de passe (principal), avec deux options **opt-in** par médecin
 depuis le profil — **double authentification** TOTP (code à 6 chiffres + codes de
 secours) et **connexion par empreinte** / Face ID / Windows Hello (**passkeys**
-WebAuthn natives de Supabase Auth, beta). Les passkeys exigent une activation côté
-dashboard Supabase (RP ID + origine) — voir [`docs/deploiement.md`](docs/deploiement.md).
+WebAuthn natives de Supabase Auth, beta). La double authentification est vérifiée
+par l'application à la connexion ; la base de données ne l'exige pas encore. Les
+passkeys exigent une activation côté dashboard Supabase (RP ID + origine) : voir
+[`docs/deploiement.md`](docs/deploiement.md).
 
 Ne committez **jamais** la clé `service_role` ni un token `sbp_…` (Management
 API). Le fichier `.env` est ignoré par git.
@@ -149,6 +153,7 @@ gardes passées restent au planning sous une identité anonyme (intégrité pré
 ## Développement local
 
 ```bash
+export NODE_AUTH_TOKEN=<jeton>  # jeton GitHub (droit read:packages), exigé par .npmrc
 npm install
 cp .env.example .env      # puis renseignez URL + clé anon (Supabase → Settings → API)
 npm run dev               # http://localhost:5173
@@ -165,16 +170,18 @@ Scripts utiles : `npm run build`, `npm run preview`, `npm run test`,
 
 Le schéma versionné est découpé en migrations dans
 [`supabase/migrations/`](supabase/migrations/), appliquées **dans l'ordre**
-(`0001` → `0026`). Pour une instance existante, le déploiement (Edge Functions +
+(`0001` → `0028`). Pour une instance existante, le déploiement (Edge Functions +
 migrations `≥ 0014`) est **automatisé par la CI** — workflow
-[`.github/workflows/supabase.yml`](.github/workflows/supabase.yml), déclenché sur
-tout changement `supabase/**` sur `main`. Détails, secrets requis et procédure
-manuelle de repli : [`docs/deploiement.md`](docs/deploiement.md).
+[`.github/workflows/supabase.yml`](.github/workflows/supabase.yml), déclenché par
+tout changement de `supabase/migrations/`, `supabase/functions/` ou
+`supabase/config.toml` sur `main`. Détails, secrets requis et procédure manuelle
+de repli : [`docs/deploiement.md`](docs/deploiement.md).
 
-> ⚠️ Les migrations **`0001`→`0013` ne sont jamais appliquées par la CI** (l'une
-> d'elles supprime des données) : sur une base neuve, il faut les passer **à la
-> main** dans l'éditeur SQL, sans `supabase db push`. La CI en vérifie ensuite la
-> présence et refuse de continuer s'il en manque une.
+> ⚠️ Les migrations **`0001`→`0013` ne sont jamais appliquées à la base hébergée
+> par la CI** (l'une d'elles supprime des données) : sur une base neuve, il faut
+> les passer **à la main** dans l'éditeur SQL, sans `supabase db push`. La CI en
+> vérifie ensuite la présence et refuse de continuer s'il en manque une. Le
+> workflow « Supabase tests » les rejoue toutes, mais sur une pile jetable.
 
 | Migration                                  | Contenu                                                                                                                        |
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
@@ -198,11 +205,13 @@ manuelle de repli : [`docs/deploiement.md`](docs/deploiement.md).
 | `0019_anonymize_doctor`                    | **effacement RGPD** des comptes approuvés par **anonymisation** (RPC `anonymize_doctor`, self-service ou admin)                |
 | `0020_admin_reset_mfa`                     | **récupération 2FA** : un admin réinitialise la double authentification d'un médecin (RPC `admin_reset_mfa`)                   |
 | `0021_mfa_recovery_codes`                  | **codes de secours 2FA** self-service (table `mfa_recovery_codes` hashés + RPC `generate_`/`use_mfa_recovery_code`)            |
-| `0022_shift_types`                         | **créneaux configurables** (table `shift_types`, CHECK → FK, RPC admin `admin_upsert_/set_active_/reorder_/delete_shift_type`) |
+| `0022_shift_types`                         | **créneaux configurables** (table `shift_types`, CHECK → FK, RPC admin d'écriture, (dés)activation, ordre et suppression)      |
 | `0023_shift_reminders`                     | **rappels de garde** quotidiens (`enqueue_shift_reminders` + job pg_cron, RPC `admin_send_reminders`)                          |
 | `0024_weekly_digest`                       | **récapitulatif hebdomadaire** (`enqueue_weekly_digest` + job pg_cron, RPC `admin_send_weekly_digest`)                         |
 | `0025_copy_previous_month`                 | **copie de mois** (RPC `assign_shifts_bulk`) + notifications d'affectation **groupées** à l'INSERT                             |
 | `0026_weekly_digest_idempotence`           | clé d'idempotence du récapitulatif ancrée sur le **lundi de la semaine** couverte (plus de doublon au rattrapage manuel)       |
+| `0027_shift_compare_and_set`               | **écritures de garde conditionnelles** pour le rejeu hors ligne (RPC `assign_shift_if_unchanged` / `clear_shift_if_unchanged`) |
+| `0028_keep_alive`                          | table `keep_alive`, lisible par `anon` seul, que le workflow « Supabase keep-alive » interroge                                 |
 
 Après `0001`, renseignez le code de bootstrap :
 
@@ -223,16 +232,27 @@ https://<ref>.supabase.co/functions/v1/calendar?token=TOKEN&scope=me   # ses pro
 L'accès est protégé par un token secret **propre à chaque médecin** (stocké
 haché, cf. migration `0018`) ; la fonction lit les données via la clé
 `service_role` et est déployée avec `verify_jwt = false` (les agendas ne peuvent
-pas envoyer de JWT). Dans l'app, le bouton **Calendrier** de l'en-tête affiche
-l'URL d'abonnement (équipe ou personnelle) avec liens webcal / Google Agenda /
-téléchargement, et permet de **révoquer** le token en le régénérant
-(`rotate_calendar_token()`).
+pas envoyer de JWT). Dans l'app, la carte **Calendrier** du profil (et le bouton
+de « Mon planning ») affiche l'URL d'abonnement (équipe ou personnelle) avec
+liens webcal / Google Agenda / téléchargement, et permet de **révoquer** le
+token en le régénérant (`rotate_calendar_token()`).
 
 Déploiement de la fonction : automatisé par la CI (workflow
 [`supabase.yml`](.github/workflows/supabase.yml), `verify_jwt` déclaré dans
 [`supabase/config.toml`](supabase/config.toml)) ; en manuel :
-`supabase functions deploy calendar --no-verify-jwt`. Définir ensuite le token :
-`update public.app_config set calendar_token = 'SECRET' where id = 1;`
+`supabase functions deploy calendar --no-verify-jwt`.
+
+Lien d'équipe partagé (facultatif et hérité : le lien de chaque médecin donne
+déjà le flux de l'équipe) : n'en stocker que l'empreinte.
+
+```sql
+update public.app_config
+  set calendar_token_hash = encode(extensions.digest('SECRET', 'sha256'), 'hex')
+  where id = 1;
+```
+
+La fonction accepte encore un `calendar_token` en clair, mais il resterait
+lisible dans une copie de la base.
 
 **Tokens hashés au repos** (migration `0018`) : la base ne stocke plus que le
 **SHA-256** des tokens (`calendar_token_hash`) — un dump ne révèle aucun lien
@@ -291,8 +311,13 @@ préalable, dans **Settings → Secrets and variables → Actions → Variables*
 
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
+- `VITE_VAPID_PUBLIC_KEY`
 
-puis activez **Settings → Pages → Source : GitHub Actions**.
+puis activez **Settings → Pages → Source : GitHub Actions**. Les trois variables
+sont exigées : le déploiement s'arrête si l'une manque. `VITE_SENTRY_DSN` et
+`VITE_POSTHOG_KEY` sont facultatives : absentes, rien n'est chargé ni envoyé.
+`VITE_POSTHOG_KEY` ne doit pas être posée tant que la politique de
+confidentialité porte `[À compléter]` (cf. `src/App.tsx`).
 
 ## Architecture
 
@@ -300,21 +325,30 @@ puis activez **Settings → Pages → Source : GitHub Actions**.
 src/
   lib/        env (validation JS) · client Supabase · dates (semaine ISO) ·
               créneaux + compteurs · congés · HNC · validation/alertes · équité ·
-              répétition + copie de mois · PDF · XLSX · tons de chips · couleurs
+              répétition + copie de mois · tons de chips · couleurs
   backend/    types · doctors · planning (shifts) · leaves · hnc · notes · wishes ·
               swaps · shiftTypes · notifications · push · reminders · history ·
-              audit · gdpr · mfa · passkey · backup · locks · settings · calendar
+              audit · gdpr · mfa · passkey · backup · locks · settings · calendar ·
+              syncQueue + planningSync (file d'écritures hors ligne)
   auth/       contexte + porte d'authentification + page de connexion
   i18n/       catalogue FR/EN typé + fournisseur de traduction
   features/   planning/ (liste + grille, compteurs, dialogues affect./congé/note/HNC) ·
               swaps/ · admin/ (panel, compteurs équipe, créneaux, sauvegarde) ·
-              profile/ · pending/ · legal/ (politique de confidentialité)
+              profile/ · pending/ · sync/ (état de la file hors ligne) ·
+              legal/ (politique de confidentialité)
   components/ en-tête · barre d'onglets basse · cloche notifications ·
-              calendrier · profil · invite d'installation · spinner
+              calendrier · profil · spinner
 ```
 
-Tests (`src/lib/*.test.ts`) : compteurs, semaine ISO, créneaux actifs, congés,
-alertes de validation, répétition hebdomadaire, copie de mois.
+Les exports PDF et Excel passent par les modules `pdf` et `xlsx` du socle, et
+l'invite d'installation est son composant `PwaInstallPrompt`, posé sur le
+planning.
+
+Tests : Vitest dans `src/` (compteurs, semaine ISO, créneaux actifs, congés,
+alertes de validation, répétition hebdomadaire, copie de mois, file hors ligne,
+MFA, exports, mentions légales), Playwright dans `e2e/tests/` (connexion, MFA,
+planning, verrou de mois, admin, file hors ligne, accessibilité) et pgTAP pour
+la barrière d'approbation (`supabase/tests/`, workflow « Supabase tests »).
 
 ### Ce qui vient du socle, et ce qui reste local
 
@@ -337,11 +371,12 @@ ce n'est pas une question de nommage :
 
 Les replier sur six intentions sémantiques ferait perdre la distinction (tout
 deviendrait `muted`) ou mentirait sur le sens (un congé n'est pas un `danger`).
-S'ajoute que `size="xs"`, utilisé par les pastilles de la carte des créneaux,
-n'a pas d'équivalent : le socle n'a pas d'axe de taille. La carte des tons
-(`src/lib/tones.ts`) sert d'ailleurs aussi à `Counters` et `SwapStatusBadge`,
-qui ne sont pas des `Badge`.
+S'ajoutait que `size="xs"`, utilisé par les pastilles de la carte des créneaux,
+n'avait pas d'équivalent. Le socle a ouvert depuis (02/09/2026) un axe de
+taille (`xs`, `sm`, `md`) : cet argument est tombé, seul celui des tons demeure.
+La carte des tons (`src/lib/tones.ts`) sert d'ailleurs aussi à `Counters` et
+`SwapStatusBadge`, qui ne sont pas des `Badge`.
 
-Décision **réexaminée contre le socle 3.24.0** (2026-08-30) : inchangée. Elle
-redeviendra discutable le jour où le socle ouvrira son axe de tons ou ajoutera
-une taille — pas avant.
+Décision **réexaminée contre le socle 3.24.0** (2026-08-30) : inchangée. La
+taille existe désormais au socle ; la décision redeviendra discutable le jour où
+il ouvrira son axe de tons, pas avant.
