@@ -120,6 +120,8 @@ export const messages = {
       signupPending:
         'Un nouveau compte est « en attente » jusqu’à validation par un administrateur.',
       privacyLink: 'Politique de confidentialité',
+      /** Le guide public (page statique) : lisible sans compte, et par les moteurs. */
+      guideLink: 'Guide : le planning de gardes des médecins',
     },
     authGate: {
       cannotLoadDoctor:
@@ -929,6 +931,7 @@ export const messages = {
       signupPending:
         'A new account stays "pending" until an administrator approves it.',
       privacyLink: 'Privacy policy',
+      guideLink: 'Guide: the doctors’ on-call schedule',
     },
     authGate: {
       cannotLoadDoctor:

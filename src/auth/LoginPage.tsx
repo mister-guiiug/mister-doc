@@ -234,6 +234,13 @@ export function LoginPage() {
           >
             {t('login.privacyLink')}
           </button>
+          {' · '}
+          <a
+            href={`${import.meta.env.BASE_URL}planning-de-gardes-medecins.html`}
+            className="underline hover:text-slate-700 dark:hover:text-slate-200"
+          >
+            {t('login.guideLink')}
+          </a>
         </p>
       </div>
 

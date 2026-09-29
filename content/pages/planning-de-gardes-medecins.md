@@ -1,6 +1,9 @@
 ---
 title: Planning de gardes des médecins : une répartition équitable
 description: Créneaux à couvrir, vœux, repos après une nuit, week-ends et fériés, échanges : la méthode pour bâtir un planning de gardes équitable, avec un exemple chiffré.
+date: 2026-09-25
+updated: 2026-09-29
+answer: Pour répartir équitablement les gardes, comptez séparément les nuits, les jours de week-end, les jours fériés et les heures de chaque médecin, puis équilibrez ces compteurs sur plusieurs mois, par exemple un quadrimestre : à six médecins et 16 gardes de week-end par mois, l'écart entre deux collègues peut rester d'une garde.
 ---
 
 # Planning de gardes des médecins : construire une répartition équitable
@@ -11,7 +14,7 @@ Cette page décrit une méthode d'organisation. Elle ne remplace ni la réglemen
 
 ## 1. Lister les créneaux à couvrir
 
-Décrivez d'abord les gardes du service : garde de jour, garde de nuit, avec leur durée en heures. Précisez ensuite celles qui doivent être couvertes le week-end et les jours fériés : certains créneaux de semaine ne le sont pas.
+Décrivez d'abord les gardes du service : garde de jour, garde de nuit, avec leur durée en heures. Précisez ensuite celles qui doivent être couvertes le week-end et les jours fériés : certains créneaux de semaine ne le sont pas. Les jours fériés sont onze en règle générale, treize en Alsace-Moselle.
 
 ## 2. Recueillir les vœux et les absences
 
@@ -25,13 +28,13 @@ Placez d'abord les nuits, les week-ends et les jours fériés : ce sont eux qui 
 
 Posez-vous trois questions pour chaque jour :
 
-- Un médecin est-il de garde le lendemain d'une nuit ? Le repos qui suit une garde de nuit est encadré par la réglementation et par votre établissement.
+- Un médecin est-il de garde le lendemain d'une nuit ? Le repos qui suit une garde de nuit est encadré par la réglementation et par votre établissement : voir [Repos de sécurité après une garde](repos-de-securite-apres-une-garde.html).
 - Un médecin est-il affecté un jour où il est en congé ou en formation ?
 - Un médecin occupe-t-il deux créneaux le même jour ?
 
 ## 5. Mesurer l'équité sur une période assez longue
 
-Sur un seul mois, une répartition parfaite est rarement possible. Comptez donc sur une période plus longue, par exemple un quadrimestre (quatre mois), et suivez pour chacun :
+Sur un seul mois, une répartition parfaite est rarement possible. Comptez donc sur une période plus longue, par exemple un quadrimestre (quatre mois). C'est d'ailleurs sur quatre mois que le code de la santé publique calcule la durée moyenne de travail des praticiens hospitaliers, plafonnée à 48 heures par semaine (article R6152-27). Suivez pour chacun :
 
 - le nombre de jours de week-end travaillés ;
 - le nombre de nuits ;
@@ -51,13 +54,13 @@ Sur un quadrimestre de quatre mois semblables, cela fait 64 gardes de week-end, 
 
 ## 6. Organiser les échanges, puis figer le mois
 
-Un planning diffusé bouge toujours : un imprévu, un échange entre collègues. Fixez une règle simple : la garde est proposée, un collègue l'accepte, et le planning est mis à jour pour tout le monde. Une fois le mois validé, verrouillez-le.
+Un planning diffusé bouge toujours : un imprévu, un échange entre collègues. Fixez une règle simple : la garde est proposée, un collègue l'accepte, et le planning est mis à jour pour tout le monde. Une fois le mois validé, verrouillez-le. Dans les établissements publics de santé, le tableau de service nominatif du mois est d'ailleurs arrêté avant le 20 du mois précédent, par le directeur, sur proposition du chef de service.
 
 ## Comment Mister Doc vous aide
 
 [Mister Doc](https://mister-guiiug.github.io/mister-doc/) est une application de planning de gardes pour une équipe de médecins hospitaliers, utilisée à côté de l'outil de l'établissement.
 
-- **Une vue mensuelle** par semaine, avec des créneaux configurables (heures, nuit, requis le week-end) et les jours fériés français calculés.
+- **Une vue mensuelle** par semaine, avec des créneaux configurables (heures, nuit, requis le week-end) et les onze jours fériés nationaux calculés, lundi de Pentecôte compris ou non, au choix de l'administrateur.
 - **Des alertes** : garde au lendemain d'une nuit, garde pendant une absence, plusieurs créneaux le même jour.
 - **Les congés, formations, vœux et indisponibilités** de chacun, ainsi que les heures non cliniques.
 - **Des compteurs** pour chaque médecin, au mois ou au quadrimestre (vendredis, samedis, dimanches, heures). Les administrateurs voient ceux de toute l'équipe, au mois, au quadrimestre ou à l'année, avec une vue « Équité » (week-ends, nuits, fériés, heures) et des exports CSV, Excel et PDF.
@@ -82,4 +85,10 @@ Avec une règle unique et visible : la garde est proposée, à une personne ou �
 
 ### Qui peut utiliser Mister Doc ?
 
-Les membres d'une équipe de médecins. Chacun crée son compte, qui reste en attente jusqu'à ce qu'un administrateur l'approuve. La connexion se fait par un lien reçu par e-mail ou par mot de passe.
+Les membres d'une équipe de médecins. Chacun crée son compte, qui reste en attente jusqu'à ce qu'un administrateur l'approuve. La connexion se fait par un lien reçu par e-mail, par mot de passe ou par clé d'accès.
+
+## Sources
+
+- [Article R6152-27 du code de la santé publique](https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000045138028), Légifrance : durée de travail des praticiens hospitaliers calculée sur quatre mois, repos quotidien.
+- [Arrêté du 30 avril 2003 relatif à l'organisation et à l'indemnisation de la continuité des soins](https://www.legifrance.gouv.fr/loda/id/JORFTEXT000000602745/), Légifrance : tableau de service nominatif mensuel, repos de sécurité.
+- [Jours fériés dans la fonction publique](https://www.service-public.gouv.fr/particuliers/vosdroits/F24496), service-public.gouv.fr.
