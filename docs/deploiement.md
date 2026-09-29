@@ -17,7 +17,7 @@ documentée en repli.
 | Front (GitHub Pages)                                    | ✅ à jour, en prod — <https://mister-guiiug.github.io/mister-doc/>                                                                                             |
 | Variables Actions `VITE_SUPABASE_*`                     | ✅ déjà posées                                                                                                                                                 |
 | Secrets CI (`SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_URL`) | ✅ posés (déploiement Supabase automatisé)                                                                                                                     |
-| Schéma de base                                          | ✅ migrations `0014`→`0026` **appliquées** (via CI) ; `0001`→`0013` posées à la main, hors CI (dont `0013`, appliquée le 2026-08-02)                           |
+| Schéma de base                                          | ✅ migrations `0014`→dernière **rejouées à chaque déploiement** (via CI) ; `0001`→`0013` posées à la main, hors CI (dont `0013`, appliquée le 2026-08-02)      |
 | Edge Functions `calendar` / `push`                      | ✅ **déployées** (rate-limit + lookup par hash)                                                                                                                |
 | Notifications push (Web Push)                           | ✅ **opérationnelles** depuis le 2026-08-02 — chaîne validée de bout en bout (cf. [section dédiée](#notifications-push--configuration-hors-dépôt-obligatoire)) |
 | Passkeys (connexion par empreinte)                      | ✅ activées côté dashboard (RP ID `mister-guiiug.github.io`)                                                                                                   |
@@ -105,7 +105,7 @@ optionnels du rate-limit : variables d'environnement `CALENDAR_RATE_MAX` (défau
 > clair pendant la transition) : elle fonctionne donc **avant comme après** `0018`.
 > D'où l'ordre : fonction d'abord, migrations ensuite.
 
-### 2) Appliquer les migrations `0014` → `0026` **dans l'ordre**
+### 2) Appliquer les migrations `0014` → `0029` **dans l'ordre**
 
 Via **SQL Editor** du tableau de bord Supabase, copier-coller chaque fichier de
 [`supabase/migrations/`](../supabase/migrations/) dans l'ordre croissant. Toutes
@@ -132,6 +132,9 @@ numérotation.
 | `0024_weekly_digest`             | récapitulatif hebdomadaire (job pg_cron)                               | sûre à tout moment                                  |
 | `0025_copy_previous_month`       | copie de mois (`assign_shifts_bulk`) + notifs d'affectation groupées   | remplace le trigger `shifts_notify` de `0006`       |
 | `0026_weekly_digest_idempotence` | clé d'idempotence du récapitulatif ancrée sur le lundi de la semaine   | corrige un doublon possible au rattrapage manuel    |
+| `0027_shift_compare_and_set`     | écritures de garde conditionnelles (rejeu d'une file hors ligne)       | sûre à tout moment                                  |
+| `0028_keep_alive`                | table `keep_alive`, lisible par `anon` seul                            | sûre à tout moment                                  |
+| `0029_droits_fonctions`          | 4 fonctions internes fermées à `anon`, garde d'`anonymize_doctor`      | sûre : pg_cron et les RPC `admin_*` gardent l'accès |
 
 ## Jobs pg_cron
 

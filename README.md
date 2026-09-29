@@ -170,7 +170,7 @@ Scripts utiles : `npm run build`, `npm run preview`, `npm run test`,
 
 Le schéma versionné est découpé en migrations dans
 [`supabase/migrations/`](supabase/migrations/), appliquées **dans l'ordre**
-(`0001` → `0028`). Pour une instance existante, le déploiement (Edge Functions +
+(`0001` → `0029`). Pour une instance existante, le déploiement (Edge Functions +
 migrations `≥ 0014`) est **automatisé par la CI** — workflow
 [`.github/workflows/supabase.yml`](.github/workflows/supabase.yml), déclenché par
 tout changement de `supabase/migrations/`, `supabase/functions/` ou
@@ -212,6 +212,7 @@ de repli : [`docs/deploiement.md`](docs/deploiement.md).
 | `0026_weekly_digest_idempotence`           | clé d'idempotence du récapitulatif ancrée sur le **lundi de la semaine** couverte (plus de doublon au rattrapage manuel)       |
 | `0027_shift_compare_and_set`               | **écritures de garde conditionnelles** pour le rejeu hors ligne (RPC `assign_shift_if_unchanged` / `clear_shift_if_unchanged`) |
 | `0028_keep_alive`                          | table `keep_alive`, lisible par `anon` seul, que le workflow « Supabase keep-alive » interroge                                 |
+| `0029_droits_fonctions`                    | **droits des fonctions** : quatre fonctions internes fermées à `anon` et `authenticated`, garde d'`anonymize_doctor` refermée  |
 
 Après `0001`, renseignez le code de bootstrap :
 
@@ -348,7 +349,9 @@ Tests : Vitest dans `src/` (compteurs, semaine ISO, créneaux actifs, congés,
 alertes de validation, répétition hebdomadaire, copie de mois, file hors ligne,
 MFA, exports, mentions légales), Playwright dans `e2e/tests/` (connexion, MFA,
 planning, verrou de mois, admin, file hors ligne, accessibilité) et pgTAP pour
-la barrière d'approbation (`supabase/tests/`, workflow « Supabase tests »).
+la barrière d'approbation, les droits des fonctions `security definer` et deux
+invariants de structure : aucune table sans RLS, et la liste relue des fonctions
+qu'`anon` peut exécuter (`supabase/tests/`, workflow « Supabase tests »).
 
 ### Ce qui vient du socle, et ce qui reste local
 
