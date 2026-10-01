@@ -8,13 +8,19 @@
 -- DÉFAUT, et `revoke … from public` ne le retire pas. 0029 a retiré ce droit à
 -- quatre fonctions que seuls pg_cron, les déclencheurs et les enveloppes
 -- `admin_*` appellent, et refermé la garde d'`anonymize_doctor`, qui laissait
--- passer un appelant sans fiche. Ce fichier le prouve (§ 1 à 3), puis fige deux
+-- passer un appelant sans fiche. Ce fichier le prouve (§ 1 à 3), puis fige trois
 -- invariants de structure (§ 4) :
 --   - aucune table de `public` sans RLS ;
 --   - les fonctions SECURITY DEFINER qu'`anon` peut exécuter forment une liste
 --     RELUE. Une fonction neuve qui n'y figure pas fait échouer ce test : lui
 --     retirer `anon` en nommant le rôle, ou l'ajouter à la liste après avoir
---     relu son contrôle de l'appelant.
+--     relu son contrôle de l'appelant ;
+--   - aucune fonction de `public` ne lève `40001` (`serialization_failure`).
+--     PostgREST prend ce code pour un échec de sérialisation passager et
+--     rejoue la transaction SANS FIN : la requête ne répond jamais, et le
+--     backend tourne jusqu'à ce qu'on le tue (PostgREST 14, corrigé en 16).
+--     Un conflit métier se signale par `PT409`, rendu en HTTP 409. Ajouté le
+--     01/10/2026, après une boucle en production sur mister-molkky.
 --
 -- Comme dans `barriere-approbation.test.sql`, aucune assertion n'est jouée
 -- sous `anon` ni `authenticated` : on tente sous le rôle, on dépose le
@@ -27,7 +33,7 @@ set search_path to public, extensions;
 
 begin;
 
-select plan(21);
+select plan(22);
 
 -- ── Deux outils : le SQLSTATE d'une tentative, ou son message ─────────────
 --
@@ -242,7 +248,7 @@ select is(
 );
 
 -- ╔══════════════════════════════════════════════════════════════════════════╗
--- ║ 4. Deux invariants de structure.                                         ║
+-- ║ 4. Trois invariants de structure.                                        ║
 -- ╚══════════════════════════════════════════════════════════════════════════╝
 
 -- Les tables d'une extension (s'il y en avait dans `public`) ne relèvent pas
@@ -299,6 +305,26 @@ select set_eq(
     'update_my_profile', 'use_mfa_recovery_code'
   ],
   'les fonctions SECURITY DEFINER exécutables par anon sont exactement la liste relue'
+);
+
+-- Le corps entier est lu, commentaires compris : une fonction qui ne fait que
+-- CITER le code échoue aussi. C'est voulu, la règle reste simple à tenir. Les
+-- outils `df_t_*` de ce fichier n'en parlent pas.
+select is_empty(
+  $$
+    select p.proname::text
+      from pg_proc p
+     where p.pronamespace = 'public'::regnamespace
+       and p.prokind in ('f', 'p')
+       and pg_get_functiondef(p.oid) ~* '40001|serialization_failure'
+       and not exists (
+         select 1 from pg_depend d
+          where d.classid = 'pg_proc'::regclass
+            and d.objid = p.oid
+            and d.deptype = 'e'
+       )
+  $$,
+  'aucune fonction de public ne lève 40001 : PostgREST la rejouerait sans fin'
 );
 
 select * from finish();
