@@ -30,7 +30,13 @@ function cspPlugin(isDev: boolean): Plugin {
         // script avant d'en calculer le hash CSP : on normalise donc AUSSI ici,
         // sinon un build Windows (CRLF) produirait un hash qui ne correspond pas
         // et le script serait bloqué.
-        const hashes = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(
+        //
+        // `i` et `\s*` comme dans `cspPlugin` du socle : sans eux, `<SCRIPT>` et
+        // `<script >` ne seraient PAS hachés, donc bloqués en production (CodeQL
+        // js/bad-tag-filter). `\s*>` exclut toujours les balises à attribut.
+        const hashes = [
+          ...html.matchAll(/<script\s*>([\s\S]*?)<\/script\s*>/gi),
+        ].map(
           m =>
             `'sha256-${createHash('sha256')
               .update((m[1] ?? '').replace(/\r\n/g, '\n'))
