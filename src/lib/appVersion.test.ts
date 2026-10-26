@@ -36,7 +36,11 @@ function fauxCaches(noms: string[]) {
   };
 }
 
-function installer(noms: string[]) {
+/**
+ * `horsLigne` : `'update'` fait échouer `update()` comme sans réseau ;
+ * `'navigateur'` fait dire faux à `navigator.onLine`.
+ */
+function installer(noms: string[], horsLigne?: 'update' | 'navigateur') {
   const store = fauxCaches(noms);
   const registrations = { propre: 0, toutes: 0 };
   const reload = vi.fn();
@@ -48,12 +52,18 @@ function installer(noms: string[]) {
     reload,
   });
   vi.stubGlobal('navigator', {
+    onLine: horsLigne !== 'navigateur',
     serviceWorker: {
       getRegistration: () => {
         registrations.propre++;
         return Promise.resolve({
           scope: PORTEE,
-          update: () => Promise.resolve(),
+          update: () =>
+            horsLigne === 'update'
+              ? Promise.reject(
+                  new TypeError('Failed to update a ServiceWorker')
+                )
+              : Promise.resolve(),
         });
       },
       // Si elle est appelée, c'est déjà le défaut : elle rend TOUTE l'origine.
@@ -122,4 +132,23 @@ describe('forceUpdate', () => {
 
     expect(reload).toHaveBeenCalledTimes(1);
   });
+
+  // LE DÉFAUT, SIGNALÉ EN USAGE le 26/10/2026 sur toutes les apps : réseau
+  // coupé, le bouton vidait le précache, et la page rechargée ne trouvait plus
+  // rien à servir.
+  it.each(['update', 'navigateur'] as const)(
+    'hors connexion (%s), ne purge rien et recharge',
+    async horsLigne => {
+      const { store, reload } = installer(
+        [`workbox-precache-v2-${PORTEE}`, `workbox-runtime-${PORTEE}`],
+        horsLigne
+      );
+      const { forceUpdate } = await import('./appVersion.ts');
+
+      await forceUpdate();
+
+      expect(store.restants.size).toBe(2);
+      expect(reload).toHaveBeenCalledTimes(1);
+    }
+  );
 });
