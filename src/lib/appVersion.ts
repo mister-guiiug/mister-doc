@@ -41,15 +41,26 @@ function appScope(registrationScope?: string): string {
  *
  * `getRegistration()` sans argument, enfin : il rend la registration qui
  * contrôle CETTE page, là où `getRegistrations()` les rend toutes.
+ *
+ * HORS CONNEXION, AUCUNE PURGE. Signalé le 26/10/2026 sur toutes les apps :
+ * réseau coupé, « Forcer la mise à jour » vidait le précache, puis la page
+ * rechargée ne trouvait plus rien à servir, ni dans le cache ni sur le réseau.
+ * `update()` va chercher le script du worker : s'il échoue, rien ne pourrait
+ * être retéléchargé, et on recharge seulement. Même règle que `applyUpdate`
+ * du socle depuis la 6.28.0.
  */
 export async function forceUpdate(): Promise<void> {
   try {
     let porteeDuWorker: string | undefined;
+    let joignable = navigator.onLine !== false;
     if ('serviceWorker' in navigator) {
       const registration = await navigator.serviceWorker.getRegistration();
       porteeDuWorker = registration?.scope;
-      await registration?.update().catch(() => undefined);
+      await registration?.update().catch(() => {
+        joignable = false;
+      });
     }
+    if (!joignable) return;
     const scope = appScope(porteeDuWorker);
     // Sans portée connue, on ne peut pas distinguer nos caches de ceux des
     // voisines : on s'abstient. `update()` et le rechargement suffisent, et un
