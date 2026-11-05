@@ -174,7 +174,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let desabonner: (() => void) | undefined;
 
     async function amorcer(sb: SupabaseClient) {
-      const stockee = storedSupabaseSession() as Session | null;
+      // AVEC LE CLIENT : la session de CE projet. Toute la famille partage une
+      // origine, donc un `localStorage` ; sans lui, le socle rend la première
+      // case `sb-*` venue, qui peut être celle d'une autre app (socle 6.30.0).
+      const stockee = storedSupabaseSession(sb) as Session | null;
 
       // Hors ligne : ne rien demander à Supabase. Il n'a que le réseau pour
       // répondre, et il mettra une demi-minute à l'admettre.
@@ -228,8 +231,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
          * personne — il a renoncé à joindre le serveur. Une déconnexion
          * demandée sans réseau reste donc honorée : le stockage est vidé
          * d'abord, la garde ne se déclenche pas.
+         *
+         * La session de CE projet : celle d'une autre app de la même origine
+         * ferait passer une vraie déconnexion pour un réseau muet.
          */
-        if (!s && navigateurHorsLigne() && storedSupabaseSession()) return;
+        if (!s && navigateurHorsLigne() && storedSupabaseSession(sb)) return;
 
         void hydrate(s, navigateurHorsLigne());
       });
