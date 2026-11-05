@@ -157,9 +157,10 @@ export const MAX_TRANSIENT_ATTEMPTS = 10;
  * deux — seul le dernier compte. Un médecin qui hésite hors ligne entre trois
  * collègues n'envoie pas trois écritures au retour du réseau.
  *
- * `shift.assign` et `shift.clear` partagent la MÊME clé : poser puis retirer,
- * c'est retirer. Les identifiants de ligne (`leave.clear`, `hnc.clear`) ont
- * leur propre espace : une suppression ne fusionne pas avec une pose.
+ * `shift.assign` et `shift.clear` partagent la MÊME clé : poser puis retirer
+ * se fusionnent (`mergePlanningOps` dit comment). Les identifiants de ligne
+ * (`leave.clear`, `hnc.clear`) ont leur propre espace : une suppression ne
+ * fusionne pas avec une pose.
  */
 export function entityKey(op: PlanningOp): string | null {
   switch (op.kind) {
@@ -175,6 +176,58 @@ export function entityKey(op: PlanningOp): string | null {
     case 'hnc.clear':
       return `hnc-row:${op.id}`;
   }
+}
+
+type ShiftOp = Extract<PlanningOp, { kind: 'shift.assign' | 'shift.clear' }>;
+
+const isShiftOp = (op: PlanningOp): op is ShiftOp =>
+  op.kind === 'shift.assign' || op.kind === 'shift.clear';
+
+/**
+ * Ce qui part à la place de deux gestes en attente sur la même entité — ou
+ * `null` quand il n'y a plus rien à écrire.
+ *
+ * LE FAUX CONFLIT QUE CECI RÉPARE (audit hors ligne du 05/11/2026). L'écran
+ * lit l'occupant « vu » dans son état OPTIMISTE : hors ligne, libre → A → B
+ * enfile `assign(A, attendu libre)` puis `assign(B, attendu A)`. La file ne
+ * gardait que le dernier — et le serveur, qui n'a jamais vu passer A, le
+ * refusait : B n'était jamais posé, et « Réessayer » échouait encore.
+ *
+ * L'OCCUPANT ATTENDU EST CELUI DU PREMIER GESTE : c'est le seul état que le
+ * serveur connaît. La CIBLE est celle du dernier. Un vrai conflit reste donc
+ * détecté — si un collègue a changé le créneau pendant la coupure, il ne
+ * correspond plus à l'état d'avant le premier geste, et le compare-and-set
+ * refuse comme avant.
+ *
+ * RIEN À ÉCRIRE quand la suite des gestes ramène le créneau à son état
+ * d'origine (poser puis retirer, retirer puis reposer le même) : l'entrée
+ * quitte la file, plutôt que d'envoyer une écriture qui ne change rien — ou
+ * qui, contre un serveur qui a bougé, serait refusée pour rien.
+ *
+ * Hors créneaux, la dernière écriture gagne : absences et heures non
+ * cliniques sont des upserts idempotents, sans occupant à disputer.
+ *
+ * LIMITE CONNUE. Une écriture déjà EN VOL quand le geste suivant arrive (le
+ * réseau tombe pendant l'envoi) est fusionnée comme si elle n'était pas
+ * partie. Si elle a abouti malgré tout, l'entrée fusionnée vise un état que
+ * le serveur a quitté : elle part en lettre morte, nommée, rejouable — rien
+ * n'est écrasé en silence.
+ */
+export function mergePlanningOps(
+  previous: PlanningOp,
+  next: PlanningOp
+): PlanningOp | null {
+  if (!isShiftOp(previous) || !isShiftOp(next)) return next;
+  const known = previous.expectedDoctorId;
+  const { workDate, shiftType } = next;
+  if (next.kind === 'shift.clear') {
+    // Libre au départ, libre à l'arrivée : rien n'a changé pour le serveur.
+    return known === null
+      ? null
+      : { kind: 'shift.clear', workDate, shiftType, expectedDoctorId: known };
+  }
+  if (next.doctorId === known) return null;
+  return { ...next, expectedDoctorId: known };
 }
 
 // ── Branchements tardifs (par planningSync.ts et par l'interface) ─────
@@ -252,9 +305,25 @@ export function getSyncQueue(): SyncQueue<PlanningOp> {
  * Enfile une écriture. Rend `false` quand le plafond du socle est atteint (200
  * écritures en attente) : refuser visiblement vaut mieux que jeter en silence,
  * et l'appelant peut alors annuler sa mise à jour optimiste.
+ *
+ * Un geste sur une entité déjà en attente est FUSIONNÉ avec elle
+ * (`mergePlanningOps`) avant d'être confié au socle, dont la fusion se borne
+ * à remplacer l'entrée : c'est ici que l'occupant attendu du premier geste
+ * est préservé. Une fusion qui ne laisse rien à écrire retire l'entrée, et
+ * rend `true` — le geste est pris en charge.
  */
 export function enqueuePlanningOp(op: PlanningOp): boolean {
-  return getSyncQueue().enqueue(op) !== null;
+  const queue = getSyncQueue();
+  const key = entityKey(op);
+  const waiting =
+    key === null ? undefined : queue.list().find(entry => entry.key === key);
+  if (!waiting) return queue.enqueue(op) !== null;
+  const merged = mergePlanningOps(waiting.payload, op);
+  if (merged === null) {
+    queue.remove(waiting.id);
+    return true;
+  }
+  return queue.enqueue(merged) !== null;
 }
 
 /** Les écritures refusées définitivement — à montrer, pas à cacher. */

@@ -212,6 +212,213 @@ describe('affectation hors ligne puis reconnexion', () => {
   });
 });
 
+/**
+ * LA FUSION ET L'OCCUPANT ATTENDU — le faux conflit relevé par l'audit
+ * hors ligne du 05/11/2026.
+ *
+ * L'écran lit l'occupant « vu » dans son état OPTIMISTE
+ * (`usePlanningMutations`) : le second geste sur un créneau emporte donc
+ * l'occupant posé par le PREMIER, que le serveur n'a jamais vu passer. Les
+ * gestes ci-dessous sont enfilés EXACTEMENT comme l'écran les enfile, avec
+ * cet occupant optimiste. Le serveur, lui, ne connaît que l'état d'avant le
+ * premier geste : c'est cet état qui doit partir comme occupant attendu.
+ */
+describe('fusion de gestes sur un même créneau', () => {
+  const CLE = '2026-09-15|S1J';
+  let refus: unknown[];
+
+  beforeEach(() => {
+    refus = [];
+    setQueueObserver({ onDead: (_op, error) => refus.push(error) });
+    setOnline(false);
+    void getSyncQueue().start();
+  });
+
+  it('libre → A → B : B est posé, sans faux conflit', async () => {
+    enqueuePlanningOp({ ...POSER, doctorId: 'doc-a', expectedDoctorId: null });
+    // L'écran voit A (optimiste) et le donne comme occupant attendu.
+    enqueuePlanningOp({
+      ...POSER,
+      doctorId: 'doc-b',
+      expectedDoctorId: 'doc-a',
+    });
+
+    await goOnline();
+
+    expect(refus).toEqual([]);
+    expect(getSyncQueue().deadLetters()).toEqual([]);
+    expect(server.slots.get(CLE)).toBe('doc-b');
+    // Toujours UN seul envoi : la fusion reste une fusion.
+    expect(server.received).toHaveLength(1);
+  });
+
+  it('A → retirer → B : B remplace A, sans faux conflit', async () => {
+    server.slots.set(CLE, 'doc-a');
+    enqueuePlanningOp({
+      kind: 'shift.clear',
+      workDate: POSER.workDate,
+      shiftType: POSER.shiftType,
+      expectedDoctorId: 'doc-a',
+    });
+    // Le créneau est libre À L'ÉCRAN : l'occupant vu est `null`.
+    enqueuePlanningOp({ ...POSER, doctorId: 'doc-b', expectedDoctorId: null });
+
+    await goOnline();
+
+    expect(refus).toEqual([]);
+    expect(server.slots.get(CLE)).toBe('doc-b');
+  });
+
+  it('libre → A → B → retirer : rien ne part', async () => {
+    enqueuePlanningOp({ ...POSER, doctorId: 'doc-a', expectedDoctorId: null });
+    enqueuePlanningOp({
+      ...POSER,
+      doctorId: 'doc-b',
+      expectedDoctorId: 'doc-a',
+    });
+    enqueuePlanningOp({
+      kind: 'shift.clear',
+      workDate: POSER.workDate,
+      shiftType: POSER.shiftType,
+      expectedDoctorId: 'doc-b',
+    });
+
+    // Le créneau revient à l'état que le serveur connaît : il n'y a rien à
+    // écrire, donc rien à attendre.
+    expect(getSyncQueue().pending()).toBe(0);
+    await goOnline();
+    expect(server.received).toEqual([]);
+    expect(server.slots.has(CLE)).toBe(false);
+  });
+
+  it('libre → A → retirer, un collègue pose C entre-temps : ni envoi, ni faux conflit', async () => {
+    enqueuePlanningOp({ ...POSER, doctorId: 'doc-a', expectedDoctorId: null });
+    enqueuePlanningOp({
+      kind: 'shift.clear',
+      workDate: POSER.workDate,
+      shiftType: POSER.shiftType,
+      expectedDoctorId: 'doc-a',
+    });
+    // Le médecin n'a, au total, rien changé. Le retrait de A, s'il partait,
+    // serait refusé contre Camille — un conflit annoncé pour un geste annulé.
+    server.slots.set(CLE, 'doc-c');
+    server.names.set('doc-c', 'Dr Camille');
+
+    await goOnline();
+
+    expect(refus).toEqual([]);
+    expect(getSyncQueue().deadLetters()).toEqual([]);
+    expect(server.slots.get(CLE)).toBe('doc-c');
+  });
+
+  it('A → retirer → reposer A : rien ne part', async () => {
+    server.slots.set(CLE, 'doc-a');
+    enqueuePlanningOp({
+      kind: 'shift.clear',
+      workDate: POSER.workDate,
+      shiftType: POSER.shiftType,
+      expectedDoctorId: 'doc-a',
+    });
+    enqueuePlanningOp({ ...POSER, doctorId: 'doc-a', expectedDoctorId: null });
+
+    expect(getSyncQueue().pending()).toBe(0);
+    await goOnline();
+    expect(server.received).toEqual([]);
+    expect(server.slots.get(CLE)).toBe('doc-a');
+  });
+
+  it('A → B → retirer : part un retrait de A, l’occupant que le serveur connaît', async () => {
+    server.slots.set(CLE, 'doc-a');
+    enqueuePlanningOp({
+      ...POSER,
+      doctorId: 'doc-b',
+      expectedDoctorId: 'doc-a',
+    });
+    enqueuePlanningOp({
+      kind: 'shift.clear',
+      workDate: POSER.workDate,
+      shiftType: POSER.shiftType,
+      expectedDoctorId: 'doc-b',
+    });
+
+    expect(getSyncQueue().list()[0]?.payload).toEqual({
+      kind: 'shift.clear',
+      workDate: POSER.workDate,
+      shiftType: POSER.shiftType,
+      expectedDoctorId: 'doc-a',
+    });
+    await goOnline();
+
+    expect(refus).toEqual([]);
+    expect(server.slots.has(CLE)).toBe(false);
+  });
+
+  it('un VRAI conflit reste dit : un collègue a pris le créneau entre-temps', async () => {
+    enqueuePlanningOp({ ...POSER, doctorId: 'doc-a', expectedDoctorId: null });
+    enqueuePlanningOp({
+      ...POSER,
+      doctorId: 'doc-b',
+      expectedDoctorId: 'doc-a',
+    });
+    // Pendant la coupure, un autre appareil a posé Camille.
+    server.slots.set(CLE, 'doc-c');
+    server.names.set('doc-c', 'Dr Camille');
+
+    setOnline(true);
+    window.dispatchEvent(new Event('online'));
+    await vi.waitFor(() =>
+      expect(getSyncQueue().deadLetters()).toHaveLength(1)
+    );
+
+    expect(server.slots.get(CLE)).toBe('doc-c');
+    expect((refus[0] as SlotConflictError).holderName).toBe('Dr Camille');
+  });
+
+  it('un VRAI conflit reste dit sur un retrait : l’occupant a changé entre-temps', async () => {
+    server.slots.set(CLE, 'doc-a');
+    enqueuePlanningOp({
+      ...POSER,
+      doctorId: 'doc-b',
+      expectedDoctorId: 'doc-a',
+    });
+    enqueuePlanningOp({
+      kind: 'shift.clear',
+      workDate: POSER.workDate,
+      shiftType: POSER.shiftType,
+      expectedDoctorId: 'doc-b',
+    });
+    // Un collègue a remplacé A par Camille pendant la coupure : retirer A
+    // n'a plus de sens, et Camille ne doit pas être délogée.
+    server.slots.set(CLE, 'doc-c');
+    server.names.set('doc-c', 'Dr Camille');
+
+    setOnline(true);
+    window.dispatchEvent(new Event('online'));
+    await vi.waitFor(() =>
+      expect(getSyncQueue().deadLetters()).toHaveLength(1)
+    );
+
+    expect(server.slots.get(CLE)).toBe('doc-c');
+    expect((refus[0] as SlotConflictError).holderName).toBe('Dr Camille');
+  });
+
+  it('la fusion ne touche pas les autres créneaux', async () => {
+    enqueuePlanningOp({ ...POSER, doctorId: 'doc-a', expectedDoctorId: null });
+    enqueuePlanningOp({
+      ...POSER,
+      shiftType: 'S1N',
+      doctorId: 'doc-b',
+      expectedDoctorId: 'doc-a',
+    });
+
+    expect(getSyncQueue().pending()).toBe(2);
+    expect(getSyncQueue().list()[1]?.payload).toMatchObject({
+      shiftType: 'S1N',
+      expectedDoctorId: 'doc-a',
+    });
+  });
+});
+
 describe('deux médecins hors ligne sur le même créneau', () => {
   /**
    * DEUX APPAREILS, DEUX FILES, UN SEUL CRÉNEAU. Chacun a vu le créneau libre
