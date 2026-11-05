@@ -43,9 +43,16 @@ const {
   rappels: [] as Array<(e: string, s: unknown) => void>,
 }));
 
+/** La case où le SDK range la session de CE projet (`client.auth.storageKey`). */
+const CASE = 'sb-projetdetest-auth-token';
+/** Celle d'une autre app de la famille : même origine, même `localStorage`. */
+const CASE_SOEUR = 'sb-uneautreapp-auth-token';
+
 vi.mock('../lib/supabase.ts', () => ({
   // Asynchrone, comme la fabrique du socle : le contexte attend le client.
-  getSupabase: async () => ({ auth: { getSession, onAuthStateChange } }),
+  getSupabase: async () => ({
+    auth: { getSession, onAuthStateChange, storageKey: CASE },
+  }),
   subscribeTable: () => () => {},
 }));
 vi.mock('../backend/doctors.ts', () => ({ ensureSelfDoctor }));
@@ -85,17 +92,18 @@ function jeton(aal: string) {
 /** La session telle que Supabase l'écrit, PÉRIMÉE depuis deux heures. */
 function rangerSessionPerimee(
   aal = 'aal1',
-  factors?: Array<{ status: string }>
+  factors?: Array<{ status: string }>,
+  { cle = CASE, uid = 'uid-1' } = {}
 ) {
   localStorage.setItem(
-    'sb-projetdetest-auth-token',
+    cle,
     JSON.stringify({
       access_token: jeton(aal),
       refresh_token: 'jeton-de-rafraichissement',
       expires_at: Math.floor(Date.now() / 1000) - 7200,
       expires_in: 3600,
       token_type: 'bearer',
-      user: { id: 'uid-1', email: 'docteur@exemple.fr', factors },
+      user: { id: uid, email: 'docteur@exemple.fr', factors },
     })
   );
 }
@@ -217,6 +225,39 @@ describe('démarrage hors ligne', () => {
     await waitFor(() => expect(screen.getByText(/Docteur Test/)).toBeTruthy());
 
     localStorage.clear();
+    for (const rappel of rappels) rappel('SIGNED_OUT', null);
+
+    await waitFor(() => expect(screen.getByText(/sans-session/)).toBeTruthy());
+  });
+
+  it('la session d’une AUTRE app de la famille ne fait pas entrer', async () => {
+    // Toutes les apps sont servies depuis la même origine, donc le même
+    // `localStorage`. La première case `sb-*` venue était celle de la sœur :
+    // hors ligne, l'app s'ouvrait sous un utilisateur qui n'est pas le sien.
+    simulerHorsLigne(true);
+    rangerSessionPerimee('aal1', undefined, {
+      cle: CASE_SOEUR,
+      uid: 'uid-soeur',
+    });
+    getSession.mockResolvedValue({ data: { session: null } });
+    monter();
+
+    await waitFor(() => expect(screen.getByText(/sans-session/)).toBeTruthy());
+  });
+
+  it('une déconnexion VRAIE ferme la porte même si une autre app a sa session', async () => {
+    // La garde « session encore rangée = réseau muet » lisait la première
+    // case venue : celle de la sœur suffisait à retenir une vraie déconnexion.
+    simulerHorsLigne(true);
+    rangerSessionPerimee('aal1', undefined, {
+      cle: CASE_SOEUR,
+      uid: 'uid-soeur',
+    });
+    rangerSessionPerimee();
+    monter();
+    await waitFor(() => expect(screen.getByText(/Docteur Test/)).toBeTruthy());
+
+    localStorage.removeItem(CASE);
     for (const rappel of rappels) rappel('SIGNED_OUT', null);
 
     await waitFor(() => expect(screen.getByText(/sans-session/)).toBeTruthy());
