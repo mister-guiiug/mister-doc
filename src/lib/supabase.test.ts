@@ -51,6 +51,10 @@ describe('getSupabase', () => {
         auth: {
           persistSession: true,
           autoRefreshToken: true,
+          // Depuis le socle 6.31.0, la fabrique passe au client la case de
+          // session qu'elle annonce : celle que lit la garde hors ligne
+          // (`storedSupabaseSession(sb)`), et le défaut du SDK.
+          storageKey: supabase.storageKey(),
           flowType: 'pkce',
           experimental: { passkey: true },
         },
