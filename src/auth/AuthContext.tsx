@@ -17,9 +17,10 @@ import { setIncludePentecote } from '../lib/dates.ts';
 import { frAuthError } from '../lib/authErrors.ts';
 import { idbGet, idbSet } from '../lib/idbCache.ts';
 import {
+  ignoreOfflineSignOut,
   navigateurHorsLigne,
-  storedSupabaseSession,
 } from '@mister-guiiug/dev-pwa-config/auth/stored-session';
+import { readSupabaseSession } from '@mister-guiiug/dev-pwa-config/auth/supabase';
 import {
   clearAll,
   resetSyncQueue,
@@ -65,9 +66,6 @@ async function applySettings(approved: boolean) {
  * demande qu'on attende ici.
  */
 const ATTENTE_MAX_MS = 5_000;
-
-/** Marqueur d'attente dépassée, distinct de `null` (« pas de session »). */
-const TROP_LONG = Symbol('attente dépassée');
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -170,38 +168,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
      * renouvelée ou révoquée.
      */
     let vivant = true;
-    let minuteur: ReturnType<typeof setTimeout> | undefined;
     let desabonner: (() => void) | undefined;
 
     async function amorcer(sb: SupabaseClient) {
-      // AVEC LE CLIENT : la session de CE projet. Toute la famille partage une
-      // origine, donc un `localStorage` ; sans lui, le socle rend la première
-      // case `sb-*` venue, qui peut être celle d'une autre app (socle 6.30.0).
-      const stockee = storedSupabaseSession(sb) as Session | null;
-
-      // Hors ligne : ne rien demander à Supabase. Il n'a que le réseau pour
-      // répondre, et il mettra une demi-minute à l'admettre.
-      //
-      // `navigateurHorsLigne()` teste `onLine === false`, jamais `!onLine` :
-      // hors navigateur la propriété n'existe pas, et `!undefined` ferait
-      // croire à une coupure permanente.
-      if (navigateurHorsLigne() && stockee) {
-        await hydrate(stockee, true);
-        return;
-      }
-
-      // En ligne — ou ce que le navigateur appelle ainsi. `navigator.onLine`
-      // ne dit que « une interface est active » : il est vrai derrière un
-      // portail captif comme sur un Wi-Fi qui ne route rien. D'où le délai.
-      const issue = await Promise.race([
-        sb.auth.getSession().then(({ data }) => data.session),
-        new Promise<typeof TROP_LONG>(resoudre => {
-          minuteur = setTimeout(() => resoudre(TROP_LONG), ATTENTE_MAX_MS);
-        }),
-      ]);
-      clearTimeout(minuteur);
+      // Les trois chemins — hors ligne le stockage, en ligne `getSession()`
+      // borné, puis le stockage — et la session de CE projet : le socle
+      // (`readSupabaseSession`, 6.32.0, promu d'ici). `fromStorage` dit
+      // qu'elle vient de l'appareil : `hydrate` ne demande alors rien au
+      // serveur.
+      const { session, fromStorage } = await readSupabaseSession(sb, {
+        timeoutMs: ATTENTE_MAX_MS,
+      });
       if (!vivant) return;
-      await hydrate(issue === TROP_LONG ? stockee : issue, issue === TROP_LONG);
+      await hydrate(session as Session | null, fromStorage);
     }
 
     // LE CLIENT ARRIVE PAR UNE PROMESSE — c'est le contrat de la fabrique du
@@ -232,10 +211,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
          * demandée sans réseau reste donc honorée : le stockage est vidé
          * d'abord, la garde ne se déclenche pas.
          *
-         * La session de CE projet : celle d'une autre app de la même origine
-         * ferait passer une vraie déconnexion pour un réseau muet.
+         * Le socle tient la garde (`ignoreOfflineSignOut`, 6.32.0, promue
+         * d'ici), avec la session de CE projet.
          */
-        if (!s && navigateurHorsLigne() && storedSupabaseSession(sb)) return;
+        if (ignoreOfflineSignOut(s, sb)) return;
 
         void hydrate(s, navigateurHorsLigne());
       });
@@ -243,7 +222,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     return () => {
       vivant = false;
-      clearTimeout(minuteur);
       desabonner?.();
     };
   }, []);
