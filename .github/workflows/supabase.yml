@@ -72,10 +72,13 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         # `verify_jwt = false` est déclaré PAR fonction dans supabase/config.toml.
         # `--use-api` : bundling côté serveur, pas besoin de Docker sur le runner.
+        # `--yes` : hors terminal, la CLI 3 refuse tout changement hébergé sans
+        # lui (« Confirmation required … Nothing was changed », le 21/11/2026).
         run: |
           supabase functions deploy \
             --project-ref "$SUPABASE_PROJECT_REF" \
-            --use-api
+            --use-api \
+            --yes
 
       # --- 2) Migrations 0014→dernière, en UNE transaction atomique -------------
       - name: S'assurer que psql est disponible
