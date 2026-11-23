@@ -9,6 +9,11 @@ métier, à partir d'un modèle simple de créneaux mensuels.
 > défense en profondeur, Supabase avec RLS). Les briques partagées viennent du
 > paquet `@mister-guiiug/dev-pwa-config`, publié sur GitHub Packages.
 
+## Guides
+
+- [Planning de gardes des médecins](https://mister-guiiug.github.io/mister-doc/planning-de-gardes-medecins.html)
+- [Repos de sécurité après une garde](https://mister-guiiug.github.io/mister-doc/repos-de-securite-apres-une-garde.html)
+
 ## Fonctionnalités
 
 ### Planning
